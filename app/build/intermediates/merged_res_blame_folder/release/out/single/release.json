@@ -1,0 +1,50 @@
+[
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/mipmap-xxxhdpi_ic_launcher.png.flat",
+        "source": "com.rehab.robotarm.app-main-75:/mipmap-xxxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/mipmap-xhdpi_ic_launcher.png.flat",
+        "source": "com.rehab.robotarm.app-main-75:/mipmap-xhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/mipmap-hdpi_ic_launcher.png.flat",
+        "source": "com.rehab.robotarm.app-main-75:/mipmap-hdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/mipmap-xxxhdpi_ic_launcher_round.png.flat",
+        "source": "com.rehab.robotarm.app-main-75:/mipmap-xxxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/mipmap-hdpi_ic_launcher_round.png.flat",
+        "source": "com.rehab.robotarm.app-main-75:/mipmap-hdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/mipmap-mdpi_ic_launcher.png.flat",
+        "source": "com.rehab.robotarm.app-main-75:/mipmap-mdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/mipmap-xhdpi_ic_launcher_round.png.flat",
+        "source": "com.rehab.robotarm.app-main-75:/mipmap-xhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/xml_data_extraction_rules.xml.flat",
+        "source": "com.rehab.robotarm.app-main-75:/xml/data_extraction_rules.xml"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/mipmap-xxhdpi_ic_launcher_round.png.flat",
+        "source": "com.rehab.robotarm.app-main-75:/mipmap-xxhdpi/ic_launcher_round.png"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/xml_backup_rules.xml.flat",
+        "source": "com.rehab.robotarm.app-main-75:/xml/backup_rules.xml"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/mipmap-xxhdpi_ic_launcher.png.flat",
+        "source": "com.rehab.robotarm.app-main-75:/mipmap-xxhdpi/ic_launcher.png"
+    },
+    {
+        "merged": "com.rehab.robotarm.app-merged_res-74:/mipmap-mdpi_ic_launcher_round.png.flat",
+        "source": "com.rehab.robotarm.app-main-75:/mipmap-mdpi/ic_launcher_round.png"
+    }
+]

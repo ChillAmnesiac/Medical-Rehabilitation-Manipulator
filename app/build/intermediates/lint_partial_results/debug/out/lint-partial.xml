@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<incidents format="6" by="lint 8.2.0" type="partial_results">
+    <map id="UnsafeIntentLaunch">
+            <map id="unprotected">
+                <entry
+                    name="com.rehab.robotarm.MainActivity"
+                    boolean="true"/>
+            </map>
+    </map>
+    <map id="NotificationPermission">
+        <entry
+            name="className"
+            string="com/google/firebase/messaging/DisplayNotification"/>
+        <location id="class"
+            file="$GRADLE_USER_HOME/caches/transforms-3/2d5e22f5e7f2b8229dca377368e25b94/transformed/jetified-firebase-messaging-23.4.0/jars/classes.jar"/>
+    </map>
+    <map id="UnusedResources">
+        <entry
+            name="model"
+            string="mipmap[ic_launcher_round(U),ic_launcher(U)],string[app_name(U)],style[Theme_RehabRobotArm(U)],xml[data_extraction_rules(U),backup_rules(U)];;;;"/>
+    </map>
+
+</incidents>
