@@ -1,6 +1,8 @@
 package com.rehab.robotarm.viewmodel
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import android.content.Context
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.rehab.robotarm.data.database.entity.User
 import com.rehab.robotarm.data.database.entity.UserProfile
@@ -11,8 +13,11 @@ import kotlinx.coroutines.launch
 import java.util.UUID
 
 class AuthViewModel(
+    application: Application,
     private val userRepository: UserRepository
-) : ViewModel() {
+) : AndroidViewModel(application) {
+
+    private val prefs = application.getSharedPreferences("auth_prefs", Context.MODE_PRIVATE)
 
     private val _loginState = MutableStateFlow<LoginState>(LoginState.Idle)
     val loginState: StateFlow<LoginState> = _loginState
@@ -32,6 +37,9 @@ class AuthViewModel(
                     userRepository.updateLastLogin(user.id, System.currentTimeMillis())
                     _currentUser.value = user
                     _loginState.value = LoginState.Success(user)
+
+                    // 保存用户ID用于指纹登录
+                    prefs.edit().putString("last_user_id", user.id).apply()
                 } else {
                     _loginState.value = LoginState.Error("用户名或密码错误")
                 }
@@ -85,15 +93,28 @@ class AuthViewModel(
     }
 
     // 指纹登录
-    fun loginWithBiometric(onSuccess: () -> Unit, onError: (String) -> Unit) {
-        // 生物识别认证成功后调用
+    fun loginWithBiometric() {
         viewModelScope.launch {
+            _loginState.value = LoginState.Loading
+
             try {
-                // 从本地存储获取上次登录的用户
-                // TODO: 实现本地存储逻辑
-                onSuccess()
+                // 从本地存储获取上次登录的用户ID
+                val lastUserId = prefs.getString("last_user_id", null)
+
+                if (lastUserId != null) {
+                    val user = userRepository.getUserById(lastUserId)
+                    if (user != null && user.isActive) {
+                        userRepository.updateLastLogin(user.id, System.currentTimeMillis())
+                        _currentUser.value = user
+                        _loginState.value = LoginState.Success(user)
+                    } else {
+                        _loginState.value = LoginState.Error("用户不存在或已禁用")
+                    }
+                } else {
+                    _loginState.value = LoginState.Error("未找到保存的用户信息，请先使用密码登录")
+                }
             } catch (e: Exception) {
-                onError(e.message ?: "指纹登录失败")
+                _loginState.value = LoginState.Error(e.message ?: "指纹登录失败")
             }
         }
     }

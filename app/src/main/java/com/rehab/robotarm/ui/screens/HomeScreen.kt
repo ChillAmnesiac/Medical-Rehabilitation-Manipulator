@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.rehab.robotarm.viewmodel.AuthViewModel
 import com.rehab.robotarm.viewmodel.RobotViewModel
+import com.rehab.robotarm.ui.components.ModeStatusBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,12 +34,14 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text("康复机械臂训练系统") },
                 actions = {
-                    // 连接状态指示
-                    Icon(
-                        imageVector = if (isConnected) Icons.Default.Bluetooth else Icons.Default.BluetoothDisabled,
-                        contentDescription = "蓝牙状态",
-                        tint = if (isConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
-                    )
+                    // 蓝牙连接按钮
+                    IconButton(onClick = { navController.navigate("bluetooth_connection") }) {
+                        Icon(
+                            imageVector = if (isConnected) Icons.Default.Bluetooth else Icons.Default.BluetoothDisabled,
+                            contentDescription = "蓝牙连接",
+                            tint = if (isConnected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error
+                        )
+                    }
                     IconButton(onClick = { authViewModel.logout(); navController.navigate("login") }) {
                         Icon(Icons.Default.Logout, contentDescription = "登出")
                     }
@@ -51,6 +54,16 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // 模式状态栏
+            ModeStatusBar(
+                mainMode = robotState.mainMode,
+                activeSubMode = robotState.activeSubMode,
+                passiveSubMode = robotState.passiveSubMode,
+                memorySubMode = robotState.memorySubMode,
+                isConnected = isConnected,
+                modifier = Modifier.padding(16.dp)
+            )
+
             // 欢迎卡片
             Card(
                 modifier = Modifier
@@ -76,6 +89,33 @@ fun HomeScreen(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
+            }
+
+            // 紧急停止按钮（仅在连接时显示）
+            if (isConnected) {
+                Button(
+                    onClick = { robotViewModel.emergencyStop() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .height(64.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Warning,
+                        contentDescription = null,
+                        modifier = Modifier.size(32.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = "紧急停止",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(8.dp))
             }
 
             // 功能网格
@@ -143,6 +183,8 @@ fun getMenuItems(role: String): List<MenuItem> {
     val commonItems = listOf(
         MenuItem(Icons.Default.Settings, "模式选择", "mode_selection"),
         MenuItem(Icons.Default.Sensors, "传感器数据", "sensor_data"),
+        MenuItem(Icons.Default.Storage, "数据采集", "data_collection"),
+        MenuItem(Icons.Default.BugReport, "BLE 调试", "ble_debug"),
         MenuItem(Icons.Default.Leaderboard, "排行榜", "leaderboard")
     )
 

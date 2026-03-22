@@ -8,6 +8,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.rehab.robotarm.viewmodel.RobotViewModel
+import com.rehab.robotarm.ui.components.ModeStatusBar
 
 /**
  * 界面二：传感器数据显示界面
@@ -32,58 +33,88 @@ fun SensorDataScreen(viewModel: RobotViewModel = viewModel()) {
             )
         }
 
-        // 角度传感器
+        // 模式状态栏
         item {
-            SensorCard(title = "角度传感器") {
-                SensorDataRow("肩关节角度", "${sensorData.shoulderAngle.toInt()}°")
-                SensorDataRow("肘关节角度", "${sensorData.elbowAngle.toInt()}°")
-                SensorDataRow("推杆位置", "${sensorData.lateralPosition.toInt()}%")
+            ModeStatusBar(
+                mainMode = robotState.mainMode,
+                activeSubMode = robotState.activeSubMode,
+                passiveSubMode = robotState.passiveSubMode,
+                memorySubMode = robotState.memorySubMode,
+                isConnected = robotState.isConnected
+            )
+        }
+
+        // 连接提示
+        if (!robotState.isConnected) {
+            item {
+                Card(
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = "未连接设备，请先连接机械臂以查看实时数据",
+                        modifier = Modifier.padding(16.dp),
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
             }
         }
 
-        // 力传感器
+        // 电机角度
         item {
-            SensorCard(title = "力/扭矩传感器") {
-                SensorDataRow("肩关节扭矩", String.format("%.2f Nm", sensorData.shoulderTorque))
-                SensorDataRow("肘关节扭矩", String.format("%.2f Nm", sensorData.elbowTorque))
-                SensorDataRow("肩关节力", String.format("%.2f N", sensorData.shoulderForce))
-                SensorDataRow("肘关节力", String.format("%.2f N", sensorData.elbowForce))
+            SensorCard(title = "电机角度") {
+                SensorDataRow("电机1（肩关节）", String.format("%.1f°", sensorData.motor1Angle))
+                SensorDataRow("电机2（肘关节）", String.format("%.1f°", sensorData.motor2Angle))
+            }
+        }
+
+        // IMU角度（肩膀处）
+        item {
+            SensorCard(title = "IMU角度（肩膀处）") {
+                SensorDataRow("X轴（横向张开）", String.format("%.1f°", sensorData.imuAngleX))
+                SensorDataRow("Y轴", String.format("%.1f°", sensorData.imuAngleY))
+                SensorDataRow("Z轴", String.format("%.1f°", sensorData.imuAngleZ))
+            }
+        }
+
+        // IMU加速度（肩膀处）
+        item {
+            SensorCard(title = "IMU加速度（肩膀处）") {
+                SensorDataRow("X轴", String.format("%.2f m/s²", sensorData.imuAccelX))
+                SensorDataRow("Y轴", String.format("%.2f m/s²", sensorData.imuAccelY))
+                SensorDataRow("Z轴", String.format("%.2f m/s²", sensorData.imuAccelZ))
+            }
+        }
+
+        // 电机阻尼
+        item {
+            SensorCard(title = "电机阻尼") {
+                SensorDataRow("电机1阻尼", String.format("%.2f", sensorData.motor1Damping))
+                SensorDataRow("电机2阻尼", String.format("%.2f", sensorData.motor2Damping))
             }
         }
 
         // EMG肌电信号
         item {
             SensorCard(title = "EMG肌电信号") {
-                SensorDataRow("通道1", String.format("%.1f μV", sensorData.emgCh1))
-                SensorDataRow("通道2", String.format("%.1f μV", sensorData.emgCh2))
+                SensorDataRow("EMG通道", String.format("%.1f μV", sensorData.emgCh1))
             }
         }
 
-        // 加速度传感器 - 肩关节
+        // 心率传感器
         item {
-            SensorCard(title = "肩关节加速度") {
-                SensorDataRow("X轴", String.format("%.2f m/s²", sensorData.shoulderAccelX))
-                SensorDataRow("Y轴", String.format("%.2f m/s²", sensorData.shoulderAccelY))
-                SensorDataRow("Z轴", String.format("%.2f m/s²", sensorData.shoulderAccelZ))
+            SensorCard(title = "心率传感器") {
+                SensorDataRow("心率", "${sensorData.heartRate} bpm")
             }
         }
 
-        // 加速度传感器 - 肘关节
+        // 电机温度
         item {
-            SensorCard(title = "肘关节加速度") {
-                SensorDataRow("X轴", String.format("%.2f m/s²", sensorData.elbowAccelX))
-                SensorDataRow("Y轴", String.format("%.2f m/s²", sensorData.elbowAccelY))
-                SensorDataRow("Z轴", String.format("%.2f m/s²", sensorData.elbowAccelZ))
-            }
-        }
-
-        // 温度传感器
-        item {
-            SensorCard(title = "温度传感器") {
-                SensorDataRow("整体温度", String.format("%.1f°C", sensorData.temperature))
-                SensorDataRow("肩关节温度", String.format("%.1f°C", sensorData.shoulderTemp))
-                SensorDataRow("肘关节温度", String.format("%.1f°C", sensorData.elbowTemp))
-                SensorDataRow("推杆电机温度", String.format("%.1f°C", sensorData.lateralTemp))
+            SensorCard(title = "电机温度") {
+                SensorDataRow("电机1温度", String.format("%.1f°C", sensorData.motor1Temp))
+                SensorDataRow("电机2温度", String.format("%.1f°C", sensorData.motor2Temp))
+                SensorDataRow("平均温度", String.format("%.1f°C", sensorData.temperature))
             }
         }
 

@@ -22,6 +22,7 @@ import com.rehab.robotarm.ui.theme.MedicalGreen
 import com.rehab.robotarm.ui.theme.MedicalOrange
 import com.rehab.robotarm.ui.theme.MedicalRed
 import com.rehab.robotarm.viewmodel.RobotViewModel
+import com.rehab.robotarm.ui.components.ModeStatusBar
 
 /**
  * 界面四：模式控制界面
@@ -49,9 +50,44 @@ fun ModeControlScreen(viewModel: RobotViewModel = viewModel()) {
             )
         }
 
+        // 模式状态栏
+        item {
+            ModeStatusBar(
+                mainMode = robotState.mainMode,
+                activeSubMode = robotState.activeSubMode,
+                passiveSubMode = robotState.passiveSubMode,
+                memorySubMode = robotState.memorySubMode,
+                isConnected = robotState.isConnected
+            )
+        }
+
         // 当前模式显示
         item {
             CurrentModeCard(robotState.mode)
+        }
+
+        // 紧急停止按钮
+        item {
+            Button(
+                onClick = { viewModel.emergencyStop() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(64.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error
+                )
+            ) {
+                Icon(
+                    Icons.Default.Stop,
+                    contentDescription = null,
+                    modifier = Modifier.size(32.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = "紧急停止",
+                    style = MaterialTheme.typography.titleLarge
+                )
+            }
         }
 
         // 模式切换按钮

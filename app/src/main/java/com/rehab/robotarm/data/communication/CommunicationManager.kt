@@ -103,7 +103,7 @@ class CommunicationManager(
         // 参考 PROTOCOL.md
         return try {
             val parser = ProtocolParser()
-            parser.parse(bytes)
+            parser.parseSensorData(bytes) ?: SensorData()
         } catch (e: Exception) {
             SensorData() // 返回空数据
         }

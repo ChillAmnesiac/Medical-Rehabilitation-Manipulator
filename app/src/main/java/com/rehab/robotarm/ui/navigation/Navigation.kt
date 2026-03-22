@@ -68,6 +68,9 @@ fun AppNavigation(
         composable("sensor_data") {
             SensorDataScreen(robotViewModel)
         }
+        composable("data_collection") {
+            DataCollectionScreen(navController, robotViewModel)
+        }
         composable("natural_control") {
             NaturalControlScreen(robotViewModel)
         }
@@ -148,6 +151,16 @@ fun AppNavigation(
         // WiFi配置
         composable("wifi_config") {
             WifiConfigScreen(robotViewModel)
+        }
+
+        // 蓝牙连接
+        composable("bluetooth_connection") {
+            BluetoothConnectionScreen(navController, robotViewModel)
+        }
+
+        // BLE 调试终端
+        composable("ble_debug") {
+            BleDebugScreen(navController, robotViewModel)
         }
     }
 }

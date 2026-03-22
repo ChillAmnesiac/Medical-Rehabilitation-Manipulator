@@ -22,37 +22,29 @@ data class SensorRecord(
     val sessionId: String,
     val timestamp: Long = System.currentTimeMillis(),
 
-    // 关节角度数据
-    val shoulderAngle: Float,
-    val elbowAngle: Float,
-    val wristAngle: Float = 0f,
-    val lateralPosition: Float,
-
-    // 扭矩/力传感器数据
-    val shoulderTorque: Float = 0f,
-    val elbowTorque: Float = 0f,
-    val wristTorque: Float = 0f,
-    val shoulderForce: Float = 0f,
-    val elbowForce: Float = 0f,
-
-    // EMG肌电信号
+    // EMG肌电传感器（单通道）
     val emgCh1: Float,
-    val emgCh2: Float,
 
-    // 六轴IMU数据
-    val imuAccelX: Float = 0f,
-    val imuAccelY: Float = 0f,
-    val imuAccelZ: Float = 0f,
-    val imuGyroX: Float = 0f,
-    val imuGyroY: Float = 0f,
-    val imuGyroZ: Float = 0f,
-
-    // 生理传感器数据
+    // 心率传感器
     val heartRate: Int,
-    val spo2: Int = 0,
 
-    // 温度传感器数据
-    val shoulderTemp: Float = 0f,
-    val elbowTemp: Float = 0f,
-    val lateralTemp: Float = 0f
+    // IMU传感器（肩膀处）- 3轴角度
+    val imuAngleX: Float,
+    val imuAngleY: Float,
+    val imuAngleZ: Float,
+
+    // IMU传感器（肩膀处）- 3轴加速度
+    val imuAccelX: Float,
+    val imuAccelY: Float,
+    val imuAccelZ: Float,
+
+    // 伺服电机1（肩关节 - 纵向运动）
+    val motor1Angle: Float,
+    val motor1Damping: Float,
+    val motor1Temp: Float,
+
+    // 伺服电机2（肘关节 - 纵向运动）
+    val motor2Angle: Float,
+    val motor2Damping: Float,
+    val motor2Temp: Float
 )

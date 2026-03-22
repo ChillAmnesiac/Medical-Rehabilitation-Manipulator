@@ -159,14 +159,19 @@ fun MainModeCard(
 
 @Composable
 fun ActiveSubModeSelection(navController: NavController, viewModel: RobotViewModel) {
+    val robotState by viewModel.robotState.collectAsState()
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SubModeCard(
             title = "标准主动模式",
             icon = Icons.Default.FitnessCenter,
             description = "电机不使能，患者自由运动，记录运动数据评估能力",
             onClick = {
-                viewModel.setMode(MainMode.ACTIVE, ActiveSubMode.STANDARD)
                 navController.navigate("active_standard")
+            },
+            isActive = robotState.mainMode == MainMode.ACTIVE && robotState.activeSubMode == ActiveSubMode.STANDARD,
+            onActivate = {
+                viewModel.setMode(MainMode.ACTIVE, ActiveSubMode.STANDARD)
             }
         )
 
@@ -175,8 +180,11 @@ fun ActiveSubModeSelection(navController: NavController, viewModel: RobotViewMod
             icon = Icons.Default.Psychology,
             description = "AI实时分析EMG信号，预测运动意图并提供智能助力",
             onClick = {
-                viewModel.setMode(MainMode.ACTIVE, ActiveSubMode.AI_ASSIST)
                 navController.navigate("active_ai_assist")
+            },
+            isActive = robotState.mainMode == MainMode.ACTIVE && robotState.activeSubMode == ActiveSubMode.AI_ASSIST,
+            onActivate = {
+                viewModel.setMode(MainMode.ACTIVE, ActiveSubMode.AI_ASSIST)
             }
         )
 
@@ -185,8 +193,11 @@ fun ActiveSubModeSelection(navController: NavController, viewModel: RobotViewMod
             icon = Icons.Default.SportsEsports,
             description = "通过趣味游戏进行康复训练，提高患者积极性",
             onClick = {
-                viewModel.setMode(MainMode.ACTIVE, ActiveSubMode.GAME)
                 navController.navigate("game_selection")
+            },
+            isActive = robotState.mainMode == MainMode.ACTIVE && robotState.activeSubMode == ActiveSubMode.GAME,
+            onActivate = {
+                viewModel.setMode(MainMode.ACTIVE, ActiveSubMode.GAME)
             }
         )
     }
@@ -194,14 +205,19 @@ fun ActiveSubModeSelection(navController: NavController, viewModel: RobotViewMod
 
 @Composable
 fun PassiveSubModeSelection(navController: NavController, viewModel: RobotViewModel) {
+    val robotState by viewModel.robotState.collectAsState()
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SubModeCard(
             title = "手动控制模式",
             icon = Icons.Default.TouchApp,
             description = "通过App手动控制机械臂运动，实时调整角度和速度",
             onClick = {
-                viewModel.setMode(MainMode.PASSIVE, passiveSubMode = PassiveSubMode.MANUAL)
                 navController.navigate("robot_control")
+            },
+            isActive = robotState.mainMode == MainMode.PASSIVE && robotState.passiveSubMode == PassiveSubMode.MANUAL,
+            onActivate = {
+                viewModel.setMode(MainMode.PASSIVE, passiveSubMode = PassiveSubMode.MANUAL)
             }
         )
 
@@ -210,8 +226,11 @@ fun PassiveSubModeSelection(navController: NavController, viewModel: RobotViewMo
             icon = Icons.Default.AutoMode,
             description = "系统自动执行预设的训练方案，无需人工干预",
             onClick = {
-                viewModel.setMode(MainMode.PASSIVE, passiveSubMode = PassiveSubMode.AUTO_TRAIN)
                 navController.navigate("passive_auto_train")
+            },
+            isActive = robotState.mainMode == MainMode.PASSIVE && robotState.passiveSubMode == PassiveSubMode.AUTO_TRAIN,
+            onActivate = {
+                viewModel.setMode(MainMode.PASSIVE, passiveSubMode = PassiveSubMode.AUTO_TRAIN)
             }
         )
 
@@ -220,8 +239,11 @@ fun PassiveSubModeSelection(navController: NavController, viewModel: RobotViewMo
             icon = Icons.Default.Cloud,
             description = "医生通过远程连接实时控制和监督训练过程",
             onClick = {
-                viewModel.setMode(MainMode.PASSIVE, passiveSubMode = PassiveSubMode.REMOTE)
                 navController.navigate("passive_remote")
+            },
+            isActive = robotState.mainMode == MainMode.PASSIVE && robotState.passiveSubMode == PassiveSubMode.REMOTE,
+            onActivate = {
+                viewModel.setMode(MainMode.PASSIVE, passiveSubMode = PassiveSubMode.REMOTE)
             }
         )
     }
@@ -229,14 +251,19 @@ fun PassiveSubModeSelection(navController: NavController, viewModel: RobotViewMo
 
 @Composable
 fun MemorySubModeSelection(navController: NavController, viewModel: RobotViewModel) {
+    val robotState by viewModel.robotState.collectAsState()
+
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
         SubModeCard(
             title = "动作回放模式",
             icon = Icons.Default.Replay,
             description = "回放之前录制的康复动作，支持单次回放、循环回放和速度调节",
             onClick = {
-                viewModel.setMode(MainMode.MEMORY, memorySubMode = MemorySubMode.REPLAY)
                 navController.navigate("action_replay")
+            },
+            isActive = robotState.mainMode == MainMode.MEMORY && robotState.memorySubMode == MemorySubMode.REPLAY,
+            onActivate = {
+                viewModel.setMode(MainMode.MEMORY, memorySubMode = MemorySubMode.REPLAY)
             }
         )
 
@@ -245,8 +272,11 @@ fun MemorySubModeSelection(navController: NavController, viewModel: RobotViewMod
             icon = Icons.Default.CalendarMonth,
             description = "执行每日计划、周计划或AI生成的个性化训练计划",
             onClick = {
-                viewModel.setMode(MainMode.MEMORY, memorySubMode = MemorySubMode.PLAN)
                 navController.navigate("training_plan")
+            },
+            isActive = robotState.mainMode == MainMode.MEMORY && robotState.memorySubMode == MemorySubMode.PLAN,
+            onActivate = {
+                viewModel.setMode(MainMode.MEMORY, memorySubMode = MemorySubMode.PLAN)
             }
         )
 
@@ -255,8 +285,11 @@ fun MemorySubModeSelection(navController: NavController, viewModel: RobotViewMod
             icon = Icons.Default.Assessment,
             description = "执行ROM测试、力量测试和协调性测试，生成康复能力报告",
             onClick = {
-                viewModel.setMode(MainMode.MEMORY, memorySubMode = MemorySubMode.ASSESSMENT)
                 navController.navigate("memory_assessment")
+            },
+            isActive = robotState.mainMode == MainMode.MEMORY && robotState.memorySubMode == MemorySubMode.ASSESSMENT,
+            onActivate = {
+                viewModel.setMode(MainMode.MEMORY, memorySubMode = MemorySubMode.ASSESSMENT)
             }
         )
     }
@@ -267,44 +300,107 @@ fun SubModeCard(
     title: String,
     icon: ImageVector,
     description: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isActive: Boolean = false,
+    onActivate: (() -> Unit)? = null
 ) {
     Card(
-        onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive)
+                MaterialTheme.colorScheme.primaryContainer
+            else
+                MaterialTheme.colorScheme.surface
+        )
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp)
         ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(48.dp),
-                tint = MaterialTheme.colorScheme.primary
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(48.dp),
+                    tint = if (isActive)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Spacer(modifier = Modifier.width(16.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                        if (isActive) {
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = MaterialTheme.shapes.small
+                            ) {
+                                Text(
+                                    text = "当前模式",
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onPrimary
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+
+            // 按钮行
+            Spacer(modifier = Modifier.height(12.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // 开启模式按钮
+                if (onActivate != null) {
+                    Button(
+                        onClick = onActivate,
+                        modifier = Modifier.weight(1f),
+                        enabled = !isActive
+                    ) {
+                        Icon(
+                            imageVector = if (isActive) Icons.Default.Check else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(if (isActive) "已开启" else "开启模式")
+                    }
+                }
+
+                // 查看详情按钮
+                OutlinedButton(
+                    onClick = onClick,
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text("查看详情")
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Icon(
+                        imageVector = Icons.Default.ChevronRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+            }
         }
     }
 }

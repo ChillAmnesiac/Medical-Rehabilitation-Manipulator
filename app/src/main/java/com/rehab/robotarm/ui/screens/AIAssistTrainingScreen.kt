@@ -1,5 +1,10 @@
 package com.rehab.robotarm.ui.screens
 
+import android.app.Activity
+import android.content.Intent
+import android.speech.RecognizerIntent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,12 +16,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.rehab.robotarm.viewmodel.RobotViewModel
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 /**
  * AI辅助训练界面
@@ -38,6 +45,19 @@ fun AIAssistTrainingScreen(
     var isLoading by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
     var gatewayUrl by remember { mutableStateOf("http://localhost:8080") }
+    val context = LocalContext.current
+
+    // 语音识别启动器
+    val speechRecognizerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val spokenText = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.get(0)
+            if (!spokenText.isNullOrBlank()) {
+                userInput = spokenText
+            }
+        }
+    }
 
     // 检查OpenClaw连接状态
     LaunchedEffect(Unit) {
@@ -103,6 +123,25 @@ fun AIAssistTrainingScreen(
                         enabled = openClawConnected && !isLoading,
                         maxLines = 3
                     )
+
+                    // 语音输入按钮
+                    IconButton(
+                        onClick = {
+                            val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                                putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.CHINESE.toString())
+                                putExtra(RecognizerIntent.EXTRA_PROMPT, "请说出训练指令...")
+                            }
+                            try {
+                                speechRecognizerLauncher.launch(intent)
+                            } catch (e: Exception) {
+                                android.util.Log.e("AIAssist", "Speech recognition not available", e)
+                            }
+                        },
+                        enabled = openClawConnected && !isLoading
+                    ) {
+                        Icon(Icons.Default.Mic, "语音输入")
+                    }
 
                     IconButton(
                         onClick = {

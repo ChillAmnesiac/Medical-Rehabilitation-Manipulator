@@ -13,6 +13,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.rehab.robotarm.viewmodel.RobotViewModel
+import com.rehab.robotarm.ui.components.Arm3DView
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 /**
  * 手动控制界面 - 被动模式
@@ -27,6 +31,7 @@ fun ManualControlScreen(
     val robotState by viewModel.robotState.collectAsState()
     var targetShoulderAngle by remember { mutableStateOf(90f) }
     var targetElbowAngle by remember { mutableStateOf(90f) }
+    var targetLateralPosition by remember { mutableStateOf(50f) }
     var speed by remember { mutableStateOf(50f) }
     var isMoving by remember { mutableStateOf(false) }
 
@@ -70,6 +75,77 @@ fun ManualControlScreen(
                     Text(
                         text = "请确保患者处于安全位置，随时准备按下急停按钮",
                         style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            // 3D手臂模型
+            Card {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "3D实时预览",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Arm3DView(
+                        shoulderAngle = robotState.sensorData.motor1Angle,
+                        elbowAngle = robotState.sensorData.motor2Angle,
+                        lateralAngle = robotState.sensorData.imuAngleX,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(300.dp)
+                    )
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("肩关节", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "${robotState.sensorData.motor1Angle.toInt()}°",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("肘关节", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "${robotState.sensorData.motor2Angle.toInt()}°",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("横向张开", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                "${robotState.sensorData.imuAngleX.toInt()}°",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Text(
+                        text = "拖动旋转视角",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
@@ -214,6 +290,50 @@ fun ManualControlScreen(
                 }
             }
 
+            // 推杆控制（横向位置）
+            Card {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "横向位置",
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        Text(
+                            text = "${targetLateralPosition.toInt()}mm",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Slider(
+                        value = targetLateralPosition,
+                        onValueChange = { targetLateralPosition = it },
+                        valueRange = 0f..100f,
+                        enabled = !isMoving
+                    )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("内收", style = MaterialTheme.typography.bodySmall)
+                        Text("中间", style = MaterialTheme.typography.bodySmall)
+                        Text("外展", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+
             // 速度控制
             Card {
                 Column(
@@ -268,8 +388,15 @@ fun ManualControlScreen(
                 Button(
                     onClick = {
                         isMoving = true
-                        // TODO: 发送运动指令
-                        viewModel.moveToPosition(targetShoulderAngle, targetElbowAngle, speed)
+                        // 发送关节控制命令
+                        viewModel.controlShoulder(targetShoulderAngle)
+                        viewModel.controlElbow(targetElbowAngle)
+                        viewModel.controlLateral(targetLateralPosition)
+                        // 延迟后重置状态
+                        GlobalScope.launch {
+                            delay(2000)
+                            isMoving = false
+                        }
                     },
                     modifier = Modifier.weight(1f),
                     enabled = !isMoving,
@@ -286,6 +413,7 @@ fun ManualControlScreen(
                     onClick = {
                         targetShoulderAngle = 90f
                         targetElbowAngle = 90f
+                        targetLateralPosition = 50f
                         speed = 50f
                     },
                     modifier = Modifier.weight(1f),

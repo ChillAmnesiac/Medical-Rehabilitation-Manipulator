@@ -1,5 +1,7 @@
 package com.rehab.robotarm.ui.screens
 
+import androidx.biometric.BiometricManager
+import androidx.biometric.BiometricPrompt
 import androidx.compose.foundation.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -12,11 +14,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.fragment.app.FragmentActivity
 import androidx.navigation.NavController
 import com.rehab.robotarm.viewmodel.AuthViewModel
 import com.rehab.robotarm.viewmodel.LoginState
@@ -30,6 +35,13 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     val loginState by viewModel.loginState.collectAsState()
+    val context = LocalContext.current
+
+    // 检查生物识别可用性
+    val biometricManager = BiometricManager.from(context)
+    val canUseBiometric = biometricManager.canAuthenticate(
+        BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.DEVICE_CREDENTIAL
+    ) == BiometricManager.BIOMETRIC_SUCCESS
 
     LaunchedEffect(loginState) {
         if (loginState is LoginState.Success) {
@@ -37,6 +49,38 @@ fun LoginScreen(
                 popUpTo("login") { inclusive = true }
             }
         }
+    }
+
+    // 生物识别认证
+    fun authenticateWithBiometric() {
+        val activity = context as? FragmentActivity ?: return
+
+        val promptInfo = BiometricPrompt.PromptInfo.Builder()
+            .setTitle("指纹登录")
+            .setSubtitle("使用指纹快速登录")
+            .setNegativeButtonText("取消")
+            .build()
+
+        val biometricPrompt = BiometricPrompt(activity, ContextCompat.getMainExecutor(context),
+            object : BiometricPrompt.AuthenticationCallback() {
+                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
+                    super.onAuthenticationSucceeded(result)
+                    // 指纹认证成功，使用保存的用户名登录
+                    viewModel.loginWithBiometric()
+                }
+
+                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
+                    super.onAuthenticationError(errorCode, errString)
+                    android.util.Log.e("Biometric", "Authentication error: $errString")
+                }
+
+                override fun onAuthenticationFailed() {
+                    super.onAuthenticationFailed()
+                    android.util.Log.w("Biometric", "Authentication failed")
+                }
+            })
+
+        biometricPrompt.authenticate(promptInfo)
     }
 
     Box(
@@ -174,6 +218,31 @@ fun LoginScreen(
                     )
                 } else {
                     Text("登录", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            // 指纹登录按钮
+            if (canUseBiometric) {
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedButton(
+                    onClick = { authenticateWithBiometric() },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = Color.White
+                    ),
+                    border = BorderStroke(2.dp, Color.White),
+                    shape = RoundedCornerShape(28.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Fingerprint,
+                        contentDescription = null,
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("指纹登录", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
             }
 

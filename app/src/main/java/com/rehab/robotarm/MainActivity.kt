@@ -52,7 +52,7 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
 
                     // 创建ViewModels
-                    val authViewModel = AuthViewModel(userRepository)
+                    val authViewModel = AuthViewModel(application, userRepository)
                     val patientViewModel = PatientViewModel(patientRepository)
                     val trainingViewModel = TrainingViewModel(trainingRepository)
                     val leaderboardViewModel = LeaderboardViewModel(

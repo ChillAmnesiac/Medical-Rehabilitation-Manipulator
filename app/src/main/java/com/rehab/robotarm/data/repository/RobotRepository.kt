@@ -4,6 +4,7 @@ import android.content.Context
 import com.rehab.robotarm.data.ai.AIInferenceEngine
 import com.rehab.robotarm.data.cloud.CloudAIService
 import com.rehab.robotarm.data.communication.BluetoothManager
+import com.rehab.robotarm.data.communication.BleConnectionManager
 import com.rehab.robotarm.data.communication.HttpManager
 import com.rehab.robotarm.data.communication.ProtocolParser
 import com.rehab.robotarm.data.model.*
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.*
 class RobotRepository(context: Context) {
 
     private val bluetoothManager = BluetoothManager(context)
+    private val bleManager = BleConnectionManager(context)
     private val httpManager = HttpManager()
     private val protocolParser = ProtocolParser()
     private val aiEngine = AIInferenceEngine(context)
@@ -23,6 +25,7 @@ class RobotRepository(context: Context) {
 
     // 通信模式：true=HTTP, false=Bluetooth
     private var useHttpMode = true
+    private var useBleMode = true  // 默认使用 BLE 模式
 
     private val _robotState = MutableStateFlow(RobotState())
     val robotState: StateFlow<RobotState> = _robotState
@@ -43,23 +46,41 @@ class RobotRepository(context: Context) {
         // 初始化AI引擎
         aiEngine.initialize()
 
-        // 监听蓝牙连接状态
+        // 监听 BLE 连接状态 - 只有 BLE 连接才算机械臂已连接
+        bleManager.connectionState.onEach { state ->
+            _robotState.update { it.copy(isConnected = state == BleConnectionManager.ConnectionState.CONNECTED) }
+        }.launchIn(kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))
+
+        // 监听 BLE 接收数据
+        bleManager.receivedData.onEach { data ->
+            if (data != null) {
+                val sensorData = protocolParser.parseSensorData(data)
+                sensorData?.let { sensor ->
+                    _robotState.update { state -> state.copy(sensorData = sensor) }
+                    addSensorDataToHistory(sensor)
+                }
+            }
+        }.launchIn(kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO))
+
+        // 监听蓝牙连接状态（传统蓝牙，已弃用）
         bluetoothManager.connectionState.onEach { state ->
-            if (!useHttpMode) {
-                _robotState.update { it.copy(isConnected = state == BluetoothManager.ConnectionState.CONNECTED) }
+            if (!useHttpMode && !useBleMode) {
+                // 传统蓝牙不再更新 isConnected 状态
+                android.util.Log.d("RobotRepository", "Legacy Bluetooth state: $state (not updating isConnected)")
             }
         }.launchIn(kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default))
 
-        // 监听HTTP连接状态
+        // 监听HTTP连接状态（已弃用）
         httpManager.connectionState.onEach { state ->
             if (useHttpMode) {
-                _robotState.update { it.copy(isConnected = state == HttpManager.ConnectionState.CONNECTED) }
+                // HTTP 连接不再更新 isConnected 状态
+                android.util.Log.d("RobotRepository", "HTTP state: $state (not updating isConnected)")
             }
         }.launchIn(kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default))
 
         // 监听蓝牙接收到的数据
         bluetoothManager.receivedData.onEach { data ->
-            if (!useHttpMode) {
+            if (!useHttpMode && !useBleMode) {
                 data?.let {
                     val sensorData = protocolParser.parseSensorData(it)
                     sensorData?.let { sensor ->
@@ -147,15 +168,48 @@ class RobotRepository(context: Context) {
     suspend fun scanBluetoothDevices() = bluetoothManager.scanDevices()
 
     /**
+     * 通过地址连接蓝牙设备
+     */
+    suspend fun connectBluetoothByAddress(deviceAddress: String): Boolean {
+        android.util.Log.d("RobotRepository", "connectBluetoothByAddress: $deviceAddress, useBleMode=$useBleMode")
+        return if (useBleMode) {
+            val result = bleManager.connect(deviceAddress)
+            android.util.Log.d("RobotRepository", "BLE connect result: $result")
+            result
+        } else {
+            val result = bluetoothManager.connect(deviceAddress)
+            result.isSuccess && result.getOrDefault(false)
+        }
+    }
+
+    /**
      * 连接设备
      */
-    suspend fun connectDevice(device: android.bluetooth.BluetoothDevice) =
-        bluetoothManager.connect(device)
+    suspend fun connectDevice(device: android.bluetooth.BluetoothDevice): Boolean {
+        return if (useBleMode) {
+            bleManager.connect(device.address)
+        } else {
+            bluetoothManager.connect(device)
+        }
+    }
 
     /**
      * 断开连接
      */
-    fun disconnectDevice() = bluetoothManager.disconnect()
+    fun disconnectDevice() {
+        if (useBleMode) {
+            bleManager.disconnect()
+        } else {
+            bluetoothManager.disconnect()
+        }
+    }
+
+    /**
+     * 发送 BLE 命令
+     */
+    fun sendBleCommand(command: String) {
+        bleManager.sendCommand(command)
+    }
 
     /**
      * 切换模式（新版本，支持主模式和子模式）
@@ -168,19 +222,31 @@ class RobotRepository(context: Context) {
     ): Boolean {
         android.util.Log.d("RobotRepository", "Setting mode: main=$mainMode, active=$activeSubMode, passive=$passiveSubMode, memory=$memorySubMode")
 
-        // 更新UI状态
+        // 更新UI状态 - 实现模式互斥：切换主模式时清除其他主模式的子模式
         _robotState.update {
-            it.copy(
-                mainMode = mainMode,
-                activeSubMode = activeSubMode ?: it.activeSubMode,
-                passiveSubMode = passiveSubMode ?: it.passiveSubMode,
-                memorySubMode = memorySubMode ?: it.memorySubMode,
-                mode = when(mainMode) {
-                    MainMode.ACTIVE -> RobotMode.ACTIVE
-                    MainMode.PASSIVE -> RobotMode.PASSIVE
-                    MainMode.MEMORY -> RobotMode.MEMORY
-                }
-            )
+            when (mainMode) {
+                MainMode.ACTIVE -> it.copy(
+                    mainMode = mainMode,
+                    activeSubMode = activeSubMode ?: it.activeSubMode,
+                    passiveSubMode = null,  // 清除被动模式子模式
+                    memorySubMode = null,   // 清除记忆模式子模式
+                    mode = RobotMode.ACTIVE
+                )
+                MainMode.PASSIVE -> it.copy(
+                    mainMode = mainMode,
+                    activeSubMode = null,   // 清除主动模式子模式
+                    passiveSubMode = passiveSubMode ?: it.passiveSubMode,
+                    memorySubMode = null,   // 清除记忆模式子模式
+                    mode = RobotMode.PASSIVE
+                )
+                MainMode.MEMORY -> it.copy(
+                    mainMode = mainMode,
+                    activeSubMode = null,   // 清除主动模式子模式
+                    passiveSubMode = null,  // 清除被动模式子模式
+                    memorySubMode = memorySubMode ?: it.memorySubMode,
+                    mode = RobotMode.MEMORY
+                )
+            }
         }
 
         // 如果已连接，则发送命令到设备

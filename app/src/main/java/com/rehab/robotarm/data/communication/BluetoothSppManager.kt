@@ -342,28 +342,20 @@ class BluetoothSppManager(private val context: Context) {
 
             val sensorData = SensorData(
                 timestamp = buffer.long,
-                shoulderAngle = buffer.float,
-                elbowAngle = buffer.float,
-                wristAngle = buffer.float,
-                lateralPosition = buffer.float,
-                shoulderTorque = buffer.float,
-                elbowTorque = buffer.float,
-                wristTorque = buffer.float,
-                shoulderForce = buffer.float,
-                elbowForce = buffer.float,
                 emgCh1 = buffer.float,
-                emgCh2 = buffer.float,
+                heartRate = buffer.int,
+                imuAngleX = buffer.float,
+                imuAngleY = buffer.float,
+                imuAngleZ = buffer.float,
                 imuAccelX = buffer.float,
                 imuAccelY = buffer.float,
                 imuAccelZ = buffer.float,
-                imuGyroX = buffer.float,
-                imuGyroY = buffer.float,
-                imuGyroZ = buffer.float,
-                heartRate = buffer.int,
-                spo2 = buffer.int,
-                shoulderTemp = buffer.float,
-                elbowTemp = buffer.float,
-                lateralTemp = buffer.float
+                motor1Angle = buffer.float,
+                motor1Damping = buffer.float,
+                motor1Temp = buffer.float,
+                motor2Angle = buffer.float,
+                motor2Damping = buffer.float,
+                motor2Temp = buffer.float
             )
 
             _sensorData.value = sensorData

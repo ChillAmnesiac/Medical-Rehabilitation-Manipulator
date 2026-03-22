@@ -23,7 +23,7 @@ import com.rehab.robotarm.data.database.entity.*
         SensorRecord::class,
         RehabAssessment::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 @TypeConverters(Converters::class)

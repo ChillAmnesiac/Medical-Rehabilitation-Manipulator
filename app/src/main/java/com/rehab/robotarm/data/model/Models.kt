@@ -68,47 +68,67 @@ enum class JointType {
 }
 
 /**
- * 传感器数据（适配PSoC Edge E84 + STM32C8T6传感器节点）
+ * 传感器数据
+ * 实际硬件配置：
+ * - 1个EMG肌电传感器（单通道）
+ * - 1个心率传感器
+ * - 1个IMU（肩膀处）：3轴角度 + 3轴加速度
+ * - 2个伺服电机：角度1、角度2、阻尼1、阻尼2、温度1、温度2
+ * - 电机1：肩关节（纵向运动）
+ * - 电机2：肘关节（纵向运动）
+ * - 推杆电机：横向张开（无角度测量，通过IMU获取）
  */
 data class SensorData(
     val timestamp: Long = System.currentTimeMillis(),
-    // 角度传感器
-    val shoulderAngle: Float = 0f,           // 肩关节角度
-    val elbowAngle: Float = 0f,              // 肘关节角度
-    val wristAngle: Float = 0f,              // 腕关节角度
-    val lateralPosition: Float = 0f,         // 推杆位置
-    // 扭矩传感器
-    val shoulderTorque: Float = 0f,          // 肩关节扭矩
-    val elbowTorque: Float = 0f,             // 肘关节扭矩
-    val wristTorque: Float = 0f,             // 腕关节扭矩
-    // 力传感器
-    val shoulderForce: Float = 0f,           // 肩关节力传感器
-    val elbowForce: Float = 0f,              // 肘关节力传感器
-    // EMG肌电传感器（MSG传感器，2通道）
-    val emgCh1: Float = 0f,                  // EMG通道1（肌电信号）
-    val emgCh2: Float = 0f,                  // EMG通道2（肌电信号）
-    // 六轴IMU传感器（MPU6050: 3轴加速度 + 3轴陀螺仪）
+
+    // EMG肌电传感器（单通道）
+    val emgCh1: Float = 0f,                  // EMG肌电信号
+
+    // 心率传感器
+    val heartRate: Int = 0,                  // 心率（bpm）
+
+    // IMU传感器（肩膀处）- 3轴角度
+    val imuAngleX: Float = 0f,               // IMU角度X（横向张开角度）
+    val imuAngleY: Float = 0f,               // IMU角度Y
+    val imuAngleZ: Float = 0f,               // IMU角度Z
+
+    // IMU传感器（肩膀处）- 3轴加速度
     val imuAccelX: Float = 0f,               // IMU加速度X
     val imuAccelY: Float = 0f,               // IMU加速度Y
     val imuAccelZ: Float = 0f,               // IMU加速度Z
-    val imuGyroX: Float = 0f,                // IMU陀螺仪X
-    val imuGyroY: Float = 0f,                // IMU陀螺仪Y
-    val imuGyroZ: Float = 0f,                // IMU陀螺仪Z
-    // 关节加速度传感器（保留兼容）
-    val shoulderAccelX: Float = 0f,          // 肩关节加速度X
-    val shoulderAccelY: Float = 0f,          // 肩关节加速度Y
-    val shoulderAccelZ: Float = 0f,          // 肩关节加速度Z
-    val elbowAccelX: Float = 0f,             // 肘关节加速度X
-    val elbowAccelY: Float = 0f,             // 肘关节加速度Y
-    val elbowAccelZ: Float = 0f,             // 肘关节加速度Z
-    // 生理传感器（MAX30102）
-    val heartRate: Int = 0,                  // 心率（bpm）
-    val spo2: Int = 0,                       // 血氧饱和度（%）
-    // 温度传感器
-    val temperature: Float = 25f,            // 整体温度
-    val shoulderTemp: Float = 25f,           // 肩关节温度
-    val elbowTemp: Float = 25f,              // 肘关节温度
-    val lateralTemp: Float = 25f             // 推杆电机温度
+
+    // 伺服电机1（肩关节 - 纵向运动）
+    val motor1Angle: Float = 0f,             // 电机1角度（肩关节角度）
+    val motor1Damping: Float = 0f,           // 电机1阻尼
+    val motor1Temp: Float = 25f,             // 电机1温度
+
+    // 伺服电机2（肘关节 - 纵向运动）
+    val motor2Angle: Float = 0f,             // 电机2角度（肘关节角度）
+    val motor2Damping: Float = 0f,           // 电机2阻尼
+    val motor2Temp: Float = 25f,             // 电机2温度
+
+    // 兼容字段（映射到实际传感器）
+    val shoulderAngle: Float = motor1Angle,  // 肩关节角度 = 电机1角度
+    val elbowAngle: Float = motor2Angle,     // 肘关节角度 = 电机2角度
+    val lateralPosition: Float = imuAngleX,  // 横向位置 = IMU角度X
+    val shoulderTemp: Float = motor1Temp,    // 肩关节温度 = 电机1温度
+    val elbowTemp: Float = motor2Temp,       // 肘关节温度 = 电机2温度
+
+    // 保留字段（未使用）
+    val emgCh2: Float = 0f,                  // EMG通道2（未使用）
+    val spo2: Int = 0,                       // 血氧（未使用）
+    val shoulderAccelX: Float = imuAccelX,   // 肩关节加速度X = IMU加速度X
+    val shoulderAccelY: Float = imuAccelY,   // 肩关节加速度Y = IMU加速度Y
+    val shoulderAccelZ: Float = imuAccelZ,   // 肩关节加速度Z = IMU加速度Z
+    val elbowAccelX: Float = 0f,             // 肘关节加速度X（未使用）
+    val elbowAccelY: Float = 0f,             // 肘关节加速度Y（未使用）
+    val elbowAccelZ: Float = 0f,             // 肘关节加速度Z（未使用）
+    val shoulderTorque: Float = motor1Damping, // 肩关节扭矩 = 电机1阻尼
+    val elbowTorque: Float = motor2Damping,    // 肘关节扭矩 = 电机2阻尼
+    val shoulderForce: Float = 0f,           // 肩关节力（未使用）
+    val elbowForce: Float = 0f,              // 肘关节力（未使用）
+    val temperature: Float = (motor1Temp + motor2Temp) / 2, // 平均温度
+    val lateralTemp: Float = 25f             // 推杆温度（未使用）
 )
 
 /**
@@ -117,9 +137,9 @@ data class SensorData(
 data class RobotState(
     val mode: RobotMode = RobotMode.ACTIVE,
     val mainMode: MainMode = MainMode.ACTIVE,
-    val activeSubMode: ActiveSubMode = ActiveSubMode.STANDARD,
-    val passiveSubMode: PassiveSubMode = PassiveSubMode.MANUAL,
-    val memorySubMode: MemorySubMode = MemorySubMode.REPLAY,
+    val activeSubMode: ActiveSubMode? = ActiveSubMode.STANDARD,
+    val passiveSubMode: PassiveSubMode? = null,
+    val memorySubMode: MemorySubMode? = null,
     val currentGameType: GameType? = null,
     val isConnected: Boolean = false,
     val sensorData: SensorData = SensorData(),

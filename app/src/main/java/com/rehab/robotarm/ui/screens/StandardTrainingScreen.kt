@@ -20,6 +20,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.rehab.robotarm.viewmodel.RobotViewModel
+import com.rehab.robotarm.ui.components.Arm3DView
 import kotlinx.coroutines.delay
 
 /**
@@ -211,7 +212,7 @@ fun StandardTrainingScreen(
                 }
             }
 
-            // 运动轨迹可视化
+            // 3D手臂模型
             Card {
                 Column(
                     modifier = Modifier
@@ -219,71 +220,29 @@ fun StandardTrainingScreen(
                         .padding(16.dp)
                 ) {
                     Text(
-                        text = "运动轨迹",
+                        text = "3D运动轨迹",
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold
                     )
 
                     Spacer(modifier = Modifier.height(8.dp))
 
-                    Canvas(
+                    Arm3DView(
+                        shoulderAngle = robotState.sensorData.motor1Angle,
+                        elbowAngle = robotState.sensorData.motor2Angle,
+                        lateralAngle = robotState.sensorData.imuAngleX,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(200.dp)
-                    ) {
-                        val width = size.width
-                        val height = size.height
+                            .height(300.dp)
+                    )
 
-                        // 绘制坐标轴
-                        drawLine(
-                            color = Color.Gray,
-                            start = Offset(0f, height / 2),
-                            end = Offset(width, height / 2),
-                            strokeWidth = 2f
-                        )
-                        drawLine(
-                            color = Color.Gray,
-                            start = Offset(width / 2, 0f),
-                            end = Offset(width / 2, height),
-                            strokeWidth = 2f
-                        )
+                    Spacer(modifier = Modifier.height(8.dp))
 
-                        // 绘制轨迹
-                        if (trajectoryPoints.size > 1) {
-                            val path = Path()
-                            val firstPoint = trajectoryPoints.first()
-                            path.moveTo(
-                                (firstPoint.x / 180f) * width,
-                                height - (firstPoint.y / 180f) * height
-                            )
-
-                            trajectoryPoints.forEach { point ->
-                                path.lineTo(
-                                    (point.x / 180f) * width,
-                                    height - (point.y / 180f) * height
-                                )
-                            }
-
-                            drawPath(
-                                path = path,
-                                color = Color(0xFF2196F3),
-                                style = Stroke(width = 3f)
-                            )
-                        }
-
-                        // 绘制当前位置
-                        if (trajectoryPoints.isNotEmpty()) {
-                            val current = trajectoryPoints.last()
-                            drawCircle(
-                                color = Color(0xFFFF5722),
-                                radius = 8f,
-                                center = Offset(
-                                    (current.x / 180f) * width,
-                                    height - (current.y / 180f) * height
-                                )
-                            )
-                        }
-                    }
+                    Text(
+                        text = "拖动旋转视角",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 

@@ -7,6 +7,7 @@ import com.rehab.robotarm.data.model.*
 import com.rehab.robotarm.data.repository.RobotRepository
 import com.rehab.robotarm.data.cloud.OpenClawService
 import com.rehab.robotarm.data.cloud.OpenClawResponse
+import com.rehab.robotarm.data.collection.SensorDataCollector
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +22,7 @@ class RobotViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = RobotRepository(application)
     private val openClawService = OpenClawService()
+    private val dataCollector = SensorDataCollector(application)
 
     val robotState: StateFlow<RobotState> = repository.robotState
     val sensorDataHistory: StateFlow<List<SensorData>> = repository.sensorDataHistory
@@ -34,6 +36,11 @@ class RobotViewModel(application: Application) : AndroidViewModel(application) {
 
     private val _openClawConnected = MutableStateFlow(false)
     val openClawConnected: StateFlow<Boolean> = _openClawConnected.asStateFlow()
+
+    // 数据采集状态
+    val isCollectingData: StateFlow<Boolean> = dataCollector.isCollecting
+    val collectionRecordCount: StateFlow<Int> = dataCollector.recordCount
+    val collectionRate: StateFlow<Long> = dataCollector.collectionRate
 
     // 录制状态
     private var isRecording = false
@@ -58,8 +65,55 @@ class RobotViewModel(application: Application) : AndroidViewModel(application) {
     /**
      * 扫描蓝牙设备
      */
-    fun scanDevices() = viewModelScope.launch {
-        repository.scanBluetoothDevices()
+    suspend fun scanBluetoothDevices(): List<android.bluetooth.BluetoothDevice> {
+        return repository.scanBluetoothDevices()
+    }
+
+    /**
+     * 连接蓝牙设备（通过地址）
+     */
+    suspend fun connectBluetooth(deviceAddress: String): Boolean {
+        android.util.Log.d("RobotViewModel", "connectBluetooth called: $deviceAddress")
+        repository.setHttpMode(false)
+        val result = repository.connectBluetoothByAddress(deviceAddress)
+        android.util.Log.d("RobotViewModel", "connectBluetooth result: $result")
+        return result
+    }
+
+    /**
+     * 断开蓝牙连接
+     */
+    fun disconnectBluetooth() {
+        repository.disconnectDevice()
+    }
+
+    /**
+     * 发送 BLE 命令
+     */
+    fun sendBleCommand(command: String) {
+        repository.sendBleCommand(command)
+    }
+
+    /**
+     * 紧急停止
+     */
+    fun emergencyStop() {
+        android.util.Log.d("RobotViewModel", "Emergency stop triggered")
+        repository.sendBleCommand("stop")
+    }
+
+    /**
+     * 启用数据流
+     */
+    fun enableDataStream() {
+        repository.sendBleCommand("stream:on\n")
+    }
+
+    /**
+     * 关闭数据流
+     */
+    fun disableDataStream() {
+        repository.sendBleCommand("stream:off\n")
     }
 
     /**
@@ -103,6 +157,23 @@ class RobotViewModel(application: Application) : AndroidViewModel(application) {
      * 切换模式（旧版本，兼容性）
      */
     fun switchMode(mode: RobotMode) = viewModelScope.launch {
+        android.util.Log.d("RobotViewModel", "Switching to mode: $mode")
+
+        // 发送 BLE 模式切换命令
+        val command = when (mode) {
+            RobotMode.PASSIVE -> "mode:passive\n"
+            RobotMode.ACTIVE -> "mode:active\n"
+            RobotMode.MEMORY -> "mode:memory\n"
+            RobotMode.ASSIST -> "mode:ai\n"  // AI 辅助模式
+            else -> null
+        }
+
+        command?.let {
+            repository.sendBleCommand(it)
+            android.util.Log.d("RobotViewModel", "Sent BLE command: $it")
+        }
+
+        // 同时更新本地状态
         repository.switchMode(mode)
     }
 
@@ -110,33 +181,25 @@ class RobotViewModel(application: Application) : AndroidViewModel(application) {
      * 控制肩关节
      */
     fun controlShoulder(angle: Float) = viewModelScope.launch {
-        val command = ControlCommand(
-            mode = RobotMode.PASSIVE,
-            shoulderAngle = angle
-        )
-        repository.sendControlCommand(command)
+        android.util.Log.d("RobotViewModel", "Control shoulder: $angle")
+        // 发送 BLE 命令：move:关节ID:角度
+        repository.sendBleCommand("move:0:$angle\n")
     }
 
     /**
      * 控制肘关节
      */
     fun controlElbow(angle: Float) = viewModelScope.launch {
-        val command = ControlCommand(
-            mode = RobotMode.PASSIVE,
-            elbowAngle = angle
-        )
-        repository.sendControlCommand(command)
+        android.util.Log.d("RobotViewModel", "Control elbow: $angle")
+        repository.sendBleCommand("move:1:$angle\n")
     }
 
     /**
-     * 控制推杆
+     * 控制推杆（横向位置）
      */
     fun controlLateral(position: Float) = viewModelScope.launch {
-        val command = ControlCommand(
-            mode = RobotMode.PASSIVE,
-            lateralPosition = position
-        )
-        repository.sendControlCommand(command)
+        android.util.Log.d("RobotViewModel", "Control lateral: $position")
+        repository.sendBleCommand("move:2:$position\n")
     }
 
     /**
@@ -263,6 +326,9 @@ class RobotViewModel(application: Application) : AndroidViewModel(application) {
      * 执行记忆动作
      */
     fun executeMemoryAction(actionId: String) = viewModelScope.launch {
+        android.util.Log.d("RobotViewModel", "Execute memory action: $actionId")
+        // 发送执行记忆动作命令
+        repository.sendBleCommand("memory:play:$actionId\n")
         repository.executeMemoryAction(actionId)
     }
 
@@ -270,6 +336,9 @@ class RobotViewModel(application: Application) : AndroidViewModel(application) {
      * 停止记忆动作
      */
     fun stopMemoryAction() = viewModelScope.launch {
+        android.util.Log.d("RobotViewModel", "Stop memory action")
+        // 发送停止命令
+        repository.sendBleCommand("memory:stop\n")
         repository.stopMemoryAction()
     }
 
@@ -457,15 +526,44 @@ class RobotViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     /**
-     * 急停
+     * 开始数据采集
      */
-    fun emergencyStop() = viewModelScope.launch {
-        val command = ControlCommand(
-            mode = RobotMode.PASSIVE,
-            shoulderAngle = 0f,
-            elbowAngle = 0f
-        )
-        repository.sendControlCommand(command)
-        repository.stopMemoryAction()
+    fun startDataCollection() {
+        android.util.Log.d("RobotViewModel", "Starting data collection")
+        // 创建一个只包含 sensorData 的 Flow
+        val sensorDataFlow = MutableStateFlow(robotState.value.sensorData)
+        viewModelScope.launch {
+            robotState.collect { state ->
+                sensorDataFlow.value = state.sensorData
+            }
+        }
+        dataCollector.startCollection(sensorDataFlow)
+    }
+
+    /**
+     * 停止数据采集
+     */
+    fun stopDataCollection() {
+        android.util.Log.d("RobotViewModel", "Stopping data collection")
+        dataCollector.stopCollection()
+    }
+
+    /**
+     * 设置采集速率
+     */
+    fun setCollectionRate(rateMs: Long) {
+        dataCollector.setCollectionRate(rateMs)
+    }
+
+    /**
+     * 导出采集的数据
+     */
+    suspend fun exportCollectedData(): String {
+        val sessionId = dataCollector.getCurrentSessionId()
+        return if (sessionId != null) {
+            dataCollector.exportSessionToJson(sessionId)
+        } else {
+            "{}"
+        }
     }
 }
