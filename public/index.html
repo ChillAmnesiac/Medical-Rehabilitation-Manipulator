@@ -234,6 +234,55 @@
         .replay-btn:hover {
             background: #229954;
         }
+
+        .voice-command-box {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .voice-text {
+            font-size: 18px;
+            font-weight: bold;
+            color: #e94560;
+            margin-bottom: 10px;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 8px;
+            background: #1a1a2e;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #f39c12, #27ae60);
+            transition: width 0.3s;
+        }
+
+        .motor-status-detail {
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+
+        .status-good {
+            color: #27ae60;
+        }
+
+        .status-warning {
+            color: #f39c12;
+        }
+
+        .status-error {
+            color: #e74c3c;
+        }
     </style>
 </head>
 <body>
@@ -252,11 +301,19 @@
             </div>
         </div>
 
-        <!-- 语音数据 -->
+        <!-- 语音指令 -->
         <div class="panel">
             <h2>🎤 语音指令</h2>
             <div id="audioDisplay">
                 <div class="no-data">等待语音数据...</div>
+            </div>
+        </div>
+
+        <!-- Infineon语音识别 -->
+        <div class="panel">
+            <h2>🗣️ 语音识别 (Infineon)</h2>
+            <div id="voiceCommandDisplay">
+                <div class="no-data">等待语音识别...</div>
             </div>
         </div>
 
@@ -283,6 +340,7 @@
             <div class="motor-grid" id="motorDisplay">
                 <div class="no-data">等待电机数据...</div>
             </div>
+            <div id="motorStatusDisplay" style="margin-top: 15px;"></div>
         </div>
 
         <!-- 传感器数据 -->
@@ -309,7 +367,9 @@
         const rosImage = document.getElementById('rosImage');
         const imageNoData = document.getElementById('imageNoData');
         const audioDisplay = document.getElementById('audioDisplay');
+        const voiceCommandDisplay = document.getElementById('voiceCommandDisplay');
         const motorDisplay = document.getElementById('motorDisplay');
+        const motorStatusDisplay = document.getElementById('motorStatusDisplay');
         const sensorDisplay = document.getElementById('sensorDisplay');
         const commandLog = document.getElementById('commandLog');
 
@@ -489,6 +549,8 @@
                     handleRosData(data);
                 } else if (data.type === 'vla_command') {
                     handleVlaCommand(data);
+                } else if (data.type === 'voice_command') {
+                    handleVoiceCommand(data);
                 } else if (data.type === 'initial_data') {
                     handleInitialData(data.data);
                 }
@@ -525,7 +587,29 @@
                 displayMotors(data.payload);
             } else if (data.dataType === 'sensors') {
                 displaySensors(data.payload);
+            } else if (data.dataType === 'motor_status') {
+                displayMotorStatus(data.payload);
+            } else if (data.dataType === 'system_status') {
+                displaySystemStatus(data.payload);
             }
+        }
+
+        function handleVoiceCommand(data) {
+            const timestamp = new Date(data.timestamp).toLocaleTimeString('zh-CN');
+            const confidence = (data.confidence * 100).toFixed(0);
+
+            voiceCommandDisplay.innerHTML = `
+                <div class="voice-command-box">
+                    <div class="voice-text">"${data.text}"</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span>置信度: ${confidence}%</span>
+                        <span class="timestamp">${timestamp}</span>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: ${confidence}%"></div>
+                    </div>
+                </div>
+            `;
         }
 
         function displayMotors(motors) {
@@ -557,6 +641,37 @@
                     <strong>${sensor.name || '未命名传感器'}</strong>: ${sensor.value} ${sensor.unit || ''}
                 </div>
             `).join('');
+        }
+
+        function displayMotorStatus(status) {
+            if (!status || Object.keys(status).length === 0) {
+                motorStatusDisplay.innerHTML = '';
+                return;
+            }
+
+            let statusHtml = '<div class="motor-status-detail"><strong>电机详细状态:</strong><br>';
+
+            for (const [motorId, info] of Object.entries(status)) {
+                const tempClass = info.temperature > 70 ? 'status-error' :
+                                 info.temperature > 50 ? 'status-warning' : 'status-good';
+
+                statusHtml += `
+                    <div style="margin: 8px 0; padding: 8px; background: #1a1a2e; border-radius: 3px;">
+                        <strong>电机 ${motorId}:</strong>
+                        <span class="${tempClass}"> 温度: ${info.temperature}°C</span> |
+                        运行时间: ${info.runtime || 0}h |
+                        错误码: ${info.error_code || '无'}
+                    </div>
+                `;
+            }
+
+            statusHtml += '</div>';
+            motorStatusDisplay.innerHTML = statusHtml;
+        }
+
+        function displaySystemStatus(status) {
+            // 可以在页面添加系统状态显示区域
+            console.log('System status:', status);
         }
 
         function handleVlaCommand(data) {

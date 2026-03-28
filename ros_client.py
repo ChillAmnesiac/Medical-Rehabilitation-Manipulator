@@ -149,8 +149,64 @@ class ROSWebSocketClient:
         except Exception as e:
             print(f"Error sending sensor data: {e}")
 
+    async def send_motor_status(self, motor_status):
+        """
+        发送电机详细状态
+        motor_status: 电机状态字典
+        示例: {
+            "1": {"temperature": 45.5, "runtime": 120.5, "error_code": 0},
+            "2": {"temperature": 52.3, "runtime": 118.2, "error_code": 0},
+            "3": {"temperature": 48.1, "runtime": 119.8, "error_code": 0}
+        }
+        """
+        if self.ws is None:
+            print("Not connected")
+            return
+
+        try:
+            message = {
+                "type": "ros_data",
+                "dataType": "motor_status",
+                "payload": motor_status
+            }
+
+            await self.ws.send(json.dumps(message))
+            print(f"Motor status sent: {len(motor_status)} motors")
+
+        except Exception as e:
+            print(f"Error sending motor status: {e}")
+
+    async def send_system_status(self, system_status):
+        """
+        发送系统状态
+        system_status: 系统状态字典
+        示例: {
+            "cpu_usage": 45.2,
+            "memory_usage": 62.8,
+            "disk_usage": 35.5,
+            "network_rx": 1024,
+            "network_tx": 512
+        }
+        """
+        if self.ws is None:
+            print("Not connected")
+            return
+
+        try:
+            message = {
+                "type": "ros_data",
+                "dataType": "system_status",
+                "payload": system_status
+            }
+
+            await self.ws.send(json.dumps(message))
+            print("System status sent")
+
+        except Exception as e:
+            print(f"Error sending system status: {e}")
+
     async def receive_commands(self):
-        """接收来自VLA的指令"""
+        """接收来自VLA的指令和Infineon的语音指令"""
         try:
             async for message in self.ws:
                 data = json.loads(message)
@@ -160,6 +216,13 @@ class ROSWebSocketClient:
                     print(f"Received VLA command: {command}")
                     # 在这里处理VLA发来的指令
                     # 例如：控制机器人移动、执行动作等
+
+                elif data.get("type") == "voice_command":
+                    text = data.get("text")
+                    confidence = data.get("confidence")
+                    print(f"Received voice command: {text} (confidence: {confidence})")
+                    # 在这里处理语音指令
+                    # 例如：解析语音指令并执行相应动作
 
         except Exception as e:
             print(f"Error receiving commands: {e}")
@@ -193,6 +256,16 @@ async def main():
             ]
             await client.send_motor_data(motor_data)
 
+            # 发送电机详细状态
+            motor_status = {
+                "1": {"temperature": 45.5, "runtime": 120.5, "error_code": 0},
+                "2": {"temperature": 52.3, "runtime": 118.2, "error_code": 0},
+                "3": {"temperature": 48.1, "runtime": 119.8, "error_code": 0},
+                "4": {"temperature": 43.2, "runtime": 121.3, "error_code": 0},
+                "5": {"temperature": 50.8, "runtime": 117.9, "error_code": 0}
+            }
+            await client.send_motor_status(motor_status)
+
             # 发送传感器数据
             sensor_data = [
                 {"name": "温度", "value": 25.5, "unit": "°C"},
@@ -201,6 +274,16 @@ async def main():
                 {"name": "电压", "value": 12.5, "unit": "V"}
             ]
             await client.send_sensor_data(sensor_data)
+
+            # 发送系统状态
+            system_status = {
+                "cpu_usage": 45.2,
+                "memory_usage": 62.8,
+                "disk_usage": 35.5,
+                "network_rx": 1024,
+                "network_tx": 512
+            }
+            await client.send_system_status(system_status)
 
             # 如果有图像，发送图像
             # await client.send_image("/path/to/image.jpg")

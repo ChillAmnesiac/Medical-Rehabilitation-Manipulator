@@ -6,7 +6,11 @@
 
 - ✅ ROS数据实时上传（图像、语音、电机、传感器）
 - ✅ VLA指令下发到ROS
+- ✅ Infineon语音识别结果接收（支持cJSON格式）
+- ✅ 电机详细状态监控（温度、运行时间、错误码）
+- ✅ 系统状态监控（CPU、内存、网络）
 - ✅ Web实时监控界面
+- ✅ 语音播报功能
 - ✅ 自动重连机制
 - ✅ 多客户端支持
 
@@ -67,6 +71,28 @@ WS_SERVER = "ws://YOUR_SERVER_IP:8080"
 python3 vla_client.py
 ```
 
+### Infineon客户端
+
+1. 安装Python依赖:
+```bash
+pip3 install websockets
+```
+
+2. 修改 `infineon_client.py` 中的服务器地址:
+```python
+WS_SERVER = "ws://YOUR_SERVER_IP:8080"
+```
+
+3. 运行客户端:
+```bash
+python3 infineon_client.py
+```
+
+3. 运行客户端:
+```bash
+python3 vla_client.py
+```
+
 ## 数据格式
 
 ### ROS发送数据
@@ -101,6 +127,47 @@ python3 vla_client.py
     {"name": "温度", "value": 25.5, "unit": "°C"},
     {"name": "湿度", "value": 60, "unit": "%"}
   ]
+}
+```
+
+**电机详细状态:**
+```json
+{
+  "type": "ros_data",
+  "dataType": "motor_status",
+  "payload": {
+    "1": {"temperature": 45.5, "runtime": 120.5, "error_code": 0},
+    "2": {"temperature": 52.3, "runtime": 118.2, "error_code": 0}
+  }
+}
+```
+
+**系统状态:**
+```json
+{
+  "type": "ros_data",
+  "dataType": "system_status",
+  "payload": {
+    "cpu_usage": 45.2,
+    "memory_usage": 62.8,
+    "disk_usage": 35.5
+  }
+}
+```
+
+### Infineon发送语音识别结果
+
+```json
+{
+  "type": "infineon_voice",
+  "text": "向前移动",
+  "confidence": 0.95,
+  "raw": {
+    "command": "向前移动",
+    "confidence": 0.95,
+    "language": "zh-CN",
+    "timestamp": 1234567890
+  }
 }
 ```
 
