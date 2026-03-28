@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ROS-VLA 实时监控</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            margin: 10px;
+        }
+
+        .status.connected {
+            background: #27ae60;
+        }
+
+        .status.disconnected {
+            background: #e74c3c;
+        }
+
+        .container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .panel {
+            background: #16213e;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+
+        .panel h2 {
+            color: #0f3460;
+            background: #e94560;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        #imageDisplay {
+            width: 100%;
+            max-height: 400px;
+            background: #0f3460;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            position: relative;
+        }
+
+        #imageDisplay img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 5px;
+            display: block;
+        }
+
+        #rosImage {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 5px;
+        }
+
+        .data-item {
+            background: #0f3460;
+            padding: 10px;
+            margin: 8px 0;
+            border-radius: 5px;
+            border-left: 3px solid #e94560;
+        }
+
+        .motor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .motor-item {
+            background: #0f3460;
+            padding: 12px;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        .motor-item .label {
+            color: #e94560;
+            font-size: 12px;
+            margin-bottom: 5px;
+        }
+
+        .motor-item .value {
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .command-log {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #0f3460;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .command-item {
+            padding: 8px;
+            margin: 5px 0;
+            background: #1a1a2e;
+            border-radius: 3px;
+            font-family: monospace;
+            font-size: 13px;
+        }
+
+        .timestamp {
+            color: #888;
+            font-size: 11px;
+        }
+
+        audio {
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .no-data {
+            color: #888;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .tts-panel {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+        }
+
+        .tts-input {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a2e;
+            border: 1px solid #e94560;
+            border-radius: 5px;
+            color: #eee;
+            font-size: 14px;
+            margin-bottom: 10px;
+            resize: vertical;
+            min-height: 60px;
+        }
+
+        .tts-button {
+            width: 100%;
+            padding: 12px;
+            background: #e94560;
+            border: none;
+            border-radius: 5px;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .tts-button:hover {
+            background: #d63651;
+        }
+
+        .tts-button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        .voice-select {
+            width: 100%;
+            padding: 8px;
+            background: #1a1a2e;
+            border: 1px solid #e94560;
+            border-radius: 5px;
+            color: #eee;
+            margin-bottom: 10px;
+        }
+
+        .tts-history {
+            max-height: 150px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .tts-history-item {
+            background: #1a1a2e;
+            padding: 8px;
+            margin: 5px 0;
+            border-radius: 3px;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .replay-btn {
+            background: #27ae60;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .replay-btn:hover {
+            background: #229954;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🤖 ROS-VLA 实时监控系统</h1>
+        <div class="status" id="wsStatus">连接中...</div>
+    </div>
+
+    <div class="container">
+        <!-- 图像显示 -->
+        <div class="panel">
+            <h2>📷 实时图像</h2>
+            <div id="imageDisplay">
+                <img id="rosImage" style="display: none;" alt="ROS Image">
+                <div class="no-data" id="imageNoData">等待图像数据...</div>
+            </div>
+        </div>
+
+        <!-- 语音数据 -->
+        <div class="panel">
+            <h2>🎤 语音指令</h2>
+            <div id="audioDisplay">
+                <div class="no-data">等待语音数据...</div>
+            </div>
+        </div>
+
+        <!-- 语音播报控制 -->
+        <div class="panel">
+            <h2>🔊 语音播报</h2>
+            <div class="tts-panel">
+                <select class="voice-select" id="voiceSelect">
+                    <option value="">选择语音...</option>
+                </select>
+                <textarea
+                    class="tts-input"
+                    id="ttsInput"
+                    placeholder="输入要播报的文字..."
+                ></textarea>
+                <button class="tts-button" id="speakBtn">🔊 播报</button>
+                <div class="tts-history" id="ttsHistory"></div>
+            </div>
+        </div>
+
+        <!-- 电机数据 -->
+        <div class="panel">
+            <h2>⚙️ 电机状态 (5个)</h2>
+            <div class="motor-grid" id="motorDisplay">
+                <div class="no-data">等待电机数据...</div>
+            </div>
+        </div>
+
+        <!-- 传感器数据 -->
+        <div class="panel">
+            <h2>📊 传感器数据</h2>
+            <div id="sensorDisplay">
+                <div class="no-data">等待传感器数据...</div>
+            </div>
+        </div>
+
+        <!-- VLA指令日志 -->
+        <div class="panel">
+            <h2>💬 VLA指令日志</h2>
+            <div class="command-log" id="commandLog">
+                <div class="no-data">等待指令...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let ws;
+        const wsStatus = document.getElementById('wsStatus');
+        const imageDisplay = document.getElementById('imageDisplay');
+        const rosImage = document.getElementById('rosImage');
+        const imageNoData = document.getElementById('imageNoData');
+        const audioDisplay = document.getElementById('audioDisplay');
+        const motorDisplay = document.getElementById('motorDisplay');
+        const sensorDisplay = document.getElementById('sensorDisplay');
+        const commandLog = document.getElementById('commandLog');
+
+        // TTS相关
+        const ttsInput = document.getElementById('ttsInput');
+        const speakBtn = document.getElementById('speakBtn');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const ttsHistory = document.getElementById('ttsHistory');
+        let voices = [];
+        let ttsHistoryList = [];
+
+        // 初始化语音合成
+        function initTTS() {
+            voices = speechSynthesis.getVoices();
+
+            if (voices.length === 0) {
+                speechSynthesis.addEventListener('voiceschanged', () => {
+                    voices = speechSynthesis.getVoices();
+                    populateVoiceList();
+                });
+            } else {
+                populateVoiceList();
+            }
+        }
+
+        function populateVoiceList() {
+            voiceSelect.innerHTML = '<option value="">默认语音</option>';
+
+            // 优先显示中文语音
+            const chineseVoices = voices.filter(v => v.lang.includes('zh'));
+            const otherVoices = voices.filter(v => !v.lang.includes('zh'));
+
+            if (chineseVoices.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = '中文语音';
+                chineseVoices.forEach((voice, index) => {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    optgroup.appendChild(option);
+                });
+                voiceSelect.appendChild(optgroup);
+            }
+
+            if (otherVoices.length > 0) {
+                const optgroup = document.createElement('optgroup');
+                optgroup.label = '其他语音';
+                otherVoices.forEach((voice, index) => {
+                    const option = document.createElement('option');
+                    option.value = voices.indexOf(voice);
+                    option.textContent = `${voice.name} (${voice.lang})`;
+                    optgroup.appendChild(option);
+                });
+                voiceSelect.appendChild(optgroup);
+            }
+        }
+
+        function speak(text, voiceIndex = null) {
+            if (!text.trim()) {
+                alert('请输入要播报的文字');
+                return;
+            }
+
+            // 停止当前播报
+            speechSynthesis.cancel();
+
+            const utterance = new SpeechSynthesisUtterance(text);
+
+            if (voiceIndex !== null && voices[voiceIndex]) {
+                utterance.voice = voices[voiceIndex];
+            }
+
+            utterance.rate = 1.0;
+            utterance.pitch = 1.0;
+            utterance.volume = 1.0;
+
+            utterance.onstart = () => {
+                speakBtn.disabled = true;
+                speakBtn.textContent = '🔊 播报中...';
+            };
+
+            utterance.onend = () => {
+                speakBtn.disabled = false;
+                speakBtn.textContent = '🔊 播报';
+            };
+
+            utterance.onerror = (event) => {
+                console.error('TTS error:', event);
+                speakBtn.disabled = false;
+                speakBtn.textContent = '🔊 播报';
+                alert('播报失败: ' + event.error);
+            };
+
+            speechSynthesis.speak(utterance);
+
+            // 添加到历史记录
+            addToHistory(text, voiceIndex);
+        }
+
+        function addToHistory(text, voiceIndex) {
+            const timestamp = new Date().toLocaleTimeString('zh-CN');
+            const historyItem = {
+                text: text,
+                voiceIndex: voiceIndex,
+                timestamp: timestamp
+            };
+
+            ttsHistoryList.unshift(historyItem);
+
+            // 限制历史记录数量
+            if (ttsHistoryList.length > 10) {
+                ttsHistoryList.pop();
+            }
+
+            updateHistoryDisplay();
+        }
+
+        function updateHistoryDisplay() {
+            if (ttsHistoryList.length === 0) {
+                ttsHistory.innerHTML = '';
+                return;
+            }
+
+            ttsHistory.innerHTML = ttsHistoryList.map((item, index) => `
+                <div class="tts-history-item">
+                    <div>
+                        <div style="font-size: 13px;">${item.text.substring(0, 50)}${item.text.length > 50 ? '...' : ''}</div>
+                        <div class="timestamp">${item.timestamp}</div>
+                    </div>
+                    <button class="replay-btn" onclick="replayHistory(${index})">重播</button>
+                </div>
+            `).join('');
+        }
+
+        function replayHistory(index) {
+            const item = ttsHistoryList[index];
+            speak(item.text, item.voiceIndex);
+        }
+
+        // 绑定播报按钮
+        speakBtn.addEventListener('click', () => {
+            const text = ttsInput.value;
+            const voiceIndex = voiceSelect.value ? parseInt(voiceSelect.value) : null;
+            speak(text, voiceIndex);
+        });
+
+        // 支持Ctrl+Enter快捷键播报
+        ttsInput.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'Enter') {
+                speakBtn.click();
+            }
+        });
+
+        // 初始化TTS
+        initTTS();
+
+        function connect() {
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            ws = new WebSocket(`${protocol}//${window.location.host}`);
+
+            ws.onopen = () => {
+                console.log('WebSocket connected');
+                wsStatus.textContent = '已连接';
+                wsStatus.className = 'status connected';
+
+                // 注册为web客户端
+                ws.send(JSON.stringify({
+                    type: 'register',
+                    role: 'web'
+                }));
+            };
+
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+
+                if (data.type === 'ros_data') {
+                    handleRosData(data);
+                } else if (data.type === 'vla_command') {
+                    handleVlaCommand(data);
+                } else if (data.type === 'initial_data') {
+                    handleInitialData(data.data);
+                }
+            };
+
+            ws.onclose = () => {
+                console.log('WebSocket disconnected');
+                wsStatus.textContent = '已断开';
+                wsStatus.className = 'status disconnected';
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (error) => {
+                console.error('WebSocket error:', error);
+            };
+        }
+
+        function handleRosData(data) {
+            const timestamp = new Date(data.timestamp).toLocaleTimeString('zh-CN');
+
+            if (data.dataType === 'image') {
+                // 直接更新img的src，避免重新创建元素导致闪烁
+                if (imageNoData) {
+                    imageNoData.style.display = 'none';
+                }
+                rosImage.src = data.payload;
+                rosImage.style.display = 'block';
+            } else if (data.dataType === 'audio') {
+                audioDisplay.innerHTML = `
+                    <audio controls src="${data.payload}"></audio>
+                    <div class="timestamp">更新时间: ${timestamp}</div>
+                `;
+            } else if (data.dataType === 'motors') {
+                displayMotors(data.payload);
+            } else if (data.dataType === 'sensors') {
+                displaySensors(data.payload);
+            }
+        }
+
+        function displayMotors(motors) {
+            if (!motors || motors.length === 0) {
+                motorDisplay.innerHTML = '<div class="no-data">无电机数据</div>';
+                return;
+            }
+
+            motorDisplay.innerHTML = motors.map((motor, index) => `
+                <div class="motor-item">
+                    <div class="label">电机 ${index + 1}</div>
+                    <div class="value">${motor.position?.toFixed(2) || 'N/A'}°</div>
+                    <div style="font-size: 12px; margin-top: 5px;">
+                        速度: ${motor.velocity?.toFixed(2) || 'N/A'}<br>
+                        电流: ${motor.current?.toFixed(2) || 'N/A'}A
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function displaySensors(sensors) {
+            if (!sensors || sensors.length === 0) {
+                sensorDisplay.innerHTML = '<div class="no-data">无传感器数据</div>';
+                return;
+            }
+
+            sensorDisplay.innerHTML = sensors.map(sensor => `
+                <div class="data-item">
+                    <strong>${sensor.name || '未命名传感器'}</strong>: ${sensor.value} ${sensor.unit || ''}
+                </div>
+            `).join('');
+        }
+
+        function handleVlaCommand(data) {
+            const timestamp = new Date(data.timestamp).toLocaleTimeString('zh-CN');
+            const commandItem = document.createElement('div');
+            commandItem.className = 'command-item';
+            commandItem.innerHTML = `
+                <div><strong>指令:</strong> ${JSON.stringify(data.command)}</div>
+                <div class="timestamp">${timestamp}</div>
+            `;
+
+            if (commandLog.querySelector('.no-data')) {
+                commandLog.innerHTML = '';
+            }
+
+            commandLog.insertBefore(commandItem, commandLog.firstChild);
+
+            // 限制日志条数
+            while (commandLog.children.length > 50) {
+                commandLog.removeChild(commandLog.lastChild);
+            }
+        }
+
+        function handleInitialData(data) {
+            if (data.image) {
+                if (imageNoData) {
+                    imageNoData.style.display = 'none';
+                }
+                rosImage.src = data.image;
+                rosImage.style.display = 'block';
+            }
+            if (data.motors && data.motors.length > 0) {
+                displayMotors(data.motors);
+            }
+            if (data.sensors && data.sensors.length > 0) {
+                displaySensors(data.sensors);
+            }
+        }
+
+        // 启动连接
+        connect();
+    </script>
+</body>
+</html>
