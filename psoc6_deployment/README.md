@@ -65,15 +65,18 @@ git clone https://github.com/tensorflow/tflite-micro.git tensorflow-lite-micro
 constexpr int kTensorArenaSize = 60 * 1024;  // 60KB
 ```
 
-PSoC 6 有 288KB SRAM，模型大小 134KB (int8 量化)，推理需要约 60KB。
+PSoC 6 有 288KB SRAM，模型大小 468KB (float32，存储在 Flash)，推理需要约 60KB RAM。
 
-## 4. int8 量化说明
+## 4. float32 格式说明
 
-模型已完全量化为 int8 格式：
-- **输入**: int8 张量
-- **输出**: int8 张量
-- **运算**: 全部使用整数运算，无浮点
-- **优势**: 更快的推理速度，更低的功耗，更小的内存占用
+模型使用 float32 格式：
+- **输入**: float32 张量
+- **输出**: float32 张量
+- **运算**: 使用浮点运算
+- **优势**: 更高的精度，更好的准确率
+- **要求**: 需要硬件支持浮点运算（PSoC 6 有 FPU）
+
+## 5. 音频处理
 
 ### 4.1 MFCC 特征提取
 需要实现 MFCC 提取，可以使用：
@@ -167,14 +170,15 @@ make debug
 
 预期性能（PSoC 6 @ 150MHz）：
 - 推理时间: ~50-100ms
-- 内存使用: ~190KB (模型 130KB + 推理 60KB)
+- 内存使用: ~528KB Flash (模型 468KB) + ~60KB RAM (推理)
 - 功耗: ~10-20mA (活动模式)
+- 精度: float32 高精度
 
 ## 8. 故障排查
 
 ### 内存不足
 - 减小 `kTensorArenaSize`
-- 使用量化模型
+- 模型存储在 Flash，不占用 RAM
 - 优化模型结构
 
 ### 推理速度慢

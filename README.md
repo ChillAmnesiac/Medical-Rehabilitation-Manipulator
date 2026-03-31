@@ -8,9 +8,9 @@
 
 ## 特性
 
-- 轻量级 CNN 模型（~134KB，int8 量化）
+- 轻量级 CNN 模型（~468KB，float32）
 - 准确率 93%+
-- 完全 int8 量化，无浮点运算
+- 使用 float32 格式，高精度推理
 - 支持 TensorFlow Lite Micro
 - 可部署到 PSoC 6 Edge E84 Talk
 - 包含完整的训练和推理代码
@@ -71,10 +71,10 @@ python train.py
 python inference.py
 ```
 
-### 5. 转换为 int8 量化格式
+### 5. 转换为 float32 格式
 
 ```bash
-python convert_to_int8.py
+python convert_to_float32.py
 ```
 
 ### 6. 转换为嵌入式 C 数组
@@ -99,9 +99,9 @@ python convert_to_c.py
 - **准确率**: 93.05%
 - **精确率**: 93.05%
 - **召回率**: 93.05%
-- **模型大小**: 134KB (int8 量化)
+- **模型大小**: 468KB (float32)
 - **推理时间**: ~50-100ms (PSoC 6 @ 150MHz)
-- **量化格式**: 完全 int8，无浮点运算
+- **数据格式**: float32，高精度推理
 
 ## 技术栈
 

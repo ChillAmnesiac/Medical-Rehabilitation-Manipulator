@@ -42,8 +42,8 @@ def convert_tflite_to_c_array(tflite_path, output_path, array_name="model_data")
 
 
 if __name__ == "__main__":
-    # 转换 int8 量化模型
-    tflite_model = "./models/wake_word_standard_20260331_161432/model_int8.tflite"
+    # 转换 float32 模型
+    tflite_model = "./models/wake_word_standard_20260331_161432/model_float32.tflite"
     output_file = "./psoc6_deployment/model_data.h"
 
     import os
