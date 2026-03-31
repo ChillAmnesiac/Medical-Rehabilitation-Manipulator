@@ -59,15 +59,21 @@ git clone https://github.com/tensorflow/tflite-micro.git tensorflow-lite-micro
 - `main.cpp` → `source/main.cpp`
 
 ### 3.2 内存配置
-在 `main.cpp` 中调整内存大小：
+在 `wake_word_detector.cc` 中调整内存大小：
 ```cpp
 // 根据实际可用 RAM 调整
 constexpr int kTensorArenaSize = 60 * 1024;  // 60KB
 ```
 
-PSoC 6 有 288KB SRAM，模型大小 130KB，推理需要约 60KB。
+PSoC 6 有 288KB SRAM，模型大小 134KB (int8 量化)，推理需要约 60KB。
 
-## 4. 音频处理
+## 4. int8 量化说明
+
+模型已完全量化为 int8 格式：
+- **输入**: int8 张量
+- **输出**: int8 张量
+- **运算**: 全部使用整数运算，无浮点
+- **优势**: 更快的推理速度，更低的功耗，更小的内存占用
 
 ### 4.1 MFCC 特征提取
 需要实现 MFCC 提取，可以使用：

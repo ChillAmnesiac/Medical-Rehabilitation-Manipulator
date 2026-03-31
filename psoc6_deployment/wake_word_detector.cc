@@ -100,9 +100,20 @@ bool WakeWordDetector_Detect(const int16_t* audio_data, int audio_len, float* co
         return false;
     }
 
-    // 将特征复制到输入张量
+    // 获取量化参数
+    TfLiteQuantizationParams input_quant = input->params;
+    float input_scale = input_quant.scale;
+    int32_t input_zero_point = input_quant.zero_point;
+
+    // 将浮点特征量化为 int8
+    int8_t* input_data = input->data.int8;
     for (int i = 0; i < INPUT_SIZE; i++) {
-        input->data.f[i] = mfcc_features[i];
+        // 量化: int8_value = float_value / scale + zero_point
+        int32_t quantized = (int32_t)(mfcc_features[i] / input_scale + input_zero_point);
+        // 限制在 int8 范围内
+        if (quantized < -128) quantized = -128;
+        if (quantized > 127) quantized = 127;
+        input_data[i] = (int8_t)quantized;
     }
 
     // 运行推理
@@ -112,9 +123,15 @@ bool WakeWordDetector_Detect(const int16_t* audio_data, int audio_len, float* co
         return false;
     }
 
-    // 获取输出 (softmax 输出: [background, wake_word])
-    float background_score = output->data.f[0];
-    float wake_word_score = output->data.f[1];
+    // 获取输出量化参数
+    TfLiteQuantizationParams output_quant = output->params;
+    float output_scale = output_quant.scale;
+    int32_t output_zero_point = output_quant.zero_point;
+
+    // 反量化输出 (int8 -> float)
+    int8_t* output_data = output->data.int8;
+    float background_score = (output_data[0] - output_zero_point) * output_scale;
+    float wake_word_score = (output_data[1] - output_zero_point) * output_scale;
 
     *confidence = wake_word_score;
 
