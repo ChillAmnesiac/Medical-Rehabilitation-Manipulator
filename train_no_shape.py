@@ -26,7 +26,7 @@ POSITIVE_DIR = DATASET_DIR / "positive"
 NEGATIVE_DIR = DATASET_DIR / "negative"
 NOISE_DIR = DATASET_DIR / "noise"
 
-MODEL_DIR = Path("models") / "compatible_wake_word"
+MODEL_DIR = Path("models") / "no_shape_wake_word"
 MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 RANDOM_SEED = 42
@@ -162,46 +162,52 @@ def build_dataset():
     return x, y
 
 
-def create_model(input_shape=(49, 40, 1), num_classes=2):
+def create_model_no_reshape(input_shape=(49, 40, 1), num_classes=2):
     """
     创建完全避免 SHAPE 算子的模型
 
     关键：在 Input 层指定 batch_size=1，让 TensorFlow 在编译时知道确切形状
-    这样 Reshape 层不会引入 SHAPE 算子
     """
     model = keras.Sequential([
-        # 关键：指定 batch_size=1 避免 SHAPE 算子
+        # 关键：指定 batch_size=1
         layers.Input(shape=input_shape, batch_size=1),
 
+        # 第一个卷积块
         layers.Conv2D(8, (3, 3), padding="same", activation="relu"),
-        layers.MaxPooling2D((2, 2)),
+        layers.MaxPooling2D((2, 2)),  # (1, 24, 20, 8)
 
+        # 第二个卷积块
         layers.Conv2D(16, (3, 3), padding="same", activation="relu"),
-        layers.MaxPooling2D((2, 2)),
+        layers.MaxPooling2D((2, 2)),  # (1, 12, 10, 16)
 
+        # 第三个卷积块
         layers.Conv2D(32, (3, 3), padding="same", activation="relu"),
-        layers.MaxPooling2D((2, 2)),
+        layers.MaxPooling2D((2, 2)),  # (1, 6, 5, 32)
 
+        # 第四个卷积块
         layers.Conv2D(64, (3, 3), padding="same", activation="relu"),
-        layers.MaxPooling2D((2, 2)),
+        layers.MaxPooling2D((2, 2)),  # (1, 3, 2, 64)
 
         # 使用 Conv2D 降到 1x1
-        layers.Conv2D(64, (3, 2), padding="valid", activation="relu"),
+        layers.Conv2D(64, (3, 2), padding="valid", activation="relu"),  # (1, 1, 1, 64)
 
-        # 使用 1x1 卷积代替部分 Dense 层
-        layers.Conv2D(32, (1, 1), activation="relu"),
-        layers.Conv2D(num_classes, (1, 1), activation=None),
+        # 使用 1x1 卷积代替 Dense
+        layers.Conv2D(32, (1, 1), activation="relu"),  # (1, 1, 1, 32)
+        layers.Conv2D(num_classes, (1, 1), activation=None),  # (1, 1, 1, 2)
 
-        # Reshape - 因为 batch_size=1，不会引入 SHAPE 算子
-        layers.Reshape((num_classes,)),
+        # Reshape 到 (1, 2) - 因为 batch_size=1，不会引入 SHAPE 算子
+        layers.Reshape((num_classes,)),  # (1, 2)
 
+        # Softmax
         layers.Softmax(),
     ])
     return model
 
 
 def export_tflite(model, output_path):
+    """导出为纯 float32 TFLite"""
     converter = tf.lite.TFLiteConverter.from_keras_model(model)
+    # 不使用任何优化
     tflite_model = converter.convert()
     with open(output_path, "wb") as f:
         f.write(tflite_model)
@@ -209,7 +215,7 @@ def export_tflite(model, output_path):
 
 def main():
     print("="*60)
-    print("Wake Word Model Training")
+    print("Wake Word Model Training (No SHAPE Operator)")
     print("="*60)
 
     x, y = build_dataset()
@@ -229,7 +235,7 @@ def main():
     print(f"Val set: {len(x_val)}")
     print(f"Test set: {len(x_test)}")
 
-    model = create_model()
+    model = create_model_no_reshape()
     model.summary()
 
     model.compile(
@@ -280,8 +286,8 @@ def main():
     print("Training completed!")
     print("="*60)
     print("\nNext steps:")
-    print("1. Run: python verify_model.py")
-    print("2. Run: python convert_to_c.py")
+    print("1. Run: python verify_tflite_ops.py models/no_shape_wake_word/model.tflite")
+    print("2. If passed, run: python convert_to_c.py models/no_shape_wake_word/model.tflite")
 
 
 if __name__ == "__main__":
