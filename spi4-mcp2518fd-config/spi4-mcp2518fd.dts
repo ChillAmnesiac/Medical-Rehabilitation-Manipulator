@@ -1,0 +1,35 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "friendlyarm,nanopi-m5", "rockchip,rk3588s";
+
+    fragment@0 {
+        target-path = "/spi@2ad10000";
+        __overlay__ {
+            status = "okay";
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            can0: mcp2518fd@0 {
+                compatible = "microchip,mcp2518fd";
+                reg = <0>;
+                spi-max-frequency = <20000000>;  /* MCP2518FD 支持最高 20MHz SPI */
+                interrupt-parent = <&gpio4>;
+                interrupts = <5 2>;  /* GPIO4_A5 */
+                clocks = <&mcp2518_osc>;
+            };
+        };
+    };
+
+    fragment@1 {
+        target-path = "/";
+        __overlay__ {
+            mcp2518_osc: mcp2518-osc {
+                compatible = "fixed-clock";
+                #clock-cells = <0>;
+                clock-frequency = <40000000>;  /* MCP2518FD 晶振频率: 20MHz 或 40MHz */
+            };
+        };
+    };
+};
