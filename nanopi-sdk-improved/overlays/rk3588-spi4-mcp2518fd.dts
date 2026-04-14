@@ -1,0 +1,39 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "friendlyarm,nanopi-m5", "rockchip,rk3588s";
+
+    fragment@0 {
+        target = <&spi4>;
+        __overlay__ {
+            status = "okay";
+            #address-cells = <1>;
+            #size-cells = <0>;
+            pinctrl-names = "default";
+            pinctrl-0 = <&spi4m0_pins>;
+
+            can0: mcp2518fd@0 {
+                compatible = "microchip,mcp2518fd";
+                reg = <0>;
+                spi-max-frequency = <20000000>;
+                interrupt-parent = <&gpio4>;
+                interrupts = <5 8>;  /* GPIO4_A5, IRQ_TYPE_LEVEL_LOW */
+                clocks = <&mcp2518_osc>;
+                microchip,rx-int = <1>;
+                microchip,tx-int = <1>;
+            };
+        };
+    };
+
+    fragment@1 {
+        target-path = "/";
+        __overlay__ {
+            mcp2518_osc: mcp2518-osc {
+                compatible = "fixed-clock";
+                #clock-cells = <0>;
+                clock-frequency = <40000000>;
+            };
+        };
+    };
+};
