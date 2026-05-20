@@ -2,6 +2,11 @@
 
 这是 `Medical-Rehabilitation-Manipulator` 仓库的 GitHub 默认入口。
 
+平台协作入口：
+
+- [PLATFORM_DEVELOPMENT_ENTRY.md](./PLATFORM_DEVELOPMENT_ENTRY.md)
+- [PLATFORM_TASK_BOARD.md](./PLATFORM_TASK_BOARD.md)
+
 **当前主线不是早期 OpenClaw/App 直控方案，也不是单个电机 demo。** 本项目现在按医疗康复外骨骼机械臂的安全架构推进：AI、App、服务器、仿真和 NanoPi 都只能提出请求、建议或候选轨迹；真实运动必须经过 Infineon PSoC Edge E84 的 M33 安全裁决。
 
 ```text
@@ -95,6 +100,7 @@ JointTrajectory -> NanoPi -> M33 -> 电机
 - M33 数据进入 M55 小模型，再经 M33 `0x323` 到 NanoPi `/rehab_arm/model_state` 的闭环已通过 `req_snap` 验证。
 - MuJoCo 6DOF hardware shadow 已能跟随 NanoPi 上来的真实/占位 joint 状态。
 - M55 Wi-Fi、LVGL、XiaoZhi token 配置和语音/WebSocket 适配正在沿官方 local voice/XiaoZhi 路线推进。
+- M55 LVGL 触屏 WiFi 配网页已完成扫描、选网、密码输入、保存/连接的可用里程碑；下一步是 WiFi 获得 IP 后联调小智/服务器连接。
 
 当前不能夸大的内容：
 
