@@ -27,7 +27,7 @@ index bce961dd479d..9d6f55b20b36 100644
 +	mcp2518fd_osc: mcp2518fd-osc {
 +		compatible = "fixed-clock";
 +		#clock-cells = <0>;
-+		clock-frequency = <40000000>;
++		clock-frequency = <20000000>;
 +	};
 +
  	rt5616_sound: rt5616-sound {

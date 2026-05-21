@@ -58,10 +58,16 @@ cansend can0 321#11223344
 
 `candump -L can0` saw the frame.
 
-## Next Step For Other Computer
+## Source Patch Update
 
-Update the NanoPi kernel DTS or create a follow-up patch that changes the
-MCP2518FD fixed clock to 20 MHz, rebuild/deploy DTB, then test real CAN at:
+The `nanopi-sdk` branch source patch has been updated to use 20 MHz:
+
+```text
+nanopi-sdk-improved/kernel-patches/0001-arm64-dts-enable-MCP2518FD-CAN-on-NanoPi-M5-SPI3.patch
+```
+
+The other computer should pull this branch, apply the updated patch, rebuild
+and deploy the DTB, then test real CAN at:
 
 ```bash
 sudo ip link set can0 down

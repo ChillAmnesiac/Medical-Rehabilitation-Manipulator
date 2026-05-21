@@ -25,7 +25,9 @@ Successful driver probe:
 mcp251xfd spi3.0 can0: MCP2518FD rev0.0 (-RX_INT -PLL -MAB_NO_WARN +CRC_REG +CRC_RX +CRC_TX +ECC -HD o:40.00MHz c:40.00MHz m:10.00MHz rs:10.00MHz es:0.00MHz rf:10.00MHz ef:0.00MHz) successfully initialized.
 ```
 
-`can0` is present and can be brought up:
+`can0` is present and can be brought up. The following captured state is from
+the earlier 40 MHz DTB and is now known to have the wrong oscillator value for
+the tested module:
 
 ```text
 6: can0: <NOARP,UP,LOWER_UP,ECHO> mtu 16 qdisc pfifo_fast state UP mode DEFAULT group default qlen 10
@@ -91,13 +93,14 @@ can: raw protocol
 socket: Address family not supported by protocol
 ```
 
-Current board state after the fix:
+Current board state after the module-version fix. This was still before the
+20 MHz oscillator DTB correction:
 
 ```text
 wlan0 connected to GDUT-HOME
 can0 UP, LOWER_UP, ERROR-ACTIVE
 bitrate 1000000
-clock 40000000
+clock 40000000 /* old DTB value; corrected source patch now uses 20000000 */
 ```
 
 The CAN raw protocol modules were also added to:
@@ -171,7 +174,7 @@ Important DTS choices:
 SPI bus: &spi3
 Runtime node: /spi@2ad20000/can@0
 Compatible: microchip,mcp2518fd
-Clock: 40 MHz
+Clock: 20 MHz for the currently tested module
 SPI max frequency: 10 MHz
 Interrupt: GPIO4_B3, IRQ_TYPE_LEVEL_LOW
 ```

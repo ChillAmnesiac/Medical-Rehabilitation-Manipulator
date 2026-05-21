@@ -29,7 +29,7 @@ It enables:
 
 - `CONFIG_CAN_MCP251XFD=m`
 - MCP2518FD on `spi3`
-- 40 MHz MCP2518FD oscillator
+- 20 MHz MCP2518FD oscillator for the currently tested module
 - MCP2518FD interrupt on `GPIO4_B3`
 
 ## Correct Wiring

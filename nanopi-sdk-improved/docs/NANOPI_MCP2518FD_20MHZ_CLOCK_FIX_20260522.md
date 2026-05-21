@@ -146,14 +146,14 @@ To:
 clock-frequency = <20000000>;
 ```
 
-The existing repository patch that currently contains the 40 MHz value is:
+The repository patch has been updated so new builds use the 20 MHz value:
 
 ```text
 nanopi-sdk-improved/kernel-patches/0001-arm64-dts-enable-MCP2518FD-CAN-on-NanoPi-M5-SPI3.patch
 ```
 
-If the other computer applies patches from this repository, update that patch
-or add a follow-up patch that changes the value to 20 MHz.
+If the other computer applies patches from this repository after this note, it
+should no longer need a separate follow-up patch for the oscillator value.
 
 Suggested follow-up patch content:
 
