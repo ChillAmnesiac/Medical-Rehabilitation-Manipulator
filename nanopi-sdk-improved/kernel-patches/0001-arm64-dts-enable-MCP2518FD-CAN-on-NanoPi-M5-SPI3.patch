@@ -1,0 +1,87 @@
+From 16c355a500a6d93edcf8b3eb4a7a4287aeb9fa22 Mon Sep 17 00:00:00 2001
+From: wenjunyong666 <3245056131@qq.com>
+Date: Thu, 21 May 2026 22:25:00 +0800
+Subject: [PATCH] arm64: dts: enable MCP2518FD CAN on NanoPi M5 SPI3
+
+---
+ .../dts/rockchip/rk3576-nanopi5-rev01.dts     | 28 +++++++++++++++----
+ arch/arm64/configs/nanopi5_linux_defconfig    |  1 +
+ 2 files changed, 24 insertions(+), 5 deletions(-)
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3576-nanopi5-rev01.dts b/arch/arm64/boot/dts/rockchip/rk3576-nanopi5-rev01.dts
+index bce961dd479d..9d6f55b20b36 100644
+--- a/arch/arm64/boot/dts/rockchip/rk3576-nanopi5-rev01.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3576-nanopi5-rev01.dts
+@@ -6,6 +6,7 @@
+ 
+ /dts-v1/;
+ 
++#include <dt-bindings/interrupt-controller/irq.h>
+ #include "rk3576-nanopi5-common.dtsi"
+ 
+ / {
+@@ -52,6 +53,12 @@ wan_led: led-2 {
+ 		};
+ 	};
+ 
++	mcp2518fd_osc: mcp2518fd-osc {
++		compatible = "fixed-clock";
++		#clock-cells = <0>;
++		clock-frequency = <40000000>;
++	};
++
+ 	rt5616_sound: rt5616-sound {
+ 		status = "okay";
+ 		compatible = "simple-audio-card";
+@@ -139,6 +146,12 @@ hp_det: hp-det {
+ 		};
+ 	};
+ 
++	mcp2518fd {
++		mcp2518fd_int: mcp2518fd-int {
++			rockchip,pins = <4 RK_PB3 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
++
+ 	lcd {
+ 		/omit-if-no-ref/
+ 		lcd_rst0_gpio: lcd-rst0-gpio {
+@@ -380,14 +393,19 @@ &gpio4 {
+ };
+ 
+ &spi3 {
+-	status = "disabled";
+-	pinctrl-0 = <&spi3m2_csn0 &spi3m2_csn1 &spi3m2_pins>;
++	status = "okay";
++	pinctrl-names = "default";
++	pinctrl-0 = <&spi3m2_csn0 &spi3m2_pins>;
++	num-cs = <1>;
+ 
+-	spidev0: spidev@0 {
+-		compatible = "rockchip,spidev";
++	mcp2518fd_can: can@0 {
++		compatible = "microchip,mcp2518fd";
+ 		reg = <0>;
+ 		spi-max-frequency = <10000000>;
+-		status = "disabled";
++		clocks = <&mcp2518fd_osc>;
++		interrupts-extended = <&gpio4 RK_PB3 IRQ_TYPE_LEVEL_LOW>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&mcp2518fd_int>;
+ 	};
+ };
+ 
+diff --git a/arch/arm64/configs/nanopi5_linux_defconfig b/arch/arm64/configs/nanopi5_linux_defconfig
+index 7d2ad189de4a..cc1c1d6fc015 100644
+--- a/arch/arm64/configs/nanopi5_linux_defconfig
++++ b/arch/arm64/configs/nanopi5_linux_defconfig
+@@ -803,6 +803,7 @@ CONFIG_ROCKCHIP_PHY=y
+ CONFIG_CAN_VCAN=m
+ CONFIG_CAN_SLCAN=m
+ CONFIG_CAN_MCP251X=m
++CONFIG_CAN_MCP251XFD=m
+ CONFIG_CAN_8DEV_USB=m
+ CONFIG_CAN_EMS_USB=m
+ CONFIG_CAN_GS_USB=m
+-- 
+2.43.0
