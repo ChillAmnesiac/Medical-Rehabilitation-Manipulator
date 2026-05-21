@@ -155,6 +155,62 @@ nanopi-sdk-improved/kernel-patches/0001-arm64-dts-enable-MCP2518FD-CAN-on-NanoPi
 If the other computer applies patches from this repository after this note, it
 should no longer need a separate follow-up patch for the oscillator value.
 
+## Deployment Result On NanoPi
+
+Status on 2026-05-22:
+
+- Target board: `NanoPi-M5`
+- Target IP during deployment: `192.168.2.66`
+- Kernel: `Linux NanoPi-M5 6.1.141 #1 SMP Tue May 19 16:47:36 CST 2026 aarch64`
+- WiFi after reboot: `wlan0` connected to `GDUT-HOME`
+- CAN parent device: `spi3.0`
+- CAN device: `can0`
+
+The board does not boot the active DTB from `/boot`; `/boot` is empty in this
+image. The active DTB is packed inside the Rockchip `resource` partition:
+
+```text
+/dev/disk/by-partlabel/resource
+```
+
+The old resource image was backed up before writing the new one:
+
+```text
+NanoPi: /tmp/resource-before-20mhz.img
+Host:   /home/cal/friendlywrt24-rk3576/patches/resource-before-20mhz-192.168.2.66.img
+```
+
+The new resource image was generated from the SDK `resource.img` by replacing
+`rk3576-nanopi5-rev01.dtb` with the rebuilt 20 MHz DTB, then written to the
+resource partition and rebooted.
+
+Post-reboot validation:
+
+```text
+ip -details link show can0
+...
+clock 20000000 ... parentbus spi parentdev spi3.0
+```
+
+Driver initialization after reboot:
+
+```text
+mcp251xfd spi3.0 can0: MCP2518FD rev0.0 (... o:20.00MHz c:20.00MHz m:10.00MHz rs:8.50MHz ... rf:8.50MHz ...) successfully initialized.
+```
+
+Loaded CAN modules after reboot:
+
+```text
+mcp251xfd
+can_dev
+can_raw
+can
+```
+
+This confirms that the deployed runtime device tree now matches the module's
+20 MHz crystal. The remaining verification is a real CAN bus test against the
+M33 / motor CAN network at the intended bitrate.
+
 Suggested follow-up patch content:
 
 ```diff
