@@ -37,7 +37,83 @@ mcp251xfd spi3.0 can0: MCP2518FD rev0.0 (-RX_INT -PLL -MAB_NO_WARN +CRC_REG +CRC
 This means the SPI3 wiring, MCP2518FD power, chip select, MISO/MOSI/SCK, and
 device-tree binding are now basically correct.
 
-## Remaining Blocker
+## 2026-05-21 Follow-up: `can_raw` Fixed
+
+The remaining `can_raw` blocker was fixed on the NanoPi at `192.168.2.66`.
+
+Root cause:
+
+```text
+can: disagrees about version of symbol module_layout
+```
+
+The board had mixed CAN modules under `/lib/modules/6.1.141/`. The modules had
+the same `vermagic` string, but their symbol CRCs did not match the running
+kernel build. This is the same class of problem previously seen with WiFi
+modules.
+
+Fix applied on the NanoPi:
+
+```text
+Backed up old modules to:
+/root/can-module-backup-20260521-095102
+
+Replaced these files with modules from the matching local kernel build:
+/lib/modules/6.1.141/kernel/net/can/can.ko
+/lib/modules/6.1.141/kernel/net/can/can-raw.ko
+/lib/modules/6.1.141/kernel/drivers/net/can/dev/can-dev.ko
+/lib/modules/6.1.141/kernel/drivers/net/can/spi/mcp251xfd/mcp251xfd.ko
+```
+
+Commands used:
+
+```bash
+sudo depmod -a
+sudo modprobe can
+sudo modprobe can_raw
+```
+
+Validation after replacement:
+
+```text
+can_raw                28672  0
+can                    24576  1 can_raw
+mcp251xfd              57344  0
+can_dev                36864  1 mcp251xfd
+
+NET: Registered PF_CAN protocol family
+can: raw protocol
+```
+
+`candump -L can0` now starts normally and no longer reports:
+
+```text
+socket: Address family not supported by protocol
+```
+
+Current board state after the fix:
+
+```text
+wlan0 connected to GDUT-HOME
+can0 UP, LOWER_UP, ERROR-ACTIVE
+bitrate 1000000
+clock 40000000
+```
+
+The CAN raw protocol modules were also added to:
+
+```text
+/etc/modules-load.d/can.conf
+```
+
+with:
+
+```text
+can
+can_raw
+```
+
+## Previous Blocker, Now Resolved
 
 `candump` and `cansend` currently fail because the SocketCAN raw protocol module
 does not load:
@@ -249,4 +325,3 @@ dmesg | grep -i module_layout
 ```
 
 If `module_layout` disagrees, reinstall a matching kernel/module set.
-
