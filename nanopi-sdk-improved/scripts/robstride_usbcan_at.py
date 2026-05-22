@@ -20,7 +20,7 @@ from dataclasses import dataclass
 
 
 DEFAULT_PORT = "/dev/ttyUSB0"
-DEFAULT_BAUD = 2_000_000
+DEFAULT_BAUD = 921_600
 
 @dataclass(frozen=True)
 class AtFrame:

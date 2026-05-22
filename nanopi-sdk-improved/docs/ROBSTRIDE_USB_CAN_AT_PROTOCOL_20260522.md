@@ -192,6 +192,51 @@ configuration sequence. If this module is actually the CANHUB described in the
 PDF, it should appear as native SocketCAN `canX`; the present CH340 serial
 enumeration suggests it is a different adapter or a different firmware mode.
 
+## 2026-05-22 Windows Local Retest
+
+The user moved the same RobStride/Lingzu-era CH340 USB-CAN debugger to the
+Windows development PC. Windows enumerated it as:
+
+```text
+USB\VID_1A86&PID_7523\6&1abc947c&0&2
+USB-SERIAL CH340 (COM3)
+```
+
+M33 KitProg3 serial was `COM26` at 115200. M33 raw CAN was initialized with:
+
+```text
+cmd_can_init_min
+[can_min] init ret=0
+[can_min] pclk0=20000000 pclk1=20000000
+[can_min] after_init ... nbtp=0x06000e03
+```
+
+When M33 transmitted `cmd_can_send_probe 0x01`, COM3 received a clean AT packet
+at UART `921600`:
+
+```text
+41 54 00 07 e8 0c 08 00 00 00 00 00 00 00 00 0d 0a
+```
+
+Decoded, this is CAN extended ID `0x0000FD01`, DLC 8, all-zero payload. The
+same capture at other UART speeds produced garbage, so this adapter's verified
+serial speed is `921600`.
+
+The reverse direction is still not working. Writing the same captured packet
+back to COM3 at `921600`, with DTR/RTS tried both true and false, did not make
+M33 FIFO0 receive anything:
+
+```text
+cmd_can_poll_once
+[can_min] fifo0 status=0x00010100 fill=0
+```
+
+Conclusion after the Windows retest: this exact CH340 debugger is proven for
+CAN-to-USB AT monitoring at `921600`, but USB-to-CAN transmit is not yet proven.
+Do not debug M33 receive filtering from this result; first find the debugger's
+PC-to-CAN enable/config sequence or confirm whether its firmware/tool only
+enables transmit after MotorStudio config.
+
 ## Answer To "Is This A Real CAN Bus?"
 
 The CH340 side is only USB serial, but the module can still contain a real CAN
@@ -206,6 +251,8 @@ not as `can0`/`can_usb0`, unless a matching driver or firmware mode is proven.
 ## Notes For The Next AI / Developer
 
 - Do not continue testing this CH340 adapter only with `cansend`/`candump`.
+- Use UART `921600` for raw AT monitoring; it was verified on Windows by
+  capturing M33's `0x0000FD01` extended probe frame.
 - The useful source of truth is the Qt `txdPack()` and `analysisRxdDatas()`
   logic in `D:\电机上位机\CAN-USB-data-conversion\switch\mainwindow.cpp`.
 - Keep the SPI MCP2518FD issue separate. Its current failure,
