@@ -366,3 +366,35 @@ Check in this order:
 6. Keep exactly two 120 ohm terminators on the bus; measured H-L should be
    about 60 ohm when unpowered.
 7. If `TXCAN` toggles but CANH/CANL do not, suspect the transceiver/module.
+
+## Live MCP2518FD Retest After Rewiring
+
+After the MCP2518FD module was reconnected, the earlier `osc=0xffffffff`
+detection failure changed. Reloading `mcp251xfd` succeeded and `can0` appeared:
+
+```text
+mcp251xfd spi3.0 can0: MCP2518FD rev0.0
+o:20.00MHz c:20.00MHz m:10.00MHz rs:8.50MHz rf:8.50MHz
+successfully initialized
+```
+
+`can0` can now be configured at 1 Mbit/s and starts in `ERROR-ACTIVE`.
+However, real transmit still fails and no M33 frame is received. An internal
+SocketCAN loopback test also failed. The kernel then logs repeated SPI CRC read
+errors:
+
+```text
+mcp251xfd spi3.0 can0: CRC read error at address 0x0000 ...
+mcp251xfd spi3.0 can0: CRC read error at address 0x0400 ...
+mcp251xfd spi3.0 can0: IRQ handler returned -74
+```
+
+This points to an unstable SPI path during runtime, not a CAN ID/filter issue.
+The live DTB currently drives the MCP2518FD SPI bus at 10 MHz. For external
+wiring, reduce this first. The SDK patch now uses:
+
+```dts
+spi-max-frequency = <1000000>;
+```
+
+Rebuild/deploy the DTB and reboot before the next test.

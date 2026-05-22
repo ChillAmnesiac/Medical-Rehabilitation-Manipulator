@@ -62,7 +62,7 @@ index bce961dd479d..9d6f55b20b36 100644
 +	mcp2518fd_can: can@0 {
 +		compatible = "microchip,mcp2518fd";
  		reg = <0>;
- 		spi-max-frequency = <10000000>;
+ 		spi-max-frequency = <1000000>;
 -		status = "disabled";
 +		clocks = <&mcp2518fd_osc>;
 +		interrupts-extended = <&gpio4 RK_PB3 IRQ_TYPE_LEVEL_LOW>;
