@@ -259,6 +259,77 @@ usbcan-slcan.service inactive
 no can_usb0 interface present after stop
 ```
 
+## 2026-05-22 Live USB Test After Other Machine Reported Success
+
+The user clarified that the NanoPi currently has only USB-CAN connected, not the
+SPI MCP2518FD module.
+
+Live NanoPi USB enumeration still shows the CH340 serial adapter:
+
+```text
+Bus 003 Device 002: ID 1a86:7523 QinHeng Electronics CH340 serial converter
+/dev/ttyUSB0
+/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
+```
+
+`usbcan-slcan.service` was manually started through `slcand`, creating
+`can_usb0`. M33 CAN was initialized over KitProg3 serial:
+
+```text
+cmd_control_init can0
+control_init ret=0
+cmd_can_init_min
+init ret=0
+```
+
+NanoPi sent the heartbeat test:
+
+```bash
+candump -L can_usb0,322:7FF &
+cansend can_usb0 321#01
+```
+
+Result:
+
+```text
+can_usb0 TX packets increased by 1
+no 0x322 reply observed
+M33 cmd_can_poll_once -> fifo0 fill=0
+```
+
+Full diagnostic rerun on `/dev/ttyUSB0`:
+
+```text
+baud 2000000: no LAWICEL/SLCAN reply
+baud 1000000: no LAWICEL/SLCAN reply
+baud 921600: no LAWICEL/SLCAN reply
+baud 460800: no LAWICEL/SLCAN reply
+baud 230400: no LAWICEL/SLCAN reply
+baud 115200: no LAWICEL/SLCAN reply
+```
+
+RobStride AT probes were sent at the same UART rates. The helper generated the
+expected packet:
+
+```text
+41 54 00 07 E8 0C 01 00 0D 0A
+```
+
+but no RX packet returned.
+
+Reverse-direction tests also failed:
+
+- M33 `cmd_can_send_probe 0x01` reported `ret=0` and TX complete bits.
+- NanoPi `candump can_usb0` saw no frame.
+- NanoPi raw AT serial monitor saw no frame.
+
+Current conclusion for the live NanoPi: the connected CH340 USB-CAN adapter is
+still not proven usable through either SLCAN or the extracted RobStride AT
+protocol. The "other machine succeeded" result has not yet been reproduced on
+this NanoPi with this attached USB device. Compare the exact adapter model,
+firmware mode, UART/CAN bitrate, and command sequence from the successful
+machine before changing M33 or MCP2518FD code.
+
 ## Notes For The Next AI / Developer
 
 - CH340 USB-CAN adapters are only SLCAN devices when their firmware implements

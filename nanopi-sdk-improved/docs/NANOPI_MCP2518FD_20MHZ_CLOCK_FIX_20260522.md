@@ -211,10 +211,12 @@ This confirms that the deployed runtime device tree now matches the module's
 20 MHz crystal. The remaining verification is a real CAN bus test against the
 M33 / motor CAN network at the intended bitrate.
 
-## 2026-05-22 Regression: SPI Reads All Ones
+## 2026-05-22 Note: SPI Reads All Ones When Module Is Not Connected
 
 After the USB-CAN side was brought up on another machine, the MCP2518FD path was
-checked again on NanoPi `192.168.2.66`.
+checked again on NanoPi `192.168.2.66`. At that moment the user clarified that
+the SPI-CAN module was not physically connected; only the USB-CAN adapter was
+connected.
 
 Current runtime device tree is still correct:
 
@@ -235,7 +237,7 @@ pin 134 (gpio4-6 / PIN_26): spi3m2-pins
 pin 135 (gpio4-7 / PIN_27): spi3m2-pins
 ```
 
-The kernel probe now fails again:
+With the SPI-CAN module not connected, the kernel probe fails:
 
 ```text
 mcp251xfd spi3.0: Failed to read Oscillator Configuration Register (osc=0xffffffff).
@@ -259,9 +261,15 @@ OSC read: FF FF FF...
 CRC read: FF FF FF...
 ```
 
-That means the failure is below the Linux CAN driver: the NanoPi SPI controller
-is clocking the configured pins, but the master is not receiving driven data
-from the MCP2518FD. The highest-probability checks are now physical/electrical:
+Because the MCP2518FD module was not physically connected for this check, these
+all-ones reads are expected and must not be treated as a regression in the
+MCP2518FD patch. They only confirm what a disconnected or unselected SPI slave
+looks like.
+
+When the SPI-CAN module is connected again, the same all-ones result would mean
+the failure is below the Linux CAN driver: the NanoPi SPI controller is clocking
+the configured pins, but the master is not receiving driven data from the
+MCP2518FD. In that connected state, the highest-probability checks would be:
 
 - MCP2518FD module VCC and GND, measured at the module while NanoPi is on.
 - Common GND between NanoPi and the MCP2518FD module.
