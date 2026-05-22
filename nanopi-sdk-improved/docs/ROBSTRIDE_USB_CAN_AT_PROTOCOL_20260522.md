@@ -237,6 +237,50 @@ Do not debug M33 receive filtering from this result; first find the debugger's
 PC-to-CAN enable/config sequence or confirm whether its firmware/tool only
 enables transmit after MotorStudio config.
 
+## 2026-05-22 NanoPi Retest At 921600
+
+Remote NanoPi `192.168.2.66` was checked again after the Windows retest. Live
+state:
+
+```text
+hostname: NanoPi-M5
+/dev/serial/by-id/usb-1a86_USB_Serial-if00-port0 -> ../../ttyUSB0
+/dev/ttyUSB0
+usbcan-slcan.service: inactive
+```
+
+With `/dev/ttyUSB0` opened in raw termios mode at UART `921600`, NanoPi captured
+M33's raw probe frame:
+
+```text
+M33: cmd_can_send_probe 0x01
+NanoPi RX:
+41 54 00 07 e8 0c 08 00 00 00 00 00 00 00 00 0d 0a
+```
+
+This matches the Windows capture exactly. Therefore the NanoPi USB serial path,
+the adapter's CAN receive path, and M33 CAN transmit are all working at
+`921600`.
+
+The reverse direction still failed on NanoPi. NanoPi wrote the same 17-byte AT
+packet to `/dev/ttyUSB0` at `921600`:
+
+```text
+REMOTE_TX_N=17
+41 54 00 07 e8 0c 08 00 00 00 00 00 00 00 00 0d 0a
+```
+
+M33 still reported:
+
+```text
+cmd_can_poll_once
+[can_min] fifo0 status=0x00010100 fill=0
+```
+
+Conclusion: the live NanoPi now proves one-way CAN-to-USB monitoring through the
+CH340 debugger. USB-to-CAN transmit remains the blocker and is likely a debugger
+firmware/mode/configuration issue, not an Infineon M33 receive-filter issue.
+
 ## Answer To "Is This A Real CAN Bus?"
 
 The CH340 side is only USB serial, but the module can still contain a real CAN
@@ -252,7 +296,8 @@ not as `can0`/`can_usb0`, unless a matching driver or firmware mode is proven.
 
 - Do not continue testing this CH340 adapter only with `cansend`/`candump`.
 - Use UART `921600` for raw AT monitoring; it was verified on Windows by
-  capturing M33's `0x0000FD01` extended probe frame.
+  capturing M33's `0x0000FD01` extended probe frame, then re-verified on the
+  NanoPi through `/dev/ttyUSB0`.
 - The useful source of truth is the Qt `txdPack()` and `analysisRxdDatas()`
   logic in `D:\电机上位机\CAN-USB-data-conversion\switch\mainwindow.cpp`.
 - Keep the SPI MCP2518FD issue separate. Its current failure,
