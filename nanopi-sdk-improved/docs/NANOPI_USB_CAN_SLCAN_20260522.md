@@ -18,9 +18,66 @@ device:
 /dev/serial/by-id/usb-1a86_USB_Serial-if00-port0
 ```
 
-This type of adapter is normally exposed through the Linux `slcan` driver and
-the `slcand` userspace daemon. It is not a native `gs_usb` / candleLight style
-SocketCAN USB device.
+This type of adapter may be exposed through the Linux `slcan` driver and the
+`slcand` userspace daemon if its firmware implements the LAWICEL/SLCAN command
+set. It is not a native `gs_usb` / candleLight style SocketCAN USB device.
+
+## 2026-05-22 Follow-up: SLCAN Not Verified
+
+Further testing from the Windows bring-up machine found that the current CH340
+adapter does not respond to standard LAWICEL/SLCAN commands on `/dev/ttyUSB0`.
+
+Test method:
+
+```bash
+sudo systemctl stop usbcan-slcan.service
+sudo chmod 666 /dev/ttyUSB0
+for rate in 2000000 1000000 921600 460800 230400 115200 57600 38400 9600; do
+  stty -F /dev/ttyUSB0 $rate raw -echo -icanon min 0 time 5
+  # send V, N, F, C, S8, O, t321101 with CR terminators
+done
+```
+
+Observed result:
+
+```text
+0 bytes returned at every tested UART speed.
+```
+
+`candump -x -L can_usb0` shows NanoPi-originated frames with the `T` flag:
+
+```text
+can_usb0 321#AB T
+```
+
+That is a local transmit echo from SocketCAN, not proof that the adapter put a
+frame on the CAN bus or received anything from another node. Interface counters
+also stayed at:
+
+```text
+RX packets 0
+```
+
+The M33 side was independently verified over KitProg3 serial:
+
+```text
+cmd_can_init_min
+cmd_can_send_probe 0x01
+txbto=0x00000001
+
+cmd_can_poll_once
+fifo0 fill=0
+```
+
+M33 CAN filters accept both non-matching standard and extended frames into
+FIFO0, so `0x321` is not being rejected by M33 software filtering.
+
+Current conclusion: the live `slcand`/`can_usb0` path creates a SocketCAN
+interface, but this alone is not sufficient evidence that the CH340 USB-CAN
+adapter firmware is SLCAN-compatible. Treat the adapter protocol as unverified
+until either raw serial commands return valid LAWICEL/SLCAN responses, a vendor
+protocol/driver for this exact adapter is used, or the adapter is replaced with
+a known `gs_usb`/candleLight/CANable-compatible device.
 
 ## Runtime Status
 
@@ -100,7 +157,7 @@ If the service is disabled or the adapter path changes, bring it up manually:
 
 ```bash
 sudo modprobe slcan
-sudo pkill -f "slcand.*can_usb0" || true
+sudo pkill -x slcand || true
 sudo ip link delete can_usb0 2>/dev/null || true
 sudo slcand -o -c -f -s8 -S 2000000 /dev/ttyUSB0 can_usb0
 sleep 1
@@ -137,8 +194,9 @@ always named `can0`.
 
 ## Notes For The Next AI / Developer
 
-- CH340 USB-CAN adapters are SLCAN devices unless their firmware implements a
-  native SocketCAN protocol.
+- CH340 USB-CAN adapters are only SLCAN devices when their firmware implements
+  the LAWICEL/SLCAN command set. A CH340 USB VID/PID only proves "USB serial",
+  not CAN protocol compatibility.
 - Native candleLight / CANable-style adapters usually bind to `gs_usb` and
   appear directly as `can0` without `slcand`.
 - This NanoPi image has a mixed `/lib/modules/6.1.141` tree. If another CAN or
