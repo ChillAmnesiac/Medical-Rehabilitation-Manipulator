@@ -2,8 +2,10 @@
 # Configure a NanoPi CAN interface.
 #
 # Defaults:
-# - Prefer USB-CAN SLCAN service interface can_usb0 when present.
+# - Prefer an already-present USB-CAN SLCAN service interface can_usb0.
 # - Fall back to SPI MCP2518FD can0.
+# - Do not auto-start unverified CH340/SLCAN adapters unless
+#   ALLOW_UNVERIFIED_SLCAN=1 is set.
 
 set -e
 
@@ -23,13 +25,16 @@ if [ -z "$CAN_INTERFACE" ]; then
         CAN_INTERFACE="can_usb0"
     elif ip link show can0 &> /dev/null; then
         CAN_INTERFACE="can0"
-    elif systemctl list-unit-files usbcan-slcan.service &> /dev/null; then
+    elif [ "${ALLOW_UNVERIFIED_SLCAN:-0}" = "1" ] && systemctl list-unit-files usbcan-slcan.service &> /dev/null; then
         echo "未发现 CAN 接口，尝试启动 usbcan-slcan.service..."
         systemctl restart usbcan-slcan.service || true
         sleep 1
         if ip link show can_usb0 &> /dev/null; then
             CAN_INTERFACE="can_usb0"
         fi
+    elif systemctl list-unit-files usbcan-slcan.service &> /dev/null; then
+        echo "检测到 usbcan-slcan.service，但当前 CH340 适配器未验证，默认不自动启动。"
+        echo "如需实验性启用: ALLOW_UNVERIFIED_SLCAN=1 sudo -E $0 ${BITRATE}"
     fi
 fi
 
@@ -49,6 +54,8 @@ ip link set "$CAN_INTERFACE" down 2>/dev/null || true
 case "$CAN_INTERFACE" in
     can_usb0)
         # SLCAN adapters are configured by slcand, not by ip link bitrate.
+        echo "警告: can_usb0 只表示 slcand 创建了 SocketCAN 接口。"
+        echo "      对 CH340 适配器必须先用 diagnose-usbcan.sh 验证真实收发。"
         ip link set "$CAN_INTERFACE" up
         ;;
     *)

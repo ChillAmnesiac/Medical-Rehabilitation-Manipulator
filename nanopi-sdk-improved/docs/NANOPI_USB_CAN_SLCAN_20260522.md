@@ -109,15 +109,15 @@ The matching kernel modules were copied from the SDK build output to the board:
 
 After `depmod -a`, `modprobe slcan` succeeds.
 
-## Deployed Service
+## Service Status
 
-The NanoPi now has this systemd service:
+The NanoPi has this systemd service file:
 
 ```text
 /etc/systemd/system/usbcan-slcan.service
 ```
 
-It creates a SocketCAN interface named:
+It can create a SocketCAN interface named:
 
 ```text
 can_usb0
@@ -137,6 +137,26 @@ sudo systemctl status usbcan-slcan.service
 sudo systemctl restart usbcan-slcan.service
 sudo systemctl stop usbcan-slcan.service
 ```
+
+After the 2026-05-22 diagnostics, this service was disabled on the live NanoPi
+because the CH340 adapter is not verified as a real SLCAN adapter:
+
+```bash
+sudo systemctl disable --now usbcan-slcan.service
+```
+
+Expected current service state:
+
+```text
+disabled
+inactive
+```
+
+Keep it disabled until one of these is true:
+
+- the CH340 adapter protocol is positively identified and tested,
+- raw serial diagnostics show real receive frames,
+- or the adapter is replaced with a known SocketCAN-compatible USB-CAN device.
 
 Validation:
 
@@ -187,9 +207,11 @@ Send a minimal test frame after the bus wiring and target device are confirmed:
 cansend can_usb0 321#01
 ```
 
-For the medical manipulator platform, prefer detecting CAN interfaces through
-SocketCAN (`ip -details link show type can`) and treat `can_usb0` the same as
-any other CAN interface. The platform should not assume that CAN devices are
+For the medical manipulator platform, detect CAN interfaces through SocketCAN
+(`ip -details link show type can`) but do not blindly trust `can_usb0` on this
+CH340 adapter. Mark CH340/SLCAN adapters as `unverified` until
+`diagnose-usbcan.sh` proves real RX/TX, or until a known native SocketCAN
+adapter is installed. The platform should not assume that CAN devices are
 always named `can0`.
 
 ## Diagnostic Script Added
@@ -228,6 +250,14 @@ This confirms the current CH340 adapter is still vendor/firmware-unknown. The
 treated as proof of real CAN bus transmission until the adapter protocol is
 identified or the hardware is replaced with a known SocketCAN-compatible
 adapter.
+
+Live NanoPi containment action:
+
+```text
+usbcan-slcan.service disabled
+usbcan-slcan.service inactive
+no can_usb0 interface present after stop
+```
 
 ## Notes For The Next AI / Developer
 
