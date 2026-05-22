@@ -211,6 +211,77 @@ This confirms that the deployed runtime device tree now matches the module's
 20 MHz crystal. The remaining verification is a real CAN bus test against the
 M33 / motor CAN network at the intended bitrate.
 
+## 2026-05-22 Regression: SPI Reads All Ones
+
+After the USB-CAN side was brought up on another machine, the MCP2518FD path was
+checked again on NanoPi `192.168.2.66`.
+
+Current runtime device tree is still correct:
+
+```text
+/spi@2ad20000/status                         okay
+/spi@2ad20000/can@0/compatible               microchip,mcp2518fd
+/spi@2ad20000/can@0/spi-max-frequency        10000000
+/mcp2518fd-osc/clock-frequency               20000000
+/spi@2ad20000/can@0/interrupts-extended      gpio4 pin 11, level-low
+```
+
+Pinmux also matches the intended NanoPi M5 30-pin SPI3 wiring:
+
+```text
+pin 131 (gpio4-3 / PIN_29): spi3m2-csn0
+pin 132 (gpio4-4 / PIN_28): spi3m2-pins
+pin 134 (gpio4-6 / PIN_26): spi3m2-pins
+pin 135 (gpio4-7 / PIN_27): spi3m2-pins
+```
+
+The kernel probe now fails again:
+
+```text
+mcp251xfd spi3.0: Failed to read Oscillator Configuration Register (osc=0xffffffff).
+mcp251xfd spi3.0: error -ENODEV: Failed to detect MCP2518FD.
+```
+
+To bypass the CAN driver, `spi3.0` was temporarily rebound to `spidev`, and the
+MCP2518FD `READ` instruction was used directly:
+
+```text
+READ instruction = 0x03
+OSC register     = 0xE00
+SPI bytes        = 3E 00 <dummy bytes>
+```
+
+Raw register reads at all tested SPI clock rates returned all ones:
+
+```text
+100 kHz, 250 kHz, 500 kHz, 1 MHz, 2 MHz, 5 MHz, 10 MHz
+OSC read: FF FF FF...
+CRC read: FF FF FF...
+```
+
+That means the failure is below the Linux CAN driver: the NanoPi SPI controller
+is clocking the configured pins, but the master is not receiving driven data
+from the MCP2518FD. The highest-probability checks are now physical/electrical:
+
+- MCP2518FD module VCC and GND, measured at the module while NanoPi is on.
+- Common GND between NanoPi and the MCP2518FD module.
+- NanoPi PIN_26 really goes to MCP SO/MISO, not SI/MOSI.
+- NanoPi PIN_28 really goes to MCP SI/MOSI.
+- NanoPi PIN_29 really goes to MCP CS, and CS toggles low during the raw probe.
+- NanoPi PIN_27 really goes to MCP SCK, and SCK toggles during the raw probe.
+- No 5 V logic is driving NanoPi SPI pins.
+- The module's MCP2518FD chip is populated/powered, not only the CAN
+  transceiver side.
+
+The low-level helper committed for future checks is:
+
+```text
+nanopi-sdk-improved/scripts/mcp2518fd-spi-probe.py
+```
+
+Use it only after temporarily binding `spi3.0` to `spidev`; restore the
+`mcp251xfd` driver afterwards.
+
 Suggested follow-up patch content:
 
 ```diff
