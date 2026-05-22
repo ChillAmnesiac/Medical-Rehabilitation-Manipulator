@@ -12,6 +12,16 @@ not a runtime overlay.
 - SPI bus: SPI3
 - CAN interface expected after successful hardware detection: `can0`
 
+There is also a USB-CAN fallback path documented in:
+
+```text
+nanopi-sdk-improved/docs/NANOPI_USB_CAN_SLCAN_20260522.md
+nanopi-sdk-improved/docs/ROBSTRIDE_USB_CAN_AT_PROTOCOL_20260522.md
+```
+
+The tested CH340 USB-CAN adapter is not yet proven to be standard SLCAN. Use
+`diagnose-usbcan.sh` before treating `can_usb0` as a real bus path.
+
 ## Kernel Changes
 
 Apply:
@@ -85,6 +95,15 @@ sudo ip link set can0 down 2>/dev/null || true
 sudo ip link set can0 type can bitrate 1000000
 sudo ip link set can0 up
 ip -details link show can0
+```
+
+For the current USB-CAN fallback, prefer the helper script instead of writing
+interface names directly:
+
+```bash
+sudo nanopi-sdk-improved/scripts/setup-can.sh 1000000
+CAN_INTERFACE=can_usb0 nanopi-sdk-improved/scripts/test-m33-can-heartbeat.sh 01
+PORT=/dev/ttyUSB0 nanopi-sdk-improved/scripts/diagnose-usbcan.sh
 ```
 
 ## WiFi Interference Warning

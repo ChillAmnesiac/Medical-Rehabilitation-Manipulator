@@ -1,13 +1,16 @@
 #!/bin/bash
-# 配置 CAN 接口
+# Configure a NanoPi CAN interface.
+#
+# Defaults:
+# - Prefer USB-CAN SLCAN service interface can_usb0 when present.
+# - Fall back to SPI MCP2518FD can0.
 
 set -e
 
-CAN_INTERFACE="can0"
-BITRATE="${1:-1000000}"
+BITRATE="${1:-${CAN_BITRATE:-1000000}}"
+CAN_INTERFACE="${CAN_INTERFACE:-}"
 
 echo "=== NanoPi M5 CAN 接口配置脚本 ==="
-echo "接口: ${CAN_INTERFACE}"
 echo "波特率: ${BITRATE} bps"
 
 if [ "$EUID" -ne 0 ]; then
@@ -15,21 +18,48 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-if ! ip link show ${CAN_INTERFACE} &> /dev/null; then
-    echo "错误: 未找到 ${CAN_INTERFACE} 接口"
-    echo "请检查设备树是否加载: dmesg | grep -i mcp2518"
+if [ -z "$CAN_INTERFACE" ]; then
+    if ip link show can_usb0 &> /dev/null; then
+        CAN_INTERFACE="can_usb0"
+    elif ip link show can0 &> /dev/null; then
+        CAN_INTERFACE="can0"
+    elif systemctl list-unit-files usbcan-slcan.service &> /dev/null; then
+        echo "未发现 CAN 接口，尝试启动 usbcan-slcan.service..."
+        systemctl restart usbcan-slcan.service || true
+        sleep 1
+        if ip link show can_usb0 &> /dev/null; then
+            CAN_INTERFACE="can_usb0"
+        fi
+    fi
+fi
+
+if [ -z "$CAN_INTERFACE" ] || ! ip link show "$CAN_INTERFACE" &> /dev/null; then
+    echo "错误: 未找到 CAN 接口"
+    echo "排查:"
+    echo "  USB-CAN: systemctl status usbcan-slcan.service; lsusb; ls -l /dev/ttyUSB*"
+    echo "  SPI-CAN: dmesg | grep -iE 'mcp251|spi|can'"
     exit 1
 fi
 
+echo "接口: ${CAN_INTERFACE}"
 echo "✓ 找到 ${CAN_INTERFACE} 接口"
 
-ip link set ${CAN_INTERFACE} down 2>/dev/null || true
-ip link set ${CAN_INTERFACE} type can bitrate ${BITRATE}
-ip link set ${CAN_INTERFACE} up
+ip link set "$CAN_INTERFACE" down 2>/dev/null || true
+
+case "$CAN_INTERFACE" in
+    can_usb0)
+        # SLCAN adapters are configured by slcand, not by ip link bitrate.
+        ip link set "$CAN_INTERFACE" up
+        ;;
+    *)
+        ip link set "$CAN_INTERFACE" type can bitrate "$BITRATE" restart-ms 100 berr-reporting on
+        ip link set "$CAN_INTERFACE" up
+        ;;
+esac
 
 echo ""
 echo "=== CAN 接口状态 ==="
-ip -details link show ${CAN_INTERFACE}
+ip -details -statistics link show "$CAN_INTERFACE"
 
 echo ""
 echo "=== 配置完成 ==="

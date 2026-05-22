@@ -192,6 +192,43 @@ SocketCAN (`ip -details link show type can`) and treat `can_usb0` the same as
 any other CAN interface. The platform should not assume that CAN devices are
 always named `can0`.
 
+## Diagnostic Script Added
+
+The repository now includes:
+
+```text
+nanopi-sdk-improved/scripts/diagnose-usbcan.sh
+nanopi-sdk-improved/scripts/test-m33-can-heartbeat.sh
+```
+
+Use the diagnostic script before accepting a CH340 adapter as usable:
+
+```bash
+PORT=/dev/ttyUSB0 nanopi-sdk-improved/scripts/diagnose-usbcan.sh
+```
+
+It checks:
+
+- USB descriptor and stable serial path.
+- LAWICEL/SLCAN responses at common UART speeds.
+- RobStride AT packet encode/decode.
+- RobStride AT transport probe at common UART speeds.
+
+Live NanoPi spot check on 2026-05-22:
+
+```text
+baud 2000000: no LAWICEL/SLCAN reply
+baud 115200: no LAWICEL/SLCAN reply
+TX raw=41 54 00 07 E8 0C 01 00 0D 0A ...
+no RX packet returned
+```
+
+This confirms the current CH340 adapter is still vendor/firmware-unknown. The
+`can_usb0` interface can be useful for service wiring tests, but it must not be
+treated as proof of real CAN bus transmission until the adapter protocol is
+identified or the hardware is replaced with a known SocketCAN-compatible
+adapter.
+
 ## Notes For The Next AI / Developer
 
 - CH340 USB-CAN adapters are only SLCAN devices when their firmware implements
