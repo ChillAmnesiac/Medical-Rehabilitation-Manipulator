@@ -1,316 +1,160 @@
-# PSoC Edge E84 康复机械臂系统
+# 康复外骨骼机械臂系统
 
-> 基于英飞凌PSoC Edge E84的医疗康复机械臂控制系统 - 完整开发计划
+这是 `Medical-Rehabilitation-Manipulator` 仓库的 GitHub 默认入口。
 
-## 项目概述
+**当前主线不是早期 OpenClaw/App 直控方案，也不是单个电机 demo。** 本项目现在按医疗康复外骨骼机械臂的安全架构推进：AI、App、服务器、仿真和 NanoPi 都只能提出请求、建议或候选轨迹；真实运动必须经过 Infineon PSoC Edge E84 的 M33 安全裁决。
 
-开发一套基于PSoC Edge E84的医疗康复机械臂控制系统，实现患者上肢康复训练的智能辅助。
+```text
+正式运动主线:
 
-### 硬件组成
+传感/电机反馈
+  -> M33 安全汇总
+  -> NanoPi ROS2/上传网关
+  -> Linux MuJoCo shadow / 服务器 VLA
+  -> 高层任务或候选轨迹
+  -> NanoPi
+  -> M33 最终安全裁决
+  -> 电机
 
-- **主控板**: 英飞凌PSoC Edge E84 (Edgi-Talk开发板)
-  - **Cortex-M33核心** (主控制核) - [查看代码](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/M33)
-  - **Cortex-M55核心** (AI推理核) - [查看代码](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/M55)
+唯一正式运动入口:
 
-- **执行机构**:
-  - 伺服电机1: 肩关节纵向抬升
-  - 伺服电机2: 肘关节纵向抬升
-  - 推杆电机: 肩关节横向张开
+JointTrajectory -> NanoPi -> M33 -> 电机
+```
 
-- **传感器节点** (STM32C8T6):
-  - MSG肌电传感器 (EMG) - 2通道
-  - 心率传感器 (MAX30102)
-  - 六轴IMU传感器 (MPU6050)
-  - 作为独立CAN节点，采集并发送传感器数据
+## 当前权威入口
 
-- **通讯**: CAN总线连接所有电机和传感器节点 (500kbps)
+请优先看 `feature/rehab-arm-ros2-architecture` 分支中的当前架构文档：
 
-## 系统架构
+- [`docs/CURRENT_PROJECT_BRIEFING.md`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/blob/feature/rehab-arm-ros2-architecture/docs/CURRENT_PROJECT_BRIEFING.md)
+- [`docs/REHAB_ARM_SYSTEM_ARCHITECTURE.md`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/blob/feature/rehab-arm-ros2-architecture/docs/REHAB_ARM_SYSTEM_ARCHITECTURE.md)
+- [`docs/COMMAND_CENTER_APP_PROTOCOL_V1.md`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/blob/feature/rehab-arm-ros2-architecture/docs/COMMAND_CENTER_APP_PROTOCOL_V1.md)
+- [`docs/PATIENT_DEVICE_PROFILE_PROTOCOL_V1.md`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/blob/feature/rehab-arm-ros2-architecture/docs/PATIENT_DEVICE_PROFILE_PROTOCOL_V1.md)
+- [`docs/PSOC_CAN_PROTOCOL_V1.md`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/blob/feature/rehab-arm-ros2-architecture/docs/PSOC_CAN_PROTOCOL_V1.md)
 
-\`\`\`
-┌─────────────────────────────────────────────────────────────────┐
-│                      Android App (手机端)                        │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │ 患者管理     │  │ 实时控制     │  │ 康复评估     │          │
-│  │ 训练记录     │  │ 数据可视化   │  │ PDF导出      │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-└────────┬──────────────────────┬──────────────────────────────────┘
-         │                      │
-         │ ①蓝牙BLE (实时控制)  │ ②HTTP (OpenClaw)
-         │   - 快速响应         │   - 自然语言控制
-         │   - 传感器数据流     │   - 复杂指令
-         │                      │
-         ↓                      ↓
-┌────────────────────┐   ┌─────────────────────────────────────┐
-│   PSoC Edge E84    │   │         OpenClaw Gateway            │
-│                    │   │  (PC端运行)                         │
-│  ┌──────────────┐  │   │                                     │
-│  │ M33核心      │  │   │  ③HTTP桥接 (PSoC ↔ OpenClaw)       │
-│  │ - CAN驱动    │◄─┼───┤  - 转发App的自然语言指令           │
-│  │ - 蓝牙BLE    │  │   │  - 返回执行结果                     │
-│  │ - 实时控制   │  │   │  - AI康复建议推送                   │
-│  │ - 传感器管理 │  │   └─────────────────────────────────────┘
-│  └──────┬───────┘  │
-│         │          │
-│  ┌──────▼───────┐  │
-│  │ M55核心      │  │
-│  │ - WiFi连接   │◄─┼─── HTTP通信
-│  │ - AI推理引擎 │  │
-│  │ - EMG预测    │  │
-│  │ - 康复评估   │  │
-│  └──────────────┘  │
-└────────┬────────────┘
-         │ CAN总线 (500kbps)
-         │
-    ┌────┴────┬────────┬────────┬────────────┐
-    │         │        │        │            │
-┌───▼────┐ ┌─▼──────┐ ┌▼──────┐ ┌▼──────┐ ┌─▼────────────────┐
-│ 肩关节 │ │ 肘关节 │ │ 推杆  │ │ 电机  │ │ STM32C8T6        │
-│ 伺服   │ │ 伺服   │ │ 电机  │ │ 反馈  │ │ 传感器节点       │
-│ 0x100  │ │ 0x101  │ │ 0x102 │ │0x200-2│ │ 0x300-0x310      │
-└────────┘ └────────┘ └───────┘ └───────┘ └──────────────────┘
-\`\`\`
+如果旧文档、旧 README、demo 代码或早期草案与这些文档冲突，以 `feature/rehab-arm-ros2-architecture` 的当前架构为准。
 
-## 核心功能
+## 分支导览
 
-### M33核心 (主控制核)
+| 分支 | 当前用途 | 备注 |
+|---|---|---|
+| [`feature/rehab-arm-ros2-architecture`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/feature/rehab-arm-ros2-architecture) | ROS2、NanoPi、MuJoCo、系统架构、安全 gate、协议文档主线 | 当前讲解和后续协作基准 |
+| [`M33`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/M33) | Infineon M33 固件、安全状态机、CAN、电机控制、BLE、M55 IPC | M33 是最终安全裁决者 |
+| [`M55`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/M55) | Infineon M55 Wi-Fi、LVGL、语音/XiaoZhi、小模型、M33 IPC | 只输出建议和语音/模型结果，不直接控制电机 |
+| [`nanopi-sdk`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/nanopi-sdk) | NanoPi M5 Linux/CAN 底层 bring-up、MCP2518FD/SocketCAN | 底层驱动和硬件调试资料 |
+| [`C8T6`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/C8T6) | STM32F103C8T6 传感采集板 | EMG、心率、IMU 等 CAN 传感节点 |
+| [`APP`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/APP) | Android App、BLE、界面、传感数据显示 | UI/近端交互参考；不能绕过 M33 直控电机 |
+| [`ai`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/ai) | VLA 任务理解原型 | 输出结构化任务，不是真机控制器 |
+| [`ROS_VLA_WebSocket`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/ROS_VLA_WebSocket) | 早期 ROS/VLA WebSocket 通信原型 | 历史旁线，不能当当前真机主线 |
+| [`NanoPi_ROSNode`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/NanoPi_ROSNode) | 早期 NanoPi ROS2/OpenClaw/HTTP bridge | 可参考，当前主线看 feature 分支 |
+| [`PCB`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/PCB) | PCB/结构相关资料 | 资料分支 |
 
-**职责**: 实时控制、蓝牙通信、CAN总线管理
+## 安全边界
 
-- **蓝牙通信** (Nordic UART Service)
-  - 设备名称: OpenClaw-NUS
-  - 实时控制指令接收
-  - 传感器数据流发送 (100Hz)
-  - MTU: 247字节
+本项目面向会穿戴在人身上的康复外骨骼机械臂，安全优先级高于演示效果和 AI 能力。
 
-- **CAN总线控制**
-  - 电机控制 (肩关节、肘关节、推杆)
-  - 传感器数据采集
-  - 波特率: 500kbps
+不可违背的原则：
 
-- **控制模式**
-  - 被动模式: 电机无阻力
-  - 主动模式: 电机主动驱动
-  - 记忆模式: 回放训练动作
-  - AI辅助模式: 智能辅助
+- 默认不动。上电、重启、通信中断、传感异常、轨迹异常或程序异常时，不得继续驱动电机。
+- M33 是最终安全责任核心。NanoPi、Linux 工作站、App、VLA、OpenClaw、服务器和 M55 都不能绕过 M33 直接控制电机。
+- VLA、语音、M55 小模型和 App 只能产生任务目标、候选轨迹、状态、建议或人工确认请求。
+- 急停、限位、限速、限流、heartbeat timeout 和电机故障必须能在 M33 本地独立触发。
+- 人在设备内时，不允许使用 NanoPi 直发 CANSimple/private 电机帧做运动控制。
+- 新功能进入真机前必须经过仿真、空载台架、低能量受限动作，再进入穿戴测试。
 
-- **安全系统**
-  - 关节角度限位
-  - 速度/扭矩限制
-  - 紧急停止功能
+## 系统分层
 
-[查看M33核心详细文档 →](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/M33)
+```text
+高层任务层:
+  VLA / OpenClaw / App 高层 AI 请求
 
-### M55核心 (AI推理核)
+总控台与研发平台层:
+  总服务器 / 多设备管理 / 数据资产 / 模型管理 / 实验追踪 / 远程协作
 
-**职责**: WiFi连接、AI推理、康复评估
+规划与仿真层:
+  Linux 工作站 ROS2 / URDF / MuJoCo / RViz / rosbag / 数据标注
 
-- **WiFi连接**
-  - 连接局域网
-  - HTTP服务器
-  - OpenClaw通信
+机器人主控与桥接层:
+  NanoPi ROS2 / PSoC CAN Bridge / 状态汇总 / 摄像头和服务器上传
 
-- **AI推理引擎**
-  - EMG信号分析
-  - 运动意图预测
-  - 康复评估
-  - 异常检测
+实时控制与安全层:
+  Infineon M33 / 安全状态机 / 限位 / 急停 / 电机控制
 
-- **OpenClaw集成**
-  - 自然语言指令解析
-  - 训练计划生成
-  - 康复报告生成
+边缘 AI 与信号处理层:
+  Infineon M55 / EMG 意图预测 / 疲劳检测 / 语音采集 / XiaoZhi relay
 
-[查看M55核心详细文档 →](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/M55)
+传感与执行层:
+  C8T6 传感节点 / 电机驱动 / 编码器 / 限位开关 / 急停硬件
+```
 
-## 通讯协议
+## 当前已验证的主线能力
 
-### 蓝牙协议 (App ↔ M33)
+截至 2026-06-10，当前主线可准确描述为：
 
-#### 控制命令
-\`\`\`
-stop                    # 紧急停止
-stream:on              # 启用数据流
-stream:off             # 关闭数据流
-mode:passive           # 被动模式
-mode:active            # 主动模式
-mode:memory            # 记忆模式
-mode:ai                # AI辅助模式
-move:0:90.0            # 移动关节 (关节ID:角度)
-\`\`\`
+- `M33/M55/CAN/NanoPi ROS2/无线 MuJoCo shadow` 的基础链路已分层打通。
+- M33 状态帧 `0x322`、电机槽位帧 `0x330~0x334`、M55 结果帧 `0x323` 已在 NanoPi CAN 上验证。
+- M33 数据进入 M55 小模型，再经 M33 `0x323` 到 NanoPi `/rehab_arm/model_state` 的闭环已通过 `req_snap` 验证。
+- MuJoCo 6DOF hardware shadow 已能跟随 NanoPi 上来的真实/占位 joint 状态。
+- M55 Wi-Fi、LVGL、XiaoZhi token 配置和语音/WebSocket 适配正在沿官方 local voice/XiaoZhi 路线推进。
 
-#### 数据流格式
-\`\`\`json
-{
-  "s": 1,              // streaming状态
-  "m": 1,              // 控制模式
-  "sh": 45.0,          // 肩关节角度
-  "el": 30.0,          // 肘关节角度
-  "la": 10.0,          // 横向位置
-  "hr": 75,            // 心率
-  "sp": 98,            // 血氧
-  "e1": 0.12,          // EMG通道1
-  "e2": 0.15,          // EMG通道2
-  "sf": 0              // 安全状态
-}
-\`\`\`
+当前不能夸大的内容：
 
-### HTTP API (OpenClaw ↔ M55)
+- 完整 6DOF 真机闭环控制还没有完成。
+- 真实 4 路 EMG 小模型还没有完成产品级训练和验证。
+- VLA 还不能安全控制真机，只能产生高层任务或 dry-run 候选。
+- 7 号 EL05 是外部台架调试电机，不是正式机械臂关节。
+- App、服务器、M55 confidence、语音文本或 VLA 输出都不是运动许可。
 
-#### 获取传感器数据
-\`\`\`
-GET /api/sensors
-\`\`\`
+## 主线和旁线分类
 
-#### 执行控制命令
-\`\`\`
-POST /api/command
-Body: {
-  "command": "move_joint",
-  "joint_id": 0,
-  "target_angle": 90.0
-}
-\`\`\`
+后续开发、AI 协作和文档更新必须先判断入口属于哪一类：
 
-#### AI推理请求
-\`\`\`
-POST /api/inference
-Body: {
-  "type": "emg_prediction",
-  "data": [0.12, 0.15, 0.18, ...]
-}
-\`\`\`
+| 类型 | 含义 | 能否影响真实运动 |
+|---|---|---|
+| `mainline` | 正式真机链路，最终到 M33 安全裁决 | 可以，但必须经过 M33 |
+| `shadow-sim` | MuJoCo/RViz/无线 ROS2 状态影子 | 不可以 |
+| `dry-run` | 轨迹候选、仿真审核、operator review 前准备 | 不可以 |
+| `bench-debug` | 台架电机、直发 CAN、诊断脚本 | 不可以用于穿戴场景 |
+| `offline-demo` | 历史 demo、合成数据、topic smoke | 不可以 |
+| `side-channel` | M55、BLE、服务器同步、语音/模型建议 | 不可以单独授权运动 |
 
-## 使用场景
+任何包含 `demo`、`smoke`、`synthetic`、`bench`、`fallback` 的入口，默认不属于真机主线。
 
-### 场景1: 简单实时控制 (蓝牙直连)
-\`\`\`
-用户点击"抬起肩关节" 
-  → App通过蓝牙发送指令 
-  → M33执行 
-  → 实时反馈
-\`\`\`
+## 当前真实 CAN 和 ROS 边界
 
-### 场景2: 自然语言控制 (OpenClaw桥接)
-\`\`\`
-用户说"帮我做一组康复训练"
-  → App发送到OpenClaw (HTTP)
-  → OpenClaw理解意图，生成训练计划
-  → OpenClaw通过WiFi调用M55的HTTP API
-  → M55通知M33执行训练
-  → 传感器数据通过蓝牙实时返回App
-  → 训练结束，OpenClaw生成康复评估
-  → 评估结果返回App
-\`\`\`
+正式 NanoPi -> M33 桥接协议：
 
-### 场景3: AI辅助训练 (三者协同)
-\`\`\`
-1. 用户在App启动"AI助力模式"
-2. App通过蓝牙设置M33为AI模式
-3. 患者开始运动，M33采集EMG信号
-4. M33将数据发送到M55进行AI推理
-5. M55预测运动意图，返回结果给M33
-6. M33根据预测调整电机阻尼
-7. 传感器数据通过蓝牙流式传输到App显示
-8. 训练结束，App请求OpenClaw生成康复评估
-9. OpenClaw调用M55获取历史数据
-10. OpenClaw生成评估报告返回App
-\`\`\`
+| ID/topic | 方向 | 作用 |
+|---|---|---|
+| CAN `0x320` | NanoPi -> M33 | 关节目标/轨迹片段请求 |
+| CAN `0x321` | NanoPi -> M33 | NanoPi heartbeat |
+| CAN `0x322` | M33 -> NanoPi | M33 状态、安全和 heartbeat 回复 |
+| CAN `0x323` | M33 -> NanoPi | M55 模型/语音/建议结果摘要，只是建议 |
+| CAN `0x330~0x334` | M33 -> NanoPi | 电机槽位/状态摘要 |
+| CAN `0x7C2` | C8T6 -> M33 | 传感数据 |
+| CAN `0x7C3` | C8T6 -> M33 | C8T6 健康状态 |
+| `/joint_states` | NanoPi/仿真 | 输出端 joint 状态 |
+| `/rehab_arm/model_state` | NanoPi | M55 编号结果语义化，只作上下文 |
+| `/rehab_arm/safety_state` | NanoPi/M33 bridge | 安全状态展示和审核依据 |
+| `/arm_controller/joint_trajectory` | planner/dry-run | 标准轨迹候选，进入 NanoPi/M33 gate |
 
-## 快速开始
+## 被降级或不能再当主线的内容
 
-### 1. 克隆代码
+- 旧 OpenClaw HTTP 直控 PSoC/电机方案不能作为正式运动路径。
+- `ROS_VLA_WebSocket` 早期服务器不能证明 VLA 已经能控制真机。
+- `ai` 分支当前是规则版任务理解原型，不是控制器。
+- `demo_trajectory_node.py` 和 `vla_task_planner_node.py` 只能做 topic/demo 验证，不能当 6DOF 真机 planner。
+- 旧 5 关节 demo 和新 6 关节 medical arm schema 不能直接混接。
+- 7 号 EL05 只能作为外部台架调试电机，不进入患者 profile、VLA 真机决策或正式 6DOF 映射。
+- CH340/SLCAN USB-CAN 路径未被证明真实收发，不能把本地 TX echo 当 CAN bus 验证通过。
+- 旧 `wake_word_detector` 路线已降级为诊断/fallback；语音/wake 主线优先按 Infineon 官方 local voice / XiaoZhi 适配推进。
 
-\`\`\`bash
-# M33核心 (主控制核)
-git clone -b M33 git@github.com:ChillAmnesiac/Medical-Rehabilitation-Manipulator.git yiliao_m33
+## 推荐阅读顺序
 
-# M55核心 (AI推理核)
-git clone -b M55 git@github.com:ChillAmnesiac/Medical-Rehabilitation-Manipulator.git wifi
-\`\`\`
+1. 当前总览：[`docs/CURRENT_PROJECT_BRIEFING.md`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/blob/feature/rehab-arm-ros2-architecture/docs/CURRENT_PROJECT_BRIEFING.md)
+2. 系统架构：[`docs/REHAB_ARM_SYSTEM_ARCHITECTURE.md`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/blob/feature/rehab-arm-ros2-architecture/docs/REHAB_ARM_SYSTEM_ARCHITECTURE.md)
+3. 服务器/App/VLA 协议：[`docs/COMMAND_CENTER_APP_PROTOCOL_V1.md`](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/blob/feature/rehab-arm-ros2-architecture/docs/COMMAND_CENTER_APP_PROTOCOL_V1.md)
+4. M33 固件：[`M33` 分支](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/M33)
+5. M55 固件：[`M55` 分支](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/M55)
+6. NanoPi/CAN：[`nanopi-sdk` 分支](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/nanopi-sdk)
 
-### 2. 开发环境
-
-- **IDE**: RT-Thread Studio
-- **RTOS**: RT-Thread 5.x
-- **工具链**: ARM GCC
-- **调试器**: J-Link / DAPLink
-
-### 3. 烧录顺序
-
-⚠️ **必须按照以下顺序烧录**：
-
-\`\`\`
-1. Secure M33 (安全核心)
-2. M33 (非安全核心)
-3. M55 (应用核心)
-\`\`\`
-
-### 4. 测试蓝牙连接
-
-使用nRF Connect或其他蓝牙调试工具：
-1. 扫描并连接 "OpenClaw-NUS"
-2. 找到NUS服务
-3. 启用TX特征值的通知
-4. 向RX特征值写入: \`stream:on\`
-5. 观察接收到的JSON数据
-
-### 5. 配置WiFi (M55)
-
-编辑 \`wifi/applications/main.c\`：
-\`\`\`c
-#define WIFI_SSID "your_wifi_ssid"
-#define WIFI_PASSWORD "your_wifi_password"
-\`\`\`
-
-## 项目文档
-
-- [完整开发计划文档](./开发计划文档.md) - 详细的系统设计和实现方案
-- [M33核心文档](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/M33) - 蓝牙通信、CAN控制
-- [M55核心文档](https://github.com/ChillAmnesiac/Medical-Rehabilitation-Manipulator/tree/M55) - WiFi连接、AI推理
-
-## 技术栈
-
-- **硬件平台**: Infineon PSoC Edge E84
-- **操作系统**: RT-Thread RTOS
-- **蓝牙协议栈**: Infineon AIROC Bluetooth Stack
-- **通信协议**: 
-  - 蓝牙BLE (Nordic UART Service)
-  - HTTP/REST API
-  - CAN总线
-- **AI框架**: TensorFlow Lite (计划)
-
-## 开发进度
-
-- [x] M33核心基础框架
-- [x] 蓝牙GATT服务实现
-- [x] CAN总线驱动
-- [x] 传感器管理模块
-- [x] 控制管理器
-- [x] 安全系统
-- [x] M55核心基础框架
-- [x] WiFi连接模块
-- [x] HTTP服务器
-- [x] OpenClaw集成框架
-- [ ] AI推理引擎实现
-- [ ] 真实传感器数据接入
-- [ ] 电机控制优化
-- [ ] Android App开发
-- [ ] 系统集成测试
-
-## 贡献指南
-
-欢迎提交Issue和Pull Request！
-
-## 许可证
-
-本项目仅供学习和研究使用。
-
-## 联系方式
-
-- GitHub: [@ChillAmnesiac](https://github.com/ChillAmnesiac)
-- Email: 3245056131@qq.com
-
-## 致谢
-
-感谢RT-Thread社区和Infineon提供的技术支持。
+后续如果发现旧 README、旧文档或旧 demo 与本 README 冲突，默认按本 README 和 `feature/rehab-arm-ros2-architecture` 分支处理。
