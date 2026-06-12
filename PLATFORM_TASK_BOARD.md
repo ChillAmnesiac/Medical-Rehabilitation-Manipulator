@@ -10,7 +10,7 @@ collaboration platform. It is intentionally branch-oriented.
 | P0-001 | Product architecture | `main`, all branch READMEs | Build the current branch inventory and mark active/reference/archive status. | Updated `PLATFORM_DEVELOPMENT_ENTRY.md`. |
 | P0-002 | Hardware and PCB | `PCB`, `main` | Confirm actual hardware list and unknowns. | `docs/hardware-current-truth.md`. |
 | P0-003 | Firmware M33 | `M33` | Audit real-time control, CAN, Bluetooth, and safety code. | `docs/m33-firmware-audit.md`. |
-| P0-004 | Firmware M55 | `M55`, `wake-word-model` | Audit voice, WiFi, OpenClaw, and local AI feasibility. | `docs/m55-ai-voice-audit.md`. |
+| P0-004 | Firmware M55 | `M55`, `wake-word-model` | Audit voice, WiFi, OpenClaw, and local AI feasibility. Current WiFi+LVGL provisioning milestone is recorded in `wifi避坑文档.md`; next test is XiaoZhi/server connectivity after WiFi obtains IP. | `docs/m55-ai-voice-audit.md`. |
 | P0-005 | Sensor node | `C8T6` | Decide if STM32F1 sensor node is active. Audit sensor/CAN code if active. | `docs/c8t6-sensor-node-audit.md`. |
 | P0-006 | App | `APP` | Audit app source versus generated build output and identify cleanup plan. | `docs/app-branch-cleanup-plan.md`. |
 | P0-007 | Edge/ROS | `NanoPi_ROSNode` | Audit ROS2 assets without implementing ROS work yet. | `docs/nanopi-ros-audit.md`. |

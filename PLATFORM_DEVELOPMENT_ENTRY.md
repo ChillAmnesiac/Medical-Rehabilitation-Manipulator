@@ -65,6 +65,9 @@ project:
    - Starts from `M55` and `wake-word-model`.
    - Owns voice, WiFi, local inference feasibility, and OpenClaw interface only
      if the hardware plan still uses M55.
+   - 2026-06-13: M55 WiFi scan and LVGL touch provisioning reached a usable
+     milestone. This is now the prerequisite for XiaoZhi/server connectivity
+     bring-up; keep branch-specific firmware work on `M55`.
 
 5. Sensor node workstation
    - Starts from `C8T6` only after confirming STM32F1 remains in the design.
