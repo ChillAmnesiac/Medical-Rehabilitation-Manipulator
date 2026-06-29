@@ -26,6 +26,10 @@ dist/
 *.tmp
 .DS_Store
 
+# 本地采集数据集
+datasets/
+.tmp_camera_probe/
+
 
 !README.md
 !CLAUDE.md
