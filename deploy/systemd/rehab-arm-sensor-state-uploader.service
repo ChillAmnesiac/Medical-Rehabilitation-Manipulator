@@ -1,0 +1,26 @@
+[Unit]
+Description=Rehab Arm NanoPi sensor state uploader
+After=network-online.target rehab-arm-nanopi-readonly.service
+Wants=network-online.target
+Requires=rehab-arm-nanopi-readonly.service
+
+[Service]
+Type=simple
+User=pi
+Environment=WORKSPACE=/home/pi/rehab_arm_ros2_ws
+Environment=ROS_NETWORK_ENV=/home/pi/.rehab_arm_ros2_network
+Environment=ROS_LOG_DIR=/home/pi/.ros/log
+Environment=API_BASE_URL=http://106.55.62.122:8011/api/rehab-arm/v1
+Environment=PROJECT_ID=e201f41c-25a6-46e1-baf8-be6dcb83284c
+Environment=ROBOT_ID=rehab-arm-alpha
+Environment=DEVICE_ID=nanopi-m5
+Environment=MIN_INTERVAL_SEC=0.10
+Environment=TIMEOUT_SEC=3.0
+ExecStart=/usr/local/bin/start_sensor_state_uploader.sh
+Restart=on-failure
+RestartSec=3
+KillSignal=SIGINT
+TimeoutStopSec=10
+
+[Install]
+WantedBy=multi-user.target

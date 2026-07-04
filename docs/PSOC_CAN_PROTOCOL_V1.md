@@ -219,7 +219,50 @@ NanoPi 侧映射：
 
 ### `0x7C2` Sensor Frame
 
-Payload V1:
+Current payload, F103 EMG sensor node, 2026-07:
+
+| Byte | Field | Type | Meaning |
+|---:|---|---|---|
+| 0..1 | `adc_raw[0]` | `uint16` little-endian | EMG CH1, biceps raw ADC counts |
+| 2..3 | `adc_raw[1]` | `uint16` little-endian | EMG CH2, triceps raw ADC counts |
+| 4..5 | `adc_raw[2]` | `uint16` little-endian | EMG CH3, anterior deltoid raw ADC counts |
+| 6..7 | `adc_raw[3]` | `uint16` little-endian | debug or unused ADC channel |
+
+NanoPi uses the existing `psoc_can_bridge_node.py` sensor node path:
+
+```text
+F103/C8T6 CAN 0x7C2/0x7C3
+  -> /rehab_arm/sensor_state
+  -> sensor_state_uploader_node.py
+  -> POST /api/rehab-arm/v1/devices/{device_id}/sensor-state
+```
+
+The platform upload keeps `source=f103_sensor` compatibility on the ROS
+message, but the physical source is explicit:
+
+```json
+{
+  "sensor_node": "stm32_f103_emg3",
+  "physical_source": "stm32_f103_emg3_can_0x7c2",
+  "payload_format": "adc4_le_u16_v1",
+  "emg": {
+    "schema_version": "rehab_arm_emg3_adc_v1",
+    "source": "stm32_f103_emg3_can_0x7c2",
+    "sample_unit": "adc_counts",
+    "channels": [
+      {"channel": "ch1", "channel_id": "f103_adc0", "muscle": "biceps", "unit": "adc_counts"},
+      {"channel": "ch2", "channel_id": "f103_adc1", "muscle": "triceps", "unit": "adc_counts"},
+      {"channel": "ch3", "channel_id": "f103_adc2", "muscle": "anterior_deltoid", "unit": "adc_counts"}
+    ]
+  }
+}
+```
+
+This path is telemetry only. EMG can feed display, logging, data quality,
+training, or assist suggestions. It must not directly authorize motion; M33
+remains the final motion authority.
+
+Legacy V1 draft, historical only:
 
 | Byte | 字段 | 类型 | 说明 |
 |---:|---|---|---|

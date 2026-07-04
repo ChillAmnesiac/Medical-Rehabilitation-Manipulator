@@ -21,6 +21,7 @@ setup(
             'stereo_camera_capture_upload = rehab_arm_psoc_bridge.stereo_camera_capture_upload:main',
             'stereo_chessboard_calibration = rehab_arm_psoc_bridge.stereo_chessboard_calibration:main',
             'joint_state_motor_state_node = rehab_arm_psoc_bridge.joint_state_motor_state_node:main',
+            'sensor_state_uploader_node = rehab_arm_psoc_bridge.sensor_state_uploader_node:main',
             'jsonl_replay_node = rehab_arm_psoc_bridge.jsonl_replay_node:main',
             'check_recording = rehab_arm_psoc_bridge.check_recording:main',
             'summarize_recording = rehab_arm_psoc_bridge.summarize_recording:main',
