@@ -57,10 +57,34 @@ class SensorStateUploaderTests(unittest.TestCase):
         self.assertEqual(payload['source'], 'nanopi_ros2_f103_can_gateway')
         self.assertNotIn('data', payload)
         emg = payload['emg']
+        self.assertEqual(emg['channel_count'], 4)
+        self.assertEqual(emg['voltage_reference_v'], 3.3)
+        self.assertEqual(emg['voltage_unit'], 'V')
         self.assertEqual(emg['channels'][0]['raw_adc'], 1000)
         self.assertEqual(emg['channels'][2]['muscle'], 'anterior_deltoid')
+        self.assertEqual(emg['channels'][3]['channel'], 'ch4')
+        self.assertEqual(emg['channels'][3]['muscle'], 'forearm_extensor')
+        self.assertAlmostEqual(emg['channels'][3]['voltage_v'], 4000 * 3.3 / 4095, places=6)
         self.assertEqual(emg['transport']['source_can_id'], '0x7C2')
         self.assertEqual(emg['f103_health']['state'], 'streaming')
+
+    def test_build_upload_payload_pads_missing_emg_channels_with_zeroes(self) -> None:
+        payload = build_sensor_state_upload_payload(
+            {'source': 'f103_sensor', 'id_hex': '0x7C2'},
+            robot_id='rehab-arm-alpha',
+            device_id='nanopi-m5',
+            project_id='project-1',
+            now_unix=123.5,
+        )
+
+        emg = payload['emg']
+        self.assertEqual(emg['schema_version'], 'rehab_arm_emg4_adc_v1')
+        self.assertEqual(emg['channel_count'], 4)
+        self.assertEqual([channel['channel'] for channel in emg['channels']], ['ch1', 'ch2', 'ch3', 'ch4'])
+        self.assertEqual([channel['raw_adc'] for channel in emg['channels']], [0, 0, 0, 0])
+        self.assertEqual([channel['activation'] for channel in emg['channels']], [0.0, 0.0, 0.0, 0.0])
+        self.assertEqual([channel['voltage_v'] for channel in emg['channels']], [0.0, 0.0, 0.0, 0.0])
+        self.assertEqual(emg['signal_quality']['status'], 'degraded')
 
     def test_make_request_posts_schema_payload(self) -> None:
         payload = {

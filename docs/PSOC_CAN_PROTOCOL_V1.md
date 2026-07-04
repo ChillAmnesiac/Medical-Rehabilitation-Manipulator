@@ -226,7 +226,13 @@ Current payload, F103 EMG sensor node, 2026-07:
 | 0..1 | `adc_raw[0]` | `uint16` little-endian | EMG CH1, biceps raw ADC counts |
 | 2..3 | `adc_raw[1]` | `uint16` little-endian | EMG CH2, triceps raw ADC counts |
 | 4..5 | `adc_raw[2]` | `uint16` little-endian | EMG CH3, anterior deltoid raw ADC counts |
-| 6..7 | `adc_raw[3]` | `uint16` little-endian | debug or unused ADC channel |
+| 6..7 | `adc_raw[3]` | `uint16` little-endian | EMG CH4 reserved, forearm extensor raw ADC counts; use 0 when not connected |
+
+Each channel keeps the raw ADC count and also reports a display voltage:
+
+```text
+voltage_v = raw_adc / 4095 * 3.3
+```
 
 NanoPi uses the existing `psoc_can_bridge_node.py` sensor node path:
 
@@ -246,13 +252,14 @@ message, but the physical source is explicit:
   "physical_source": "stm32_f103_emg3_can_0x7c2",
   "payload_format": "adc4_le_u16_v1",
   "emg": {
-    "schema_version": "rehab_arm_emg3_adc_v1",
+    "schema_version": "rehab_arm_emg4_adc_v1",
     "source": "stm32_f103_emg3_can_0x7c2",
     "sample_unit": "adc_counts",
     "channels": [
       {"channel": "ch1", "channel_id": "f103_adc0", "muscle": "biceps", "unit": "adc_counts"},
       {"channel": "ch2", "channel_id": "f103_adc1", "muscle": "triceps", "unit": "adc_counts"},
-      {"channel": "ch3", "channel_id": "f103_adc2", "muscle": "anterior_deltoid", "unit": "adc_counts"}
+      {"channel": "ch3", "channel_id": "f103_adc2", "muscle": "anterior_deltoid", "unit": "adc_counts", "voltage_v": 0.0},
+      {"channel": "ch4", "channel_id": "f103_adc3", "muscle": "forearm_extensor", "unit": "adc_counts", "voltage_v": 0.0}
     ]
   }
 }

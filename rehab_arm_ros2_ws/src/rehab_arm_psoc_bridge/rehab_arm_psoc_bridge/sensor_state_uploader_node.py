@@ -23,7 +23,7 @@ except ModuleNotFoundError:
 if __package__ in (None, ''):
     sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from rehab_arm_psoc_bridge.f103_sensor_state import F103_HEALTH_ID_HEX, F103_SENSOR_ID_HEX
+from rehab_arm_psoc_bridge.f103_sensor_state import ADC_MAX, ADC_REF_VOLTAGE, EMG4_CHANNEL_MAP, F103_HEALTH_ID_HEX, F103_SENSOR_ID_HEX
 
 
 DEFAULT_API_BASE_URL = 'http://106.55.62.122:8011/api/rehab-arm/v1'
@@ -57,6 +57,31 @@ def _health_summary(health_payload: dict[str, object]) -> dict[str, object]:
     }
 
 
+def _zero_emg4_channels() -> list[dict[str, object]]:
+    return [
+        {
+            'channel': channel,
+            'name': channel,
+            'channel_id': f'f103_adc{adc_index}',
+            'adc_index': adc_index,
+            'muscle': muscle,
+            'muscle_name': muscle_name,
+            'raw_adc': 0,
+            'value': 0.0,
+            'activation': 0.0,
+            'unit': 'adc_counts',
+            'raw_adc_unit': 'adc_counts',
+            'voltage_v': 0.0,
+            'value_v': 0.0,
+            'voltage_unit': 'V',
+            'voltage_reference_v': ADC_REF_VOLTAGE,
+            'range': [0, ADC_MAX],
+            'signal_quality': 'missing',
+        }
+        for channel, adc_index, muscle, muscle_name in EMG4_CHANNEL_MAP
+    ]
+
+
 def build_sensor_state_upload_payload(
     sensor_payload: dict[str, object],
     *,
@@ -69,11 +94,16 @@ def build_sensor_state_upload_payload(
     emg_source = sensor_payload.get('emg')
     emg = copy.deepcopy(emg_source) if isinstance(emg_source, dict) else {}
     if not emg:
+        channels = _zero_emg4_channels()
         emg = {
-            'schema_version': 'rehab_arm_emg3_adc_v1',
+            'schema_version': 'rehab_arm_emg4_adc_v1',
             'source': sensor_payload.get('source') or 'stm32_f103_emg3_can_0x7c2',
-            'channels': [],
-            'channel_count': 0,
+            'channels': channels,
+            'channel_count': len(channels),
+            'sample_unit': 'adc_counts',
+            'adc_range': [0, ADC_MAX],
+            'voltage_reference_v': ADC_REF_VOLTAGE,
+            'voltage_unit': 'V',
             'signal_quality': {
                 'status': 'degraded',
                 'reason': 'no_emg_channels_in_sensor_payload',
