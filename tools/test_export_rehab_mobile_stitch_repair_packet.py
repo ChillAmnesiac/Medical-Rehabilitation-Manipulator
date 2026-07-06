@@ -205,6 +205,13 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(packet["verification_commands"]["powershell"])
     assert "qa_rehab_mobile_browser_metrics.py" in "\n".join(packet["verification_commands"]["powershell"])
     assert "browser-metrics-l1-390x844.json" in "\n".join(packet["verification_commands"]["powershell"])
+    commands = packet["verification_commands"]["powershell"]
+    metrics_index = next(index for index, command in enumerate(commands) if "qa_rehab_mobile_browser_metrics.py" in command)
+    objective_index = next(index for index, command in enumerate(commands) if "qa_rehab_mobile_l1_objective_audit.py" in command)
+    assert metrics_index < objective_index
+    assert "--browser-metrics-json artifacts\\rehab-mobile-frontend-release\\browser-metrics-gate.json" in commands[
+        objective_index
+    ]
     assert "smoke_rehab_model_provider.py" in packet["non_stitch_actions"][0]["preflight_command"]
     assert "configure_rehab_model_relay.py" in packet["non_stitch_actions"][0]["configure_command"]
     sms_actions = [action for action in packet["non_stitch_actions"] if action["blocker"] == "phone_sms_delivery"]
@@ -276,3 +283,29 @@ def test_cli_writes_repair_packet_from_saved_gate_payloads(tmp_path):
     assert packet["target"]["frontend_source_commit"] == "eaa08a40cdd3e1e62827809111f2323e7f92556f"
     assert packet["frontend_failures"][0]["page_url"] == "http://example.test/home.html"
     assert packet["browser_qa_required"][0]["name"] == "home_first_screen"
+
+
+def test_cli_accepts_utf16_saved_gate_payloads(tmp_path):
+    module = _load_module()
+    release_path = tmp_path / "release-utf16.json"
+    objective_path = tmp_path / "objective-utf16.json"
+    output_path = tmp_path / "repair-packet.json"
+    release_path.write_text(json.dumps(_release_payload()), encoding="utf-16")
+    objective_path.write_text(json.dumps(_objective_payload()), encoding="utf-16")
+
+    exit_code = module.main(
+        [
+            "--release-json",
+            str(release_path),
+            "--objective-json",
+            str(objective_path),
+            "--output",
+            str(output_path),
+            "--generated-at",
+            "2026-07-07T03:31:02+08:00",
+        ]
+    )
+
+    assert exit_code == 0
+    packet = json.loads(output_path.read_text(encoding="utf-8"))
+    assert packet["summary"]["overall"] == "FAIL"

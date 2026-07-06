@@ -95,7 +95,8 @@ def _packet():
         "verification_commands": {
             "powershell": [
                 ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_release.py",
-                ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py",
+                ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_browser_metrics.py --input artifacts\\rehab-mobile-frontend-release\\browser-metrics-l1-390x844.json --output artifacts\\rehab-mobile-frontend-release\\browser-metrics-gate.json",
+                ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py --browser-metrics-json artifacts\\rehab-mobile-frontend-release\\browser-metrics-gate.json",
             ]
         },
     }
@@ -136,6 +137,10 @@ def test_render_prompt_includes_repair_packet_evidence_and_acceptance_commands()
     assert "configure_rehab_sms_delivery.py" in prompt
     assert "qa_rehab_mobile_l1_release.py" in prompt
     assert "qa_rehab_mobile_l1_objective_audit.py" in prompt
+    assert (
+        prompt.index("qa_rehab_mobile_browser_metrics.py")
+        < prompt.index("qa_rehab_mobile_l1_objective_audit.py --browser-metrics-json")
+    )
     assert "prepare_rehab_mobile_frontend_release.py" in prompt
     assert "verify_rehab_mobile_frontend_release.py" in prompt
     assert "verify_rehab_mobile_webview_mirror.py" in prompt

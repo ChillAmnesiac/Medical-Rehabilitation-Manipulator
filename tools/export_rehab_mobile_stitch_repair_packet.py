@@ -325,8 +325,8 @@ def build_repair_packet(
                 "$env:REHAB_QA_EMAIL='<staging email>'",
                 "$env:REHAB_QA_PASSWORD='<staging password>'",
                 ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_release.py",
-                ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py",
                 ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_browser_metrics.py --input artifacts\\rehab-mobile-frontend-release\\browser-metrics-l1-390x844.json --output artifacts\\rehab-mobile-frontend-release\\browser-metrics-gate.json",
+                ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py --browser-metrics-json artifacts\\rehab-mobile-frontend-release\\browser-metrics-gate.json",
                 ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\export_rehab_mobile_l1_evidence.py --output artifacts\\rehab-mobile-l1-evidence\\rehab-mobile-l1-evidence.json",
                 "curl.exe -I -sS http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk",
             ]
@@ -339,8 +339,14 @@ def build_repair_packet(
 
 
 def _load_json(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
+    raw = path.read_bytes()
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        text = raw.decode("utf-16")
+    elif raw.startswith(b"\xef\xbb\xbf"):
+        text = raw.decode("utf-8-sig")
+    else:
+        text = raw.decode("utf-8")
+    payload = json.loads(text)
     if not isinstance(payload, dict):
         raise ValueError(f"{path} must contain a JSON object")
     return payload
@@ -375,6 +381,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--generated-at")
     parser.add_argument("--screenshots-dir", type=Path, default=Path("docs/qa/rehab-mobile-20260706/screenshots"))
     parser.add_argument(
+        "--browser-metrics-json",
+        type=Path,
+        default=qa_rehab_mobile_l1_objective_audit.DEFAULT_BROWSER_METRICS_JSON,
+    )
+    parser.add_argument(
         "--current-fail-dir",
         type=Path,
         default=Path("docs/qa/rehab-mobile-20260706/browser-current-fail-20260706"),
@@ -403,7 +414,11 @@ def main(argv: list[str]) -> int:
     objective_payload = (
         _load_json(args.objective_json)
         if args.objective_json
-        else qa_rehab_mobile_l1_objective_audit.audit_objective(release_payload, args.screenshots_dir)
+        else qa_rehab_mobile_l1_objective_audit.audit_objective(
+            release_payload,
+            args.screenshots_dir,
+            args.browser_metrics_json,
+        )
     )
     packet = build_repair_packet(
         release_payload,

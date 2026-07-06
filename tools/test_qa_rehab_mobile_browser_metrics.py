@@ -72,3 +72,34 @@ def test_browser_metrics_pass_when_all_visual_issue_lists_are_empty():
     assert result["summary"]["overall"] == "PASS"
     assert result["summary"]["failed"] == 0
     assert result["results"][0]["status"] == "PASS"
+
+
+def test_browser_metrics_preserves_existing_failed_gate_report():
+    module = _load_module()
+
+    payload = {
+        "summary": {"overall": "FAIL", "failed": 1, "total": 1},
+        "results": [
+            {
+                "gate": "L1-BROWSER-METRICS-001",
+                "level": "L1",
+                "status": "FAIL",
+                "summary": "Rendered mobile browser QA has no undersized touch targets.",
+                "detail": {
+                    "checked_pages": ["ai-plan"],
+                    "fake_hits": [],
+                    "touch_issues": [{"page": "ai-plan", "width": 40, "height": 40}],
+                    "input_issues": [],
+                    "overflow_issues": [],
+                    "vertical_text_issues": [],
+                },
+            }
+        ],
+    }
+
+    result = module.evaluate_browser_metrics(payload)
+
+    assert result["summary"]["overall"] == "FAIL"
+    assert result["summary"]["failed"] == 1
+    assert result["results"][0]["status"] == "FAIL"
+    assert result["results"][0]["detail"]["touch_issues"][0]["page"] == "ai-plan"

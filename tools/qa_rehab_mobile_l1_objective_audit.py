@@ -33,6 +33,9 @@ BROWSER_EVIDENCE_FILES = {
 }
 
 EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS = {"width": 390, "height": 844}
+DEFAULT_BROWSER_METRICS_JSON = Path(
+    "docs/qa/rehab-mobile-20260706/browser-metrics-clean-candidate-live-strict-20260707.json"
+)
 
 
 @dataclass
@@ -104,7 +107,41 @@ def _image_dimensions(path: Path) -> dict[str, int] | None:
     return {"width": int.from_bytes(header[16:20], "big"), "height": int.from_bytes(header[20:24], "big")}
 
 
-def browser_evidence_status(screenshot_dir: Path) -> tuple[bool, dict[str, Any]]:
+def browser_metrics_status(metrics_path: Path) -> tuple[bool, dict[str, Any]]:
+    detail: dict[str, Any] = {"path": str(metrics_path)}
+    if not metrics_path.exists():
+        return False, {**detail, "status": "MISSING"}
+    try:
+        payload = json.loads(metrics_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return False, {**detail, "status": "INVALID", "error": str(exc)}
+
+    summary = payload.get("summary") if isinstance(payload, dict) else {}
+    gate_status = None
+    checked_pages: list[str] = []
+    if isinstance(payload, dict):
+        for result in payload.get("results") or []:
+            if isinstance(result, dict) and result.get("gate") == "L1-BROWSER-METRICS-001":
+                raw_status = result.get("status")
+                gate_status = raw_status if isinstance(raw_status, str) else None
+                result_detail = result.get("detail")
+                if isinstance(result_detail, dict):
+                    raw_pages = result_detail.get("checked_pages")
+                    if isinstance(raw_pages, list):
+                        checked_pages = [str(page) for page in raw_pages]
+                break
+
+    status = gate_status or (summary.get("overall") if isinstance(summary, dict) else None) or "MISSING_GATE"
+    ok = status == "PASS" and isinstance(summary, dict) and summary.get("overall") == "PASS"
+    return ok, {
+        **detail,
+        "status": status,
+        "summary": summary if isinstance(summary, dict) else {},
+        "checked_pages": checked_pages,
+    }
+
+
+def browser_evidence_status(screenshot_dir: Path, browser_metrics_json: Path | None = None) -> tuple[bool, dict[str, Any]]:
     files = list(screenshot_dir.glob("*.png")) if screenshot_dir.exists() else []
     lower_files = {path.name.lower(): path for path in files}
     missing = []
@@ -123,17 +160,24 @@ def browser_evidence_status(screenshot_dir: Path) -> tuple[bool, dict[str, Any]]
                 }
         else:
             missing.append(key)
-    return not missing and not invalid_dimensions, {
+    metrics_path = browser_metrics_json or DEFAULT_BROWSER_METRICS_JSON
+    metrics_ok, metrics_detail = browser_metrics_status(metrics_path)
+    return not missing and not invalid_dimensions and metrics_ok, {
         "screenshot_dir": str(screenshot_dir),
         "matched": matched,
         "missing": missing,
         "invalid_dimensions": invalid_dimensions,
         "expected_dimensions": EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS,
+        "browser_metrics": metrics_detail,
     }
 
 
-def audit_objective(release_payload: dict[str, Any], screenshot_dir: Path) -> dict[str, Any]:
-    browser_ok, browser_detail = browser_evidence_status(screenshot_dir)
+def audit_objective(
+    release_payload: dict[str, Any],
+    screenshot_dir: Path,
+    browser_metrics_json: Path | None = None,
+) -> dict[str, Any]:
+    browser_ok, browser_detail = browser_evidence_status(screenshot_dir, browser_metrics_json)
     summary = release_payload.get("summary") or {}
     requirements = [
         _requirement(
@@ -248,6 +292,7 @@ def audit_objective(release_payload: dict[str, Any], screenshot_dir: Path) -> di
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--screenshots-dir", type=Path, default=Path("docs/qa/rehab-mobile-20260706/screenshots"))
+    parser.add_argument("--browser-metrics-json", type=Path, default=DEFAULT_BROWSER_METRICS_JSON)
     parser.add_argument("--api-base", default=os.getenv("REHAB_QA_API_BASE", "http://106.55.62.122:8011"))
     parser.add_argument("--web-base", default=os.getenv("REHAB_QA_WEB_BASE", "http://106.55.62.122:3001/rehab-arm-mobile"))
     parser.add_argument("--web-origin", default=os.getenv("REHAB_QA_WEB_ORIGIN", "http://106.55.62.122:3001"))
@@ -283,7 +328,7 @@ def main(argv: list[str]) -> int:
         + (["--password", args.password] if args.password else [])
     )
     _, release_payload = qa_rehab_mobile_l1_release.run(release_args)
-    payload = audit_objective(release_payload, args.screenshots_dir)
+    payload = audit_objective(release_payload, args.screenshots_dir, args.browser_metrics_json)
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0 if payload["summary"]["overall"] == "PASS" else 1
 

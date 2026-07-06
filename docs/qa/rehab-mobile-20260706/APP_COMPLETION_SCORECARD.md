@@ -37,7 +37,7 @@ Required P0 gates:
 - Profile shows cloud account, verified phone, `绑定手机号`/`验证码` path, rehab profile, and safe `待完善` medical empty state.
 - Frontend source is wired to auth, `/me`, `patient_view`, phone verification, device binding, and Agent message APIs.
 - Bottom navigation routes correctly.
-- Browser QA screenshots are real image files at exactly `390 x 844` and show no overlap or unreachable primary controls.
+- Browser QA screenshots are real image files at exactly `390 x 844`; the saved browser metrics gate must also pass with no fake copy, undersized touch targets, input overlap, overflow, vertical text, or unreachable primary controls.
 
 Current result: `FAIL`, blocked by Stitch/frontend rendering.
 
@@ -89,7 +89,7 @@ Current result: `NOT READY`.
 | Frontend release package verification | PASS | `tools/verify_rehab_mobile_frontend_release.py` validates the generated manifest schema, zip sha256, preflight report, required page artifacts, guarded deploy executor command, exact browser QA screenshot checklist, and `qa_rehab_mobile_browser_metrics.py` browser metrics gate before cloud deployment |
 | APK WebView mirror verification | PASS | `tools/verify_rehab_mobile_webview_mirror.py` checks that `apps/mobile/rehab-arm-android/www/` is byte-identical to `apps/web/public/rehab-arm-mobile/`, including required pages and no stale extra files; release manifests now require this command before APK packaging |
 | Frontend release deployment guard | PASS | `tools/deploy_rehab_mobile_frontend_release.py` verifies the manifest again, defaults to dry-run, refuses unsafe remote roots, and requires `--execute --run-post-verify` before cloud copy plus post-deploy checks |
-| L1 release evidence bundle | PASS | `tools/export_rehab_mobile_l1_evidence.py` exports one JSON snapshot with cloud health, git HEAD, combined L1 release gate, objective audit, browser evidence status, APK HEAD, and required follow-up artifacts |
+| L1 release evidence bundle | PASS | `tools/export_rehab_mobile_l1_evidence.py` exports one JSON snapshot with cloud health, git HEAD, combined L1 release gate, objective audit, browser evidence status, APK HEAD, and required follow-up artifacts; the exporter now records `target.browser_metrics_json` and the objective audit's `browser_evidence.browser_metrics` status |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code; `P1-PHONE-RESEND-001` rejects immediate resend with `retry_after` |
 | Phone SMS delivery readiness | READY, PROVIDER BLOCKED | Webhook delivery path is implemented and covered locally; `tools/smoke_rehab_sms_provider.py` and `tools/configure_rehab_sms_delivery.py` now provide the preflight/configuration path. `P1-PHONE-SMS-001` still warns because current staging mode is `debug_sms`, reason `debug_code_enabled`. Runbook: `docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md` |
@@ -101,7 +101,7 @@ Current result: `NOT READY`.
 | Agent model relay ops | PASS, CLOUD MODEL LIVE | Backend Agent supports provider config and safe fallback; current cloud runtime is configured for `qwen-plus`. Runbook: `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |
 | Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, 5 failed frontend gates, blocker `frontend_l1_gate` only |
-| Objective-level L1 audit | FAIL | `tools/qa_rehab_mobile_l1_objective_audit.py`: 7/11 objective requirements failing: home next step, phone UI, device UI, Ask Therapist UI, profile no-fake-data, browser evidence, combined release; browser evidence validates decoded PNG/JPEG dimensions against `390 x 844` |
+| Objective-level L1 audit | FAIL | `tools/qa_rehab_mobile_l1_objective_audit.py`: 7/11 objective requirements failing: home next step, phone UI, device UI, Ask Therapist UI, profile no-fake-data, browser evidence, combined release; browser evidence now validates exact L1 PNG/JPEG filenames, decoded `390 x 844` dimensions, and `L1-BROWSER-METRICS-001 = PASS` from the saved metrics gate |
 | Current-fail browser evidence | PASS | Four baseline in-app browser screenshots in `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/` plus latest `stitch-source-scope-current-ai-plan-20260706-390x844.jpg` and `stitch-source-scope-current-device-20260706-390x844.jpg` decode to `390 x 844`; they document current blockers and intentionally do not satisfy L1 success evidence |
 | Home UI | FAIL | Browser screenshots plus `tools/qa_rehab_mobile_l1_frontend.py` gate `L1-HOME-STATIC-001`, now requiring both `查看康复师建议` and `问康复师` |
 | Agent UI | FAIL | Visible assistant entries do not open chat; static gate `L1-AGENT-STATIC-001` missing `问康复师` |
@@ -134,7 +134,8 @@ Current result: `NOT READY`.
    - Device binding wizard.
    - Profile account/phone/medical empty state.
 18. Run `tools/qa_rehab_mobile_browser_metrics.py` against the saved browser
-    metrics JSON; it must return exit code `0` with `overall = PASS`.
+    metrics JSON; it must return exit code `0` with `overall = PASS`, and pass that
+    output to `tools/qa_rehab_mobile_l1_objective_audit.py --browser-metrics-json`.
 19. Update this scorecard after every large task.
 
 ## Git Discipline

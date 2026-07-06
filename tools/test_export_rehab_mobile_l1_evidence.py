@@ -51,6 +51,11 @@ def _objective_payload():
                     "missing": ["home_first_screen", "ask_therapist_chat"],
                     "invalid_dimensions": {},
                     "expected_dimensions": {"width": 390, "height": 844},
+                    "browser_metrics": {
+                        "path": "docs/qa/rehab-mobile-20260706/browser-metrics-clean-candidate-live-strict-20260707.json",
+                        "status": "FAIL",
+                        "summary": {"overall": "FAIL", "failed": 1, "total": 1},
+                    },
                 },
             }
         ],
@@ -65,6 +70,7 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
         web_origin="http://web.example",
         apk_url="http://web.example/app.apk",
         screenshots_dir=Path("docs/qa/rehab-mobile-20260706/screenshots"),
+        browser_metrics_json=Path("docs/qa/rehab-mobile-20260706/browser-metrics-gate.json"),
         timeout=3,
         email="3245056131@qq.com",
         password="1234",
@@ -90,6 +96,7 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
 
     assert evidence["schema"] == "rehab-mobile-l1-evidence/v1"
     assert evidence["generated_at"] == "2026-07-06T16:00:00Z"
+    assert evidence["target"]["browser_metrics_json"].endswith("browser-metrics-gate.json")
     assert evidence["summary"]["overall"] == "FAIL"
     assert evidence["summary"]["release_overall"] == "FAIL"
     assert evidence["summary"]["objective_overall"] == "FAIL"
@@ -97,6 +104,7 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
     assert evidence["release"]["exit_code"] == 1
     assert evidence["objective"]["summary"]["failed"] == 8
     assert evidence["browser_evidence"]["missing"] == ["home_first_screen", "ask_therapist_chat"]
+    assert evidence["browser_evidence"]["browser_metrics"]["status"] == "FAIL"
     assert evidence["apk_head"]["status"] == 200
     assert evidence["apk_head"]["content_length"] == 4198462
     assert evidence["health"]["body"]["data"]["deployment"]["build_sha"] == "d2f81c92"
@@ -139,7 +147,7 @@ def test_main_writes_evidence_and_only_fails_l1_when_requested(tmp_path, monkeyp
     monkeypatch.setattr(
         module.qa_rehab_mobile_l1_objective_audit,
         "audit_objective",
-        lambda _release_payload, _screenshots_dir: _objective_payload(),
+        lambda _release_payload, _screenshots_dir, _browser_metrics_json: _objective_payload(),
     )
     monkeypatch.setattr(
         module,
@@ -172,3 +180,13 @@ def test_main_writes_evidence_and_only_fails_l1_when_requested(tmp_path, monkeyp
 
     assert fail_code == 1
     assert calls == {"release": 2, "health": 2, "apk": 2, "git": 2}
+
+
+def test_load_json_accepts_utf16_saved_payload(tmp_path):
+    module = _load_module()
+    path = tmp_path / "release-utf16.json"
+    path.write_text(json.dumps(_release_payload()), encoding="utf-16")
+
+    payload = module._load_json(path)
+
+    assert payload["summary"]["overall"] == "FAIL"

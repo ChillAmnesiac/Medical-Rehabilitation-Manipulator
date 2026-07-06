@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-06T19:18:40Z
+Generated: 2026-07-07T03:31:02+08:00
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -82,7 +82,6 @@ Use these screenshots as visual references for what must change. They are not L1
 ### L1-HOME-STATIC-001
 Summary: Home static page is patient-facing and free of raw workflow/debug terms.
 Must add visible/user-facing evidence:
-- 查看康复师建议
 - 问康复师
 Must remove from normal user screens:
 - M33
@@ -203,8 +202,8 @@ Codex will reject the frontend until these pass:
 $env:REHAB_QA_EMAIL='<staging email>'
 $env:REHAB_QA_PASSWORD='<staging password>'
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_release.py
-.\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_objective_audit.py
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_browser_metrics.py --input artifacts\rehab-mobile-frontend-release\browser-metrics-l1-390x844.json --output artifacts\rehab-mobile-frontend-release\browser-metrics-gate.json
+.\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_objective_audit.py --browser-metrics-json artifacts\rehab-mobile-frontend-release\browser-metrics-gate.json
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\export_rehab_mobile_l1_evidence.py --output artifacts\rehab-mobile-l1-evidence\rehab-mobile-l1-evidence.json
 curl.exe -I -sS http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk
 ```

@@ -1,6 +1,6 @@
 {
   "schema": "rehab-mobile-stitch-repair-packet/v1",
-  "generated_at": "2026-07-06T19:18:30Z",
+  "generated_at": "2026-07-07T03:31:02+08:00",
   "target": {
     "api_base": "http://106.55.62.122:8011",
     "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
@@ -69,7 +69,6 @@
       "summary": "Home static page is patient-facing and free of raw workflow/debug terms.",
       "page_url": "http://106.55.62.122:3001/rehab-arm-mobile/home.html",
       "must_add": [
-        "查看康复师建议",
         "问康复师"
       ],
       "must_remove": [
@@ -196,6 +195,21 @@
     "expected_dimensions": {
       "width": 390,
       "height": 844
+    },
+    "browser_metrics": {
+      "path": "docs\\qa\\rehab-mobile-20260706\\browser-metrics-clean-candidate-live-strict-20260707.json",
+      "status": "FAIL",
+      "summary": {
+        "overall": "FAIL",
+        "failed": 1,
+        "total": 1
+      },
+      "checked_pages": [
+        "home",
+        "profile",
+        "device",
+        "ai-plan"
+      ]
     }
   },
   "current_fail_evidence": [
@@ -318,8 +332,8 @@
       "$env:REHAB_QA_EMAIL='<staging email>'",
       "$env:REHAB_QA_PASSWORD='<staging password>'",
       ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_release.py",
-      ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py",
       ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_browser_metrics.py --input artifacts\\rehab-mobile-frontend-release\\browser-metrics-l1-390x844.json --output artifacts\\rehab-mobile-frontend-release\\browser-metrics-gate.json",
+      ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py --browser-metrics-json artifacts\\rehab-mobile-frontend-release\\browser-metrics-gate.json",
       ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\export_rehab_mobile_l1_evidence.py --output artifacts\\rehab-mobile-l1-evidence\\rehab-mobile-l1-evidence.json",
       "curl.exe -I -sS http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"
     ]

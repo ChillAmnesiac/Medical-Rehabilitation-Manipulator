@@ -24,6 +24,35 @@ ISSUE_FIELDS = {
 }
 
 
+def _existing_gate_report(payload: Any) -> dict[str, Any] | None:
+    if not isinstance(payload, dict) or not isinstance(payload.get("results"), list):
+        return None
+    for result in payload["results"]:
+        if not isinstance(result, dict) or result.get("gate") != "L1-BROWSER-METRICS-001":
+            continue
+        status = result.get("status") if isinstance(result.get("status"), str) else None
+        summary = payload.get("summary") if isinstance(payload.get("summary"), dict) else {}
+        failed = summary.get("failed")
+        if not isinstance(failed, int):
+            failed = 0 if status == "PASS" else 1
+        normalized = dict(result)
+        normalized.setdefault("level", "L1")
+        normalized.setdefault(
+            "summary",
+            "Rendered mobile browser QA has no fake copy, small touch targets, input overlap, overflow, or vertical text.",
+        )
+        normalized["status"] = status or ("FAIL" if failed else "PASS")
+        return {
+            "summary": {
+                "overall": normalized["status"],
+                "failed": failed,
+                "total": summary.get("total") if isinstance(summary.get("total"), int) else 1,
+            },
+            "results": [normalized],
+        }
+    return None
+
+
 def _entries(payload: Any) -> list[dict[str, Any]]:
     if isinstance(payload, list):
         return [item for item in payload if isinstance(item, dict)]
@@ -42,6 +71,10 @@ def _with_page(page: str, issue: Any) -> dict[str, Any]:
 
 
 def evaluate_browser_metrics(payload: Any) -> dict[str, Any]:
+    existing = _existing_gate_report(payload)
+    if existing:
+        return existing
+
     detail = {name: [] for name in ISSUE_FIELDS.values()}
     checked_pages: list[str] = []
 

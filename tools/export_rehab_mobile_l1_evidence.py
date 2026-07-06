@@ -42,8 +42,14 @@ def _utc_now() -> str:
 
 
 def _load_json(path: Path) -> dict[str, Any]:
-    with path.open("r", encoding="utf-8") as handle:
-        payload = json.load(handle)
+    raw = path.read_bytes()
+    if raw.startswith((b"\xff\xfe", b"\xfe\xff")):
+        text = raw.decode("utf-16")
+    elif raw.startswith(b"\xef\xbb\xbf"):
+        text = raw.decode("utf-8-sig")
+    else:
+        text = raw.decode("utf-8")
+    payload = json.loads(text)
     if not isinstance(payload, dict):
         raise ValueError(f"{path} must contain a JSON object")
     return payload
@@ -180,7 +186,11 @@ def _run_release_gate(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
 def _run_objective_audit(args: argparse.Namespace, release_payload: dict[str, Any]) -> dict[str, Any]:
     if args.objective_json:
         return _load_json(args.objective_json)
-    return qa_rehab_mobile_l1_objective_audit.audit_objective(release_payload, args.screenshots_dir)
+    return qa_rehab_mobile_l1_objective_audit.audit_objective(
+        release_payload,
+        args.screenshots_dir,
+        args.browser_metrics_json,
+    )
 
 
 def _browser_evidence(objective_payload: dict[str, Any]) -> dict[str, Any]:
@@ -257,6 +267,7 @@ def build_evidence(
             "web_origin": args.web_origin,
             "apk_url": args.apk_url,
             "screenshots_dir": str(args.screenshots_dir),
+            "browser_metrics_json": str(args.browser_metrics_json),
         },
         "summary": _summary(release_payload, objective_payload, health, apk_head_payload),
         "git": active_git_getter(),
@@ -277,6 +288,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--generated-at")
     parser.add_argument("--fail-on-l1-fail", action="store_true")
     parser.add_argument("--screenshots-dir", type=Path, default=Path("docs/qa/rehab-mobile-20260706/screenshots"))
+    parser.add_argument(
+        "--browser-metrics-json",
+        type=Path,
+        default=qa_rehab_mobile_l1_objective_audit.DEFAULT_BROWSER_METRICS_JSON,
+    )
     parser.add_argument("--api-base", default=os.getenv("REHAB_QA_API_BASE", DEFAULT_API_BASE))
     parser.add_argument("--web-base", default=os.getenv("REHAB_QA_WEB_BASE", DEFAULT_WEB_BASE))
     parser.add_argument("--web-origin", default=os.getenv("REHAB_QA_WEB_ORIGIN", DEFAULT_WEB_ORIGIN))

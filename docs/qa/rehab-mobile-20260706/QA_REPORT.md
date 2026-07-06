@@ -1703,3 +1703,52 @@ Fresh verification:
 
 No cloud frontend deployment or APK rebuild was made for this tooling-only
 follow-up.
+
+## 2026-07-07 Browser Metrics Objective Audit Follow-Up
+
+Codex promoted the same strict browser metrics gate into the objective-level L1
+audit and evidence exporter.
+
+Tooling changes:
+
+- `tools/qa_rehab_mobile_l1_objective_audit.py` now requires browser evidence
+  to include both exact L1 success screenshots and a saved
+  `L1-BROWSER-METRICS-001` report with `overall = PASS`.
+- Missing, invalid, or failing browser metrics JSON now keeps
+  `browser_qa_evidence` as an objective blocker even if screenshots are present.
+- `tools/export_rehab_mobile_l1_evidence.py` now records
+  `target.browser_metrics_json` and preserves the objective audit's
+  `browser_evidence.browser_metrics` detail in the exported evidence bundle.
+
+Current effect:
+
+- The clean Stitch candidate remains rejected because
+  `docs/qa/rehab-mobile-20260706/browser-metrics-clean-candidate-live-strict-20260707.json`
+  is `overall = FAIL`.
+- Future release candidates cannot pass objective audit by providing screenshots
+  alone; the rendered mobile interaction metrics must also be green.
+
+Fresh verification:
+
+- Red objective-audit tests first failed because `audit_objective()` did not
+  accept browser metrics evidence.
+- Red evidence-exporter test first failed because `target.browser_metrics_json`
+  was missing from exported L1 evidence.
+- Red repair-packet test first failed because objective audit ran before the
+  browser metrics gate and did not pass `--browser-metrics-json`.
+- Red UTF-16 loader tests first failed because saved gate payloads with
+  `FF FE` BOM could not be read by the exporters.
+- Red browser metrics regression first failed because re-reading an existing
+  failed `L1-BROWSER-METRICS-001` gate output incorrectly returned `PASS`.
+- Focused related QA/tooling suite: `32 passed`.
+- Re-running `tools/qa_rehab_mobile_browser_metrics.py` against the committed
+  clean-candidate gate output now preserves `overall = FAIL` and returns exit
+  code `1`.
+- Evidence snapshot exported to
+  `artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence-20260707-browser-objective.json`;
+  current staging remains `overall = FAIL`, with `health_ok = true`,
+  `apk_ok = true`, release blocker `frontend_l1_gate`, and objective blocker
+  `browser_qa_evidence` carrying `browser_metrics.status = FAIL`.
+
+No cloud frontend deployment or APK rebuild was made for this tooling-only
+follow-up; the APK URL was still verified separately before commit.

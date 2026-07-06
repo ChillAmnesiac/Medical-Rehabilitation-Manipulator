@@ -33,6 +33,17 @@ def _write_jpeg_header(path, width, height):
     )
 
 
+def _write_browser_metrics_gate(path, status="PASS"):
+    path.write_text(
+        (
+            '{"summary":{"overall":"%s","failed":%d,"total":1},'
+            '"results":[{"gate":"L1-BROWSER-METRICS-001","status":"%s","detail":{"checked_pages":["home"]}}]}'
+        )
+        % (status, 0 if status == "PASS" else 1, status),
+        encoding="utf-8",
+    )
+
+
 def _load_module():
     spec = importlib.util.spec_from_file_location("qa_rehab_mobile_l1_objective_audit", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
@@ -92,8 +103,10 @@ def test_objective_audit_passes_when_release_and_browser_evidence_are_ready(tmp_
         "l1-profile-phone-medical-390.png",
     ):
         _write_png_header(tmp_path / name, 390, 844)
+    metrics_path = tmp_path / "browser-metrics-gate.json"
+    _write_browser_metrics_gate(metrics_path, "PASS")
 
-    payload = module.audit_objective(_release_payload(), tmp_path)
+    payload = module.audit_objective(_release_payload(), tmp_path, metrics_path)
 
     assert payload["summary"]["overall"] == "PASS"
     assert payload["summary"]["failed"] == 0
@@ -119,6 +132,49 @@ def test_objective_audit_fails_on_frontend_model_and_missing_browser_evidence(tm
     assert "ask_therapist_safety" in blockers
     assert "agent_cloud_model" in blockers
     assert "browser_qa_evidence" in blockers
+
+
+def test_objective_audit_requires_browser_metrics_gate_evidence(tmp_path):
+    module = _load_module()
+    for name in (
+        "l1-home-390.png",
+        "l1-ask-therapist-chat-390.png",
+        "l1-unsafe-agent-refusal-390.png",
+        "l1-device-binding-wizard-390.png",
+        "l1-profile-phone-medical-390.png",
+    ):
+        _write_png_header(tmp_path / name, 390, 844)
+
+    payload = module.audit_objective(_release_payload(), tmp_path, tmp_path / "missing-browser-metrics.json")
+
+    assert payload["summary"]["overall"] == "FAIL"
+    assert "browser_qa_evidence" in payload["summary"]["blocking_requirements"]
+    browser_evidence = next(
+        item["evidence"] for item in payload["requirements"] if item["requirement"] == "browser_qa_evidence"
+    )
+    assert browser_evidence["browser_metrics"]["status"] == "MISSING"
+
+
+def test_objective_audit_fails_when_browser_metrics_gate_fails(tmp_path):
+    module = _load_module()
+    for name in (
+        "l1-home-390.png",
+        "l1-ask-therapist-chat-390.png",
+        "l1-unsafe-agent-refusal-390.png",
+        "l1-device-binding-wizard-390.png",
+        "l1-profile-phone-medical-390.png",
+    ):
+        _write_png_header(tmp_path / name, 390, 844)
+    metrics_path = tmp_path / "browser-metrics-gate.json"
+    _write_browser_metrics_gate(metrics_path, "FAIL")
+
+    payload = module.audit_objective(_release_payload(), tmp_path, metrics_path)
+
+    assert payload["summary"]["overall"] == "FAIL"
+    browser_evidence = next(
+        item["evidence"] for item in payload["requirements"] if item["requirement"] == "browser_qa_evidence"
+    )
+    assert browser_evidence["browser_metrics"]["status"] == "FAIL"
 
 
 def test_browser_evidence_does_not_count_agent_page_as_device_wizard(tmp_path):
@@ -189,8 +245,10 @@ def test_browser_evidence_accepts_browser_jpeg_screenshots_with_png_extension(tm
         "l1-profile-phone-medical-390.png",
     ):
         _write_jpeg_header(tmp_path / name, 390, 844)
+    metrics_path = tmp_path / "browser-metrics-gate.json"
+    _write_browser_metrics_gate(metrics_path, "PASS")
 
-    ok, detail = module.browser_evidence_status(tmp_path)
+    ok, detail = module.browser_evidence_status(tmp_path, metrics_path)
 
     assert ok
     assert detail["missing"] == []
