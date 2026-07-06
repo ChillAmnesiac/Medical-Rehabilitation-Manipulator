@@ -151,3 +151,66 @@ def test_device_binding_flow_surfaces_already_bound_conflict():
     assert ok is False
     assert detail["reason"] == "first_bind_failed"
     assert detail["error_code"] == "DEVICE_ALREADY_BOUND"
+
+
+def test_get_or_create_session_token_registers_secondary_account_after_login_failure():
+    module = _load_module()
+
+    class FakeClient:
+        def __init__(self):
+            self.calls = []
+
+        def request(self, method, path, payload=None, token=None, headers=None):
+            self.calls.append({"method": method, "path": path, "payload": payload})
+            if path == "/api/auth/session" and len([call for call in self.calls if call["path"] == path]) == 1:
+                return 401, {"error": {"code": "INVALID_CREDENTIALS"}}, {}
+            if path == "/api/auth/register":
+                return 200, {"data": {"id": "user-2", "email": payload["email"]}}, {}
+            if path == "/api/auth/session":
+                return 200, {"data": {"access_token": "secondary-token"}}, {}
+            return 404, {}, {}
+
+    token, detail = module.get_or_create_session_token(
+        FakeClient(),
+        "rehab-qa-secondary@example.com",
+        "1234",
+        "Rehab QA Secondary",
+    )
+
+    assert token == "secondary-token"
+    assert detail["registered"] is True
+    assert detail["login_status_code"] == 200
+
+
+def test_device_already_bound_conflict_flow_rejects_second_account_claim():
+    module = _load_module()
+
+    class FakeClient:
+        def __init__(self):
+            self.calls = []
+
+        def request(self, method, path, payload=None, token=None, headers=None):
+            self.calls.append({"method": method, "path": path, "payload": payload, "token": token})
+            if token == "owner-token":
+                return 200, {
+                    "data": {
+                        "id": "owned-device",
+                        "m33_device_id": "QA-REHAB-ARM-CONFLICT-001",
+                        "ble_name": "LingDong Conflict Owner",
+                    }
+                }, {}
+            if token == "secondary-token":
+                return 409, {"error": {"code": "DEVICE_ALREADY_BOUND"}}, {}
+            return 401, {"error": {"code": "AUTH_INVALID"}}, {}
+
+    ok, detail = module.run_device_already_bound_conflict_flow(
+        FakeClient(),
+        "owner-token",
+        "secondary-token",
+        "QA-REHAB-ARM-CONFLICT-001",
+    )
+
+    assert ok is True
+    assert detail["owner_bind_status_code"] == 200
+    assert detail["second_bind_status_code"] == 409
+    assert detail["second_error_code"] == "DEVICE_ALREADY_BOUND"

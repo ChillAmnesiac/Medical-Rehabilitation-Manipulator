@@ -127,6 +127,57 @@ def agent_model_status_ok(value: Any) -> bool:
     return False
 
 
+def get_or_create_session_token(
+    client: Client,
+    email: str,
+    password: str,
+    name: str,
+) -> tuple[str | None, dict[str, Any]]:
+    login_status, login_body, _ = client.request(
+        "POST",
+        "/api/auth/session",
+        {"email": email, "password": password},
+    )
+    token = data(login_body).get("access_token") or data(login_body).get("token")
+    detail: dict[str, Any] = {
+        "email": email,
+        "initial_login_status_code": login_status,
+        "registered": False,
+    }
+    if login_status == 200 and token:
+        detail["login_status_code"] = login_status
+        return token, detail
+
+    register_status, register_body, _ = client.request(
+        "POST",
+        "/api/auth/register",
+        {"email": email, "password": password, "name": name, "global_role": "member"},
+    )
+    register_error_code = (register_body.get("error") or {}).get("code") if isinstance(register_body, dict) else None
+    detail.update(
+        {
+            "register_status_code": register_status,
+            "register_error_code": register_error_code,
+            "registered": register_status == 200,
+        }
+    )
+    if register_status not in {200, 400} or (register_status == 400 and register_error_code != "USER_EXISTS"):
+        detail["reason"] = "register_failed"
+        return None, detail
+
+    login_status, login_body, _ = client.request(
+        "POST",
+        "/api/auth/session",
+        {"email": email, "password": password},
+    )
+    token = data(login_body).get("access_token") or data(login_body).get("token")
+    detail["login_status_code"] = login_status
+    if login_status != 200 or not token:
+        detail["reason"] = "login_failed_after_register"
+        return None, detail
+    return token, detail
+
+
 def run_phone_verification_flow(client: Client, token: str, phone: str) -> tuple[bool, dict[str, Any]]:
     start_status, start_body, _ = client.request(
         "POST",
@@ -224,6 +275,56 @@ def run_device_binding_flow(client: Client, token: str, device_id: str) -> tuple
         and second_data.get("m33_device_id") == device_id
         and second_data.get("ble_name") == "LingDong Rehab QA Verified"
     ), detail
+
+
+def run_device_already_bound_conflict_flow(
+    client: Client,
+    owner_token: str,
+    second_token: str,
+    device_id: str,
+) -> tuple[bool, dict[str, Any]]:
+    owner_status, owner_body, _ = client.request(
+        "POST",
+        "/api/rehab-arm/app/v1/devices/bind",
+        {
+            "m33_device_id": device_id,
+            "ble_name": "LingDong Conflict Owner",
+            "trust_status": "trusted",
+            "firmware_version": "qa-conflict-owner",
+        },
+        token=owner_token,
+    )
+    owner_data = data(owner_body)
+    detail: dict[str, Any] = {
+        "owner_bind_status_code": owner_status,
+        "device_id": owner_data.get("id"),
+        "m33_device_id": owner_data.get("m33_device_id"),
+    }
+    if owner_status != 200:
+        detail["reason"] = "owner_bind_failed"
+        if isinstance(owner_body, dict):
+            detail["owner_error_code"] = (owner_body.get("error") or {}).get("code")
+        return False, detail
+
+    second_status, second_body, _ = client.request(
+        "POST",
+        "/api/rehab-arm/app/v1/devices/bind",
+        {
+            "m33_device_id": device_id,
+            "ble_name": "LingDong Conflict Other",
+            "trust_status": "trusted",
+            "firmware_version": "qa-conflict-other",
+        },
+        token=second_token,
+    )
+    second_error_code = (second_body.get("error") or {}).get("code") if isinstance(second_body, dict) else None
+    detail.update(
+        {
+            "second_bind_status_code": second_status,
+            "second_error_code": second_error_code,
+        }
+    )
+    return second_status == 409 and second_error_code == "DEVICE_ALREADY_BOUND", detail
 
 
 def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
@@ -346,6 +447,32 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             device_flow_ok,
             "Staging account can bind a rehab device and repeat binding idempotently.",
             device_flow_detail,
+        )
+
+        second_token, second_account_detail = get_or_create_session_token(
+            client,
+            args.second_email,
+            args.second_password,
+            args.second_name,
+        )
+        if second_token:
+            device_conflict_ok, device_conflict_detail = run_device_already_bound_conflict_flow(
+                client,
+                token,
+                second_token,
+                args.device_conflict_test_id,
+            )
+            device_conflict_detail["second_account"] = second_account_detail
+        else:
+            device_conflict_ok = False
+            device_conflict_detail = {"second_account": second_account_detail}
+        add(
+            results,
+            "P0-DEVICE-CONFLICT-001",
+            "P0",
+            device_conflict_ok,
+            "A rehab device already bound to one account cannot be claimed by a second account.",
+            device_conflict_detail,
         )
 
         workflow_status, workflow_body, _ = client.request("GET", "/api/rehab-arm/app/v1/me/workflow", token=token)
@@ -494,6 +621,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--device-test-id",
         default=os.getenv("REHAB_QA_DEVICE_TEST_ID", "QA-REHAB-ARM-STAGING-001"),
     )
+    parser.add_argument(
+        "--device-conflict-test-id",
+        default=os.getenv("REHAB_QA_DEVICE_CONFLICT_TEST_ID", "QA-REHAB-ARM-CONFLICT-001"),
+    )
+    parser.add_argument(
+        "--second-email",
+        default=os.getenv("REHAB_QA_SECOND_EMAIL", "rehab-qa-device-conflict@example.com"),
+    )
+    parser.add_argument("--second-password", default=os.getenv("REHAB_QA_SECOND_PASSWORD", "1234"))
+    parser.add_argument("--second-name", default=os.getenv("REHAB_QA_SECOND_NAME", "Rehab QA Conflict Account"))
     parser.add_argument("--timeout", type=int, default=int(os.getenv("REHAB_QA_TIMEOUT", "20")))
     return parser.parse_args(argv)
 

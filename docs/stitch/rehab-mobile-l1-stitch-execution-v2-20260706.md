@@ -25,7 +25,8 @@ Move the rehab mobile frontend from engineering dashboard to L1 patient-ready st
 Current backend status:
 - API smoke is PASS.
 - APK delivery is PASS.
-- Backend acceptance total is 16 checks with 0 P0 failures.
+- Backend acceptance total is 17 checks with 0 P0 failures.
+- Device binding is verified for both same-account idempotency and cross-account already-bound conflict.
 - The remaining blocker is frontend rendering and interaction.
 
 Use this API base by default:

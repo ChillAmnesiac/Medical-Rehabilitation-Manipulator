@@ -113,11 +113,11 @@ This is now the L1 release decision command. A cloud deployment or APK refresh i
 
 ## 2026-07-06 Device Binding Deployment Resmoke
 
-After deploying `device-binding-hardening-20260706`, the cloud API and APK smoke were rerun.
+After deploying `device-binding-hardening-20260706` and adding the cross-account conflict gate, the cloud API and APK smoke were rerun.
 
 - Overall: `PASS`
 - P0 failed: `0`
-- Total: `16`
+- Total: `17`
 - Cloud PID: `1449627`
 - Build SHA: `device-binding-hardening-20260706`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
@@ -127,6 +127,11 @@ After deploying `device-binding-hardening-20260706`, the cloud API and APK smoke
   - Repeat bind status: `200`
   - Repeat bind reused the same device record: `true`
   - Test device: `QA-REHAB-ARM-STAGING-001`
+- `P0-DEVICE-CONFLICT-001`: `PASS`
+  - Owner bind status: `200`
+  - Second account bind status: `409`
+  - Second account error code: `DEVICE_ALREADY_BOUND`
+  - Conflict test device: `QA-REHAB-ARM-CONFLICT-001`
 - APK HEAD: `PASS`, size `4198462`, content type `application/vnd.android.package-archive`
 
 Combined L1 release gate after this deployment:
@@ -231,7 +236,7 @@ Latest API/package acceptance smoke passed:
 
 - Overall: `PASS`
 - P0 failed: `0`
-- Total checks: `16`
+- Total checks: `17`
 - Cloud PID: `1449627`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
 - Build SHA: `device-binding-hardening-20260706`
@@ -239,6 +244,7 @@ Latest API/package acceptance smoke passed:
 - `P0-PATIENT-VIEW-001`: `PASS`
 - `P0-PHONE-FLOW-001`: `PASS`
 - `P0-DEVICE-FLOW-001`: `PASS`
+- `P0-DEVICE-CONFLICT-001`: `PASS`
 - Agent safe answer with `data.model_status`: `PASS`
 - Current Agent model mode: `fallback_rule_based`, reason `external_model_not_configured`
 - Agent unsafe refusal: `PASS`
@@ -322,6 +328,7 @@ Fresh verification:
 - Same signed-in account can bind the same device repeatedly and update metadata without creating duplicates.
 - A different account trying to bind an already-owned `m33_device_id` now receives `409 DEVICE_ALREADY_BOUND`.
 - Acceptance smoke now includes `P0-DEVICE-FLOW-001`, which binds the staging device and repeats the bind to prove idempotency.
+- Acceptance smoke now includes `P0-DEVICE-CONFLICT-001`, which prepares a second QA account and verifies an already-bound device returns `409 DEVICE_ALREADY_BOUND`.
 - Cloud deployment patched `app/modules/rehab_arm/app_service.py` on `106.55.62.122`.
 
 Fresh verification:
@@ -330,8 +337,9 @@ Fresh verification:
 - Device focused tests: `5 passed, 1 warning`.
 - Acceptance helper tests: `6 passed`.
 - Local focused combined tests: `11 passed, 1 warning`.
-- Cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 16`.
-- Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+- Acceptance helper tests after conflict gate: `8 passed`.
+- Cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 17`.
+- Total L1 release gate after conflict gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`; second QA account login was reused and the second bind returned `409 DEVICE_ALREADY_BOUND`.
 - Browser QA screenshots: `docs/qa/rehab-mobile-20260706/screenshots/device-binding-*.png`.
 - APK smoke remained `PASS` with size `4198462` bytes.
 

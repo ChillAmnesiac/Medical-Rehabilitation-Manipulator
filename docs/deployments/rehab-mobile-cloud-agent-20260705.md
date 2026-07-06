@@ -182,6 +182,23 @@
   - Browser QA at `390 x 844` captured `docs/qa/rehab-mobile-20260706/screenshots/device-binding-*.png`; frontend still shows false network/error workflow text and raw hardware/debug vocabulary.
   - APK remains reachable: `Content-Length: 4198462`, content type `application/vnd.android.package-archive`.
 
+## 2026-07-06 Device Already-Bound QA Gate
+
+- Added acceptance coverage for the user-facing already-bound device state:
+  - `P0-DEVICE-CONFLICT-001`
+  - The script prepares a second QA account through `/api/auth/session` and `/api/auth/register` when needed.
+  - Primary account binds `QA-REHAB-ARM-CONFLICT-001`.
+  - Second account attempts to bind the same hardware ID and must receive `409 DEVICE_ALREADY_BOUND`.
+- No new cloud code deployment was required in this follow-up; the deployed `device-binding-hardening-20260706` backend already enforced the conflict.
+- Fresh verification:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools\test_qa_rehab_mobile_acceptance.py -q` -> `8 passed`
+  - `py_compile` passed for `tools\qa_rehab_mobile_acceptance.py`
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 17`
+  - `P0-DEVICE-CONFLICT-001` -> `PASS`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
+  - Repeated run reused the second QA account login and still returned `409 DEVICE_ALREADY_BOUND`.
+  - APK remains reachable: `Content-Length: 4198462`, content type `application/vnd.android.package-archive`.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.
