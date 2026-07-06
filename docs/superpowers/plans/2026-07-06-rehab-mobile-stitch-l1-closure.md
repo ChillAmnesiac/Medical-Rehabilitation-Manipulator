@@ -97,7 +97,17 @@ if ($LASTEXITCODE -le 7) { $global:LASTEXITCODE = 0 }
 
 Expected: Android `www` files match the accepted web frontend, and command exits `0`.
 
-- [ ] **Step 2: Re-run local L1 gate against the mirrored APK assets**
+- [ ] **Step 2: Verify Android WebView mirror parity**
+
+Run:
+
+```powershell
+.\cloud\rehab-platform\.venv\Scripts\python.exe tools\verify_rehab_mobile_webview_mirror.py --web-dir apps/web/public/rehab-arm-mobile --android-www-dir apps/mobile/rehab-arm-android/www --output artifacts/rehab-mobile-frontend-release/webview-mirror-verification.json
+```
+
+Expected: exit code `0`, `summary.overall = PASS`, no missing, changed, or extra files.
+
+- [ ] **Step 3: Re-run local L1 gate against the mirrored APK assets**
 
 Run:
 

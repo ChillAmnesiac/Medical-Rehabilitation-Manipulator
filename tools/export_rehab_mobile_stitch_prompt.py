@@ -169,9 +169,17 @@ def _post_stitch_bundle_section(packet: dict[str, Any]) -> list[str]:
     artifacts = packet.get("required_artifacts") or {}
     tool = artifacts.get("frontend_release_tool") or "tools/prepare_rehab_mobile_frontend_release.py"
     verifier = artifacts.get("frontend_release_verifier") or "tools/verify_rehab_mobile_frontend_release.py"
+    mirror_verifier = artifacts.get("webview_mirror_verifier") or "tools/verify_rehab_mobile_webview_mirror.py"
     deployer = artifacts.get("frontend_release_deployer") or "tools/deploy_rehab_mobile_frontend_release.py"
     source_dir = (packet.get("target") or {}).get("frontend_edit_scope", "apps/web/public/rehab-arm-mobile/")
+    mirror_dir = (packet.get("target") or {}).get(
+        "android_webview_mirror_scope",
+        "apps/mobile/rehab-arm-android/www/",
+    )
     source_arg = source_dir.rstrip("/")
+    mirror_arg = mirror_dir.rstrip("/")
+    source_ps = source_arg.replace("/", "\\")
+    mirror_ps = mirror_arg.replace("/", "\\")
     return [
         "## After Stitch Hands Back Frontend Files",
         "Codex will run the local frontend L1 preflight and package the generated assets before cloud deployment:",
@@ -181,9 +189,16 @@ def _post_stitch_bundle_section(packet: dict[str, Any]) -> list[str]:
             f"tools\\qa_rehab_mobile_l1_frontend.py --source-dir {source_arg} "
             "--output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json"
         ),
+        f"robocopy {source_ps} {mirror_ps} /MIR",
+        "if ($LASTEXITCODE -le 7) { $global:LASTEXITCODE = 0 }",
         (
             ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
             f"{tool} --source-dir {source_arg} --output-dir artifacts/rehab-mobile-frontend-release"
+        ),
+        (
+            ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
+            f"{mirror_verifier} --web-dir {source_arg} --android-www-dir {mirror_arg} "
+            "--output artifacts/rehab-mobile-frontend-release/webview-mirror-verification.json"
         ),
         (
             ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "

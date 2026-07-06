@@ -86,6 +86,7 @@ Current result: `NOT READY`.
 | Stitch source scope | PASS | Real frontend branch verified as `app/rehab-arm-mobile-stitch` at commit `eaa08a40cdd3e1e62827809111f2323e7f92556f`; prompt/packet now identify web edit path `apps/web/public/rehab-arm-mobile/` and APK WebView mirror path `apps/mobile/rehab-arm-android/www/` |
 | Frontend release packaging | PASS | `tools/qa_rehab_mobile_l1_frontend.py --source-dir --output` preflights Stitch output locally and preserves JSON evidence; `tools/prepare_rehab_mobile_frontend_release.py` refuses failing frontend sources, writes a deployable zip, and records manifest deploy/verification commands before cloud copy |
 | Frontend release package verification | PASS | `tools/verify_rehab_mobile_frontend_release.py` validates the generated manifest schema, zip sha256, preflight report, required page artifacts, guarded deploy executor command, and exact browser QA screenshot checklist before cloud deployment |
+| APK WebView mirror verification | PASS | `tools/verify_rehab_mobile_webview_mirror.py` checks that `apps/mobile/rehab-arm-android/www/` is byte-identical to `apps/web/public/rehab-arm-mobile/`, including required pages and no stale extra files; release manifests now require this command before APK packaging |
 | Frontend release deployment guard | PASS | `tools/deploy_rehab_mobile_frontend_release.py` verifies the manifest again, defaults to dry-run, refuses unsafe remote roots, and requires `--execute --run-post-verify` before cloud copy plus post-deploy checks |
 | L1 release evidence bundle | PASS | `tools/export_rehab_mobile_l1_evidence.py` exports one JSON snapshot with cloud health, git HEAD, combined L1 release gate, objective audit, browser evidence status, APK HEAD, and required follow-up artifacts |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
@@ -114,23 +115,24 @@ Current result: `NOT READY`.
 3. Use the detailed execution plan in `docs/superpowers/plans/2026-07-06-rehab-mobile-stitch-l1-closure.md`.
 4. Run `tools/qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile --output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json`.
 5. Mirror accepted web assets into `apps/mobile/rehab-arm-android/www/` before APK packaging.
-6. Package updated frontend web assets with `tools/prepare_rehab_mobile_frontend_release.py`.
-7. Verify the generated release manifest with `tools/verify_rehab_mobile_frontend_release.py` before any cloud copy.
-8. Dry-run `tools/deploy_rehab_mobile_frontend_release.py` and review the planned `scp`, `ssh`, and post-deploy verification commands.
-9. Deploy the reviewed frontend bundle with `tools/deploy_rehab_mobile_frontend_release.py --execute --run-post-verify`.
-10. Rebuild or refresh APK if the APK bundles frontend assets.
-11. Re-run Agent model smoke only when rotating the model provider/key; current staging cloud model is live.
-12. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
-13. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
-14. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
-15. Export the L1 evidence bundle with `tools/export_rehab_mobile_l1_evidence.py`; use `--fail-on-l1-fail` in CI/release jobs.
-16. Browser QA at exactly `390 x 844`:
+6. Run `tools/verify_rehab_mobile_webview_mirror.py --web-dir apps/web/public/rehab-arm-mobile --android-www-dir apps/mobile/rehab-arm-android/www --output artifacts/rehab-mobile-frontend-release/webview-mirror-verification.json`; it must return exit code `0` and `summary.overall = PASS`.
+7. Package updated frontend web assets with `tools/prepare_rehab_mobile_frontend_release.py`.
+8. Verify the generated release manifest with `tools/verify_rehab_mobile_frontend_release.py` before any cloud copy.
+9. Dry-run `tools/deploy_rehab_mobile_frontend_release.py` and review the planned `scp`, `ssh`, and post-deploy verification commands.
+10. Deploy the reviewed frontend bundle with `tools/deploy_rehab_mobile_frontend_release.py --execute --run-post-verify`.
+11. Rebuild or refresh APK if the APK bundles frontend assets.
+12. Re-run Agent model smoke only when rotating the model provider/key; current staging cloud model is live.
+13. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
+14. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
+15. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
+16. Export the L1 evidence bundle with `tools/export_rehab_mobile_l1_evidence.py`; use `--fail-on-l1-fail` in CI/release jobs.
+17. Browser QA at exactly `390 x 844`:
    - Home first screen.
    - `问康复师` chat open.
    - Unsafe Agent refusal.
    - Device binding wizard.
    - Profile account/phone/medical empty state.
-17. Update this scorecard after every large task.
+18. Update this scorecard after every large task.
 
 ## Git Discipline
 

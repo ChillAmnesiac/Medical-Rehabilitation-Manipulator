@@ -103,6 +103,9 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
     assert evidence["git"]["branch"] == "codex/rehab-mobile-backend-qa-20260706"
     assert evidence["required_artifacts"]["scorecard"].endswith("APP_COMPLETION_SCORECARD.md")
     assert evidence["required_artifacts"]["l1_evidence_exporter"].endswith("export_rehab_mobile_l1_evidence.py")
+    assert evidence["required_artifacts"]["webview_mirror_verifier"].endswith(
+        "verify_rehab_mobile_webview_mirror.py"
+    )
     assert evidence["required_artifacts"]["l1_evidence_default_output"].endswith("rehab-mobile-l1-evidence.json")
     assert "1234" not in json.dumps(evidence, ensure_ascii=False)
 

@@ -195,6 +195,8 @@ def _check_deployment(manifest: dict[str, Any]) -> Result:
         and "scp " in joined_commands
         and "ssh " in joined_commands
         and "qa_rehab_mobile_l1_frontend.py" in joined_verification
+        and "verify_rehab_mobile_webview_mirror.py" in joined_verification
+        and "webview-mirror-verification.json" in joined_verification
         and "qa_rehab_mobile_l1_release.py" in joined_verification
         and "qa_rehab_mobile_l1_objective_audit.py" in joined_verification
         and "curl.exe -I -sS" in joined_verification

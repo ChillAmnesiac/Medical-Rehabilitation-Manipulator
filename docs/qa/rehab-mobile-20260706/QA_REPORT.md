@@ -1378,3 +1378,52 @@ Fresh verification:
   `打开康复设备电源`.
 - No cloud runtime or frontend deployment was made for this documentation and
   handoff-tooling change.
+
+## APK WebView Mirror Gate And M33 Merge Follow-Up
+
+2026-07-07 continuation work pulled current remotes and merged the same-history
+remote baseline into the App QA branch.
+
+Git update:
+
+- Fetched `origin` and the verified APP frontend branch
+  `app/rehab-arm-mobile-stitch`.
+- `origin/M55` advanced remotely, but it has no merge base with the current App
+  QA branch, so it was not merged.
+- `origin/M33` has a merge base with the current branch and was merged with
+  merge commit `e8cae16f`.
+- Post-merge relationship: current branch is `47` commits ahead and `0`
+  commits behind `origin/M33`.
+- No push was performed.
+
+APK parity guard:
+
+- Added `tools/verify_rehab_mobile_webview_mirror.py` to verify that
+  `apps/mobile/rehab-arm-android/www/` mirrors
+  `apps/web/public/rehab-arm-mobile/` byte-for-byte.
+- The verifier checks required pages, missing files, changed files, and stale
+  extra files such as old debug pages.
+- `tools/prepare_rehab_mobile_frontend_release.py` now records the WebView
+  mirror verifier in release manifest verification commands.
+- `tools/verify_rehab_mobile_frontend_release.py` now rejects release manifests
+  that omit the WebView mirror verification command.
+- Refreshed Stitch repair packet and V4 prompt now include
+  `webview_mirror_verifier`, the `robocopy ... /MIR` mirror step, and
+  `webview-mirror-verification.json`.
+
+Fresh verification:
+
+- Merge-sensitive and release-tool tests:
+  `17 passed`.
+- WebView mirror/release/stitch evidence focused suite:
+  `21 passed`.
+- Full related local backend/QA suite:
+  `130 passed, 1 warning`.
+- Live cloud API/APK acceptance:
+  `overall = PASS`, `p0_failed = 0`, `total = 22`.
+- Live L1 release remains `FAIL`: API `PASS`, frontend `FAIL`, blocking gate
+  `frontend_l1_gate` only.
+- APK HEAD remained `200`, size `4198462`, content type
+  `application/vnd.android.package-archive`.
+- No cloud runtime, deployed web frontend, or APK package was changed in this
+  follow-up.

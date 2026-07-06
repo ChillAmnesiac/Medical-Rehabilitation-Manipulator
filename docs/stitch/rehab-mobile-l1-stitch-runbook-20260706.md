@@ -110,6 +110,17 @@ After the web frontend passes local L1 preflight, the accepted assets must be mi
 
 The WebView mirror matters because the installed APK must show the same patient-ready experience as the deployed web app. Do not let the web build pass while the APK keeps stale debug pages.
 
+Mirror and verify with:
+
+```powershell
+robocopy apps\web\public\rehab-arm-mobile apps\mobile\rehab-arm-android\www /MIR
+if ($LASTEXITCODE -le 7) { $global:LASTEXITCODE = 0 }
+.\cloud\rehab-platform\.venv\Scripts\python.exe tools\verify_rehab_mobile_webview_mirror.py --web-dir apps/web/public/rehab-arm-mobile --android-www-dir apps/mobile/rehab-arm-android/www --output artifacts/rehab-mobile-frontend-release/webview-mirror-verification.json
+```
+
+Expected: `webview-mirror-verification.json` reports `summary.overall = PASS`
+before any APK packaging.
+
 Stitch must not change backend endpoints.
 
 Stitch must render normal user pages from:

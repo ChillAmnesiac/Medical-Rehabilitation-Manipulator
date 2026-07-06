@@ -1,6 +1,6 @@
 {
   "schema": "rehab-mobile-stitch-repair-packet/v1",
-  "generated_at": "2026-07-06T16:04:31Z",
+  "generated_at": "2026-07-06T16:44:12Z",
   "target": {
     "api_base": "http://106.55.62.122:8011",
     "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
@@ -44,6 +44,7 @@
     "api_fixture": "docs/stitch/rehab-mobile-l1-api-fixture-20260706.json",
     "frontend_release_tool": "tools/prepare_rehab_mobile_frontend_release.py",
     "frontend_release_verifier": "tools/verify_rehab_mobile_frontend_release.py",
+    "webview_mirror_verifier": "tools/verify_rehab_mobile_webview_mirror.py",
     "frontend_release_deployer": "tools/deploy_rehab_mobile_frontend_release.py",
     "scorecard": "docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md",
     "qa_report": "docs/qa/rehab-mobile-20260706/QA_REPORT.md",

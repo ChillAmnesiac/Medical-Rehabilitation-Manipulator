@@ -180,6 +180,9 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
     assert packet["required_artifacts"]["frontend_release_verifier"].endswith(
         "verify_rehab_mobile_frontend_release.py"
     )
+    assert packet["required_artifacts"]["webview_mirror_verifier"].endswith(
+        "verify_rehab_mobile_webview_mirror.py"
+    )
     assert packet["required_artifacts"]["frontend_release_deployer"].endswith(
         "deploy_rehab_mobile_frontend_release.py"
     )
