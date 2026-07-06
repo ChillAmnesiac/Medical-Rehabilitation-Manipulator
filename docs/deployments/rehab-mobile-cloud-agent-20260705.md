@@ -477,6 +477,33 @@
   - APK HEAD -> `200`, size `4198462`, content type `application/vnd.android.package-archive`
 - No cloud runtime deployment was made for this QA-gate-only change.
 
+## 2026-07-06 Objective-Level L1 Audit
+
+- Added goal-level audit script:
+  - `tools/qa_rehab_mobile_l1_objective_audit.py`
+- Added tests:
+  - `tools/test_qa_rehab_mobile_l1_objective_audit.py`
+- The audit maps the combined release payload plus screenshot evidence to the user-facing L1 objective:
+  - cloud deployment
+  - login
+  - home next step
+  - phone binding
+  - device binding
+  - Ask Therapist safety
+  - Agent cloud model
+  - profile without fake/debug data
+  - APK delivery
+  - browser QA evidence
+  - combined release gate
+- Fresh live result:
+  - `tools\qa_rehab_mobile_l1_objective_audit.py` -> `FAIL`, `8 / 11` objective requirements failing.
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools/test_qa_rehab_mobile_l1_objective_audit.py tools/test_qa_rehab_mobile_l1_release.py tools/test_qa_rehab_mobile_l1_frontend.py -q` -> `13 passed`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud/rehab-platform/tests tools/test_qa_rehab_mobile_acceptance.py tools/test_qa_rehab_mobile_l1_frontend.py tools/test_qa_rehab_mobile_l1_release.py tools/test_export_rehab_mobile_stitch_fixture.py tools/test_configure_rehab_model_relay.py tools/test_qa_rehab_mobile_l1_objective_audit.py -q` -> `75 passed, 1 warning`
+  - APK HEAD -> `200`, size `4198462`, content type `application/vnd.android.package-archive`
+  - Passing objective requirements: `cloud_deployment`, `login`, `apk_delivery`.
+  - Browser evidence still lacks Ask Therapist chat, unsafe refusal, and device wizard screenshots.
+- No cloud runtime deployment was made for this QA-audit-only change.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

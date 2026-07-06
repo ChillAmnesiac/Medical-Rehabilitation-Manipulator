@@ -132,6 +132,7 @@ After Stitch changes are available and deployed, Codex must run:
 $env:REHAB_QA_EMAIL='<staging email>'
 $env:REHAB_QA_PASSWORD='<staging password>'
 cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_release.py
+cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_objective_audit.py
 ```
 
 Required combined result:
@@ -145,8 +146,12 @@ Required combined result:
 - `P1-AGENT-MODEL-001 = PASS`
 - `agent_cloud_model` is not listed in `summary.blocking_gates`.
 - `L1-FRONTEND-INTEGRATION-001` has no missing API contract requirements.
+- Objective audit `summary.overall = PASS`
+- Objective audit `summary.blocking_requirements = []`
 
 If this combined gate fails, inspect the nested `api` and `frontend` sections. Do not accept the frontend build, cloud deployment, or refreshed APK as L1 user-ready while `frontend_l1_gate` or `api_smoke` is listed as a blocker.
+
+If the objective audit fails, inspect the `requirements` section. Do not call the app L1 user-ready while any user-facing requirement such as `home_next_step`, `phone_binding`, `device_binding`, `ask_therapist_safety`, `profile_no_fake_debug`, or `browser_qa_evidence` is still failing.
 
 Then Codex must capture browser screenshots at `390 x 844`:
 

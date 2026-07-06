@@ -774,3 +774,32 @@ Stitch execution runbook:
   - `agent_unsafe_refusal`
   - `agent_model_status`
 - Updated Stitch V3 prompt so the frontend generator has the exact stricter gate list.
+
+## Objective-Level L1 Audit Follow-Up
+
+2026-07-06 continuation work added a goal-level audit script so L1 cannot be declared complete from a broad release summary alone:
+
+- New script: `tools/qa_rehab_mobile_l1_objective_audit.py`
+- New tests: `tools/test_qa_rehab_mobile_l1_objective_audit.py`
+- Red test first: the objective audit module did not exist.
+- Follow-up red test caught a false positive where `device-binding-agent-390.png` could be counted as device wizard evidence; the matcher now requires `device` + `wizard`.
+- Focused objective/release/frontend audit tests after implementation: `13 passed`.
+- Full local backend plus QA suite after adding the objective audit: `75 passed, 1 warning`.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- Current live objective audit result:
+  - Overall: `FAIL`
+  - Failed requirements: `8 / 11`
+  - Passing requirements: `cloud_deployment`, `login`, `apk_delivery`
+  - Blocking requirements:
+    - `home_next_step`
+    - `phone_binding`
+    - `device_binding`
+    - `ask_therapist_safety`
+    - `agent_cloud_model`
+    - `profile_no_fake_debug`
+    - `browser_qa_evidence`
+    - `combined_l1_release`
+- Current browser screenshot evidence is missing:
+  - `ask_therapist_chat`
+  - `unsafe_agent_refusal`
+  - `device_binding_wizard`
