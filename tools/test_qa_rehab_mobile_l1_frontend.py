@@ -3,6 +3,55 @@ import sys
 from pathlib import Path
 
 
+def test_frontend_integration_contract_passes_when_stitch_uses_required_api_contracts():
+    module = _load_module()
+
+    sources = {
+        "home.html": """
+          fetch('/api/auth/session');
+          fetch('/api/rehab-arm/app/v1/me');
+          const home = response.data.patient_view.home;
+          const agent = response.data.patient_view.agent;
+        """,
+        "profile.html": """
+          const profile = response.data.patient_view.profile;
+          fetch('/api/rehab-arm/app/v1/account/phone-verifications');
+          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`);
+        """,
+        "device.html": """
+          const device = response.data.patient_view.device;
+          fetch('/api/rehab-arm/app/v1/devices/bind');
+        """,
+        "ai-plan.html": """
+          const agent = response.data.patient_view.agent;
+          fetch('/api/rehab-arm/app/v1/agent/messages');
+        """,
+    }
+
+    result = module.check_frontend_integration_contract(sources)
+
+    assert result.status == "PASS"
+    assert result.detail["missing_requirements"] == []
+
+
+def test_frontend_integration_contract_fails_when_pages_only_change_copy():
+    module = _load_module()
+
+    sources = {
+        "home.html": "<h1>Ask therapist</h1><p>Review plan</p>",
+        "profile.html": "<h1>Profile</h1><p>Phone verified</p>",
+        "device.html": "<h1>Bind device</h1><p>Power on device</p>",
+        "ai-plan.html": "<h1>Ask therapist</h1>",
+    }
+
+    result = module.check_frontend_integration_contract(sources)
+
+    assert result.status == "FAIL"
+    assert "auth_session" in result.detail["missing_requirements"]
+    assert "patient_view_profile" in result.detail["missing_requirements"]
+    assert "agent_messages" in result.detail["missing_requirements"]
+
+
 MODULE_PATH = Path(__file__).with_name("qa_rehab_mobile_l1_frontend.py")
 
 

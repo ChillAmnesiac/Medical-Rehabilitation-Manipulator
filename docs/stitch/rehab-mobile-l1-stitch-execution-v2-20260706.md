@@ -251,6 +251,8 @@ Required acceptance after Stitch changes:
 6. Profile static/rendered text includes `绑定手机号` and `验证码` so a new user can find the phone binding path.
 7. Device static/rendered text includes `绑定设备` and `打开康复设备电源` so a new user sees the first binding step.
 
+8. Source/included same-origin scripts reference the required live API contracts: `/api/auth/session`, `/api/rehab-arm/app/v1/me`, `patient_view.home/profile/device/agent`, phone verification start/confirm, `/api/rehab-arm/app/v1/devices/bind`, and `/api/rehab-arm/app/v1/agent/messages`.
+
 Automated release gate Codex will run after deployment:
 $env:REHAB_QA_EMAIL='<staging email>'
 $env:REHAB_QA_PASSWORD='<staging password>'
@@ -263,6 +265,8 @@ The build is not L1 user-ready until:
 - summary.blocking_gates = []
 - L1-PROFILE-STATIC-001 no longer reports missing `绑定手机号` or `验证码`.
 - L1-DEVICE-STATIC-001 no longer reports missing `绑定设备` or `打开康复设备电源`.
+
+- L1-FRONTEND-INTEGRATION-001 reports PASS with no missing API contract requirements.
 
 Current failure evidence:
 - docs/qa/rehab-mobile-20260706/screenshots/device-binding-home-390.png

@@ -14,6 +14,7 @@ import os
 import re
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from html import unescape
@@ -68,6 +69,22 @@ PAGE_GATES = {
 }
 
 
+INTEGRATION_REQUIREMENTS = {
+    "auth_session": (("/api/auth/session",),),
+    "bootstrap_me": (("/api/rehab-arm/app/v1/me",),),
+    "patient_view_home": (("patient_view", "home"), ("patientView", "home")),
+    "patient_view_profile": (("patient_view", "profile"), ("patientView", "profile")),
+    "patient_view_device": (("patient_view", "device"), ("patientView", "device")),
+    "patient_view_agent": (("patient_view", "agent"), ("patientView", "agent")),
+    "phone_verification_start": (("/api/rehab-arm/app/v1/account/phone-verifications",),),
+    "phone_verification_confirm": (("phone-verifications", "confirm"),),
+    "device_bind": (("/api/rehab-arm/app/v1/devices/bind",),),
+    "agent_messages": (("/api/rehab-arm/app/v1/agent/messages",),),
+}
+
+SCRIPT_SRC_RE = re.compile(r"""(?is)<script\b[^>]*\bsrc=["']([^"']+)["']""")
+
+
 @dataclass
 class Result:
     gate: str
@@ -105,6 +122,29 @@ def check_page(
     )
 
 
+def _matches_requirement(source: str, alternatives: tuple[tuple[str, ...], ...]) -> bool:
+    return any(all(token in source for token in alternative) for alternative in alternatives)
+
+
+def check_frontend_integration_contract(sources: dict[str, str]) -> Result:
+    combined_source = "\n".join(sources.get(path, "") for path in sorted(sources))
+    missing_requirements = [
+        name
+        for name, alternatives in INTEGRATION_REQUIREMENTS.items()
+        if not _matches_requirement(combined_source, alternatives)
+    ]
+    return Result(
+        gate="L1-FRONTEND-INTEGRATION-001",
+        level="L1",
+        status="PASS" if not missing_requirements else "FAIL",
+        summary="Frontend source is wired to the required auth, patient_view, phone, device, and Agent API contracts.",
+        detail={
+            "missing_requirements": missing_requirements,
+            "checked_pages": sorted(sources),
+        },
+    )
+
+
 def fetch_text(url: str, timeout: int) -> tuple[int, str, dict[str, str]]:
     request = urllib.request.Request(url, method="GET")
     try:
@@ -116,12 +156,46 @@ def fetch_text(url: str, timeout: int) -> tuple[int, str, dict[str, str]]:
         return exc.code, visible_text(raw), dict(exc.headers.items())
 
 
+def fetch_raw(url: str, timeout: int) -> tuple[int, str]:
+    request = urllib.request.Request(url, method="GET")
+    try:
+        with urllib.request.urlopen(request, timeout=timeout) as response:
+            return response.status, response.read().decode("utf-8", errors="replace")
+    except urllib.error.HTTPError as exc:
+        return exc.code, exc.read().decode("utf-8", errors="replace")
+
+
+def local_script_urls(html: str, page_url: str) -> list[str]:
+    page_parts = urllib.parse.urlparse(page_url)
+    urls: list[str] = []
+    for src in SCRIPT_SRC_RE.findall(html):
+        resolved = urllib.parse.urljoin(page_url, src)
+        resolved_parts = urllib.parse.urlparse(resolved)
+        if resolved_parts.scheme in {"http", "https"} and resolved_parts.netloc == page_parts.netloc:
+            urls.append(resolved)
+    return urls
+
+
+def fetch_source_bundle(page_url: str, timeout: int) -> str:
+    status, html = fetch_raw(page_url, timeout)
+    if status != 200:
+        return html
+    parts = [html]
+    for script_url in local_script_urls(html, page_url):
+        script_status, script_source = fetch_raw(script_url, timeout)
+        if script_status == 200:
+            parts.append(script_source)
+    return "\n".join(parts)
+
+
 def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     results: list[Result] = []
     base = args.web_base.rstrip("/")
+    sources: dict[str, str] = {}
 
     for path, config in PAGE_GATES.items():
         url = f"{base}/{path}"
+        sources[path] = fetch_source_bundle(url, args.timeout)
         status, text, headers = fetch_text(url, args.timeout)
         if status != 200:
             results.append(
@@ -150,6 +224,8 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             "text_prefix": text[:500],
         }
         results.append(result)
+
+    results.append(check_frontend_integration_contract(sources))
 
     failed = [result for result in results if result.status == "FAIL"]
     payload = {

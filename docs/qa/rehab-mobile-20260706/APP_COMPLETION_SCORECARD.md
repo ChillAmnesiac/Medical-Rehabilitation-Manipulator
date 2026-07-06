@@ -35,6 +35,7 @@ Required P0 gates:
 - Unsafe Agent requests show protective Chinese copy.
 - Device tab shows patient binding wizard, including `绑定设备` and `打开康复设备电源`, not debug console.
 - Profile shows cloud account, verified phone, `绑定手机号`/`验证码` path, rehab profile, and safe `待完善` medical empty state.
+- Frontend source is wired to auth, `/me`, `patient_view`, phone verification, device binding, and Agent message APIs.
 - Bottom navigation routes correctly.
 - 390px mobile screenshots show no overlap or unreachable primary controls.
 
@@ -89,11 +90,12 @@ Current result: `NOT READY`.
 | Agent public config readiness | WARN | `P1-AGENT-CONFIG-001`: public-config exposes `data.agent.model_readiness`; current staging mode is `fallback_rule_based`, reason `external_model_not_configured` |
 | Agent cloud model readiness | WARN | `P1-AGENT-MODEL-001`: Agent answers report `fallback_rule_based`, reason `external_model_not_configured` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |
-| Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate` |
+| Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, 5 failed frontend gates, blocking gate `frontend_l1_gate` |
 | Home UI | FAIL | Browser screenshots plus `tools/qa_rehab_mobile_l1_frontend.py` gate `L1-HOME-STATIC-001` |
 | Agent UI | FAIL | Visible assistant entries do not open chat; static gate `L1-AGENT-STATIC-001` missing `问康复师` |
 | Device UI | FAIL | Device page still looks like debug/engineering state; static gate `L1-DEVICE-STATIC-001` now also requires `绑定设备` and `打开康复设备电源` |
 | Profile UI | FAIL | Browser screenshots plus static gate `L1-PROFILE-STATIC-001` now also require `绑定手机号` and `验证码` |
+| Frontend API integration | FAIL | `L1-FRONTEND-INTEGRATION-001` is missing `patient_view` section wiring plus phone verification and Agent message endpoints |
 
 ## Next Work Order
 

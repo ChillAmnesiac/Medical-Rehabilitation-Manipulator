@@ -86,10 +86,12 @@ cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_frontend.
 Current production result:
 
 - Overall: `FAIL`
-- Failed: `4`
-- Total: `4`
+- Failed: `5`
+- Total: `5`
 
 Failed gates:
+
+- `L1-FRONTEND-INTEGRATION-001`: missing required frontend references for `patient_view.home/profile/device/agent`, phone verification start/confirm, and Agent messages.
 
 - `L1-HOME-STATIC-001`: missing `问康复师`; still contains `M33`, `M55`, and `RoboRehab Controller`.
 - `L1-PROFILE-STATIC-001`: missing `我的康复档案` and `手机号`; still contains `M33`, `M55`, `患者 A`, `ID: 8829`, `避免过度伸展`, and `RoboRehab Controller`.
@@ -109,6 +111,18 @@ This gate is intentionally strict and should remain failing until Stitch convert
   - Profile missing: `我的康复档案`, `手机号`, `绑定手机号`, `验证码`.
   - Device missing: `绑定设备`, `打开康复设备电源`.
 
+2026-07-06 continuation added an integration contract sub-gate so a Stitch build cannot pass by changing copy only:
+
+- New gate: `L1-FRONTEND-INTEGRATION-001`.
+- It checks deployed page source and same-origin scripts for auth, `/me`, `patient_view` sections, phone verification, device binding, and Agent messages.
+- Red tests first failed because `check_frontend_integration_contract` did not exist.
+- Focused integration tests after implementation: `2 passed`.
+- Full frontend gate tests after implementation: `6 passed`.
+- Full local backend plus QA suite: `65 passed, 1 warning`.
+- Current cloud frontend gate: `overall = FAIL`, `failed = 5`, `total = 5`.
+- Current cloud integration gate missing: `patient_view_home`, `patient_view_profile`, `patient_view_device`, `patient_view_agent`, `phone_verification_start`, `phone_verification_confirm`, and `agent_messages`.
+- Cloud API/APK acceptance remained `overall = PASS`, `p0_failed = 0`, `total = 22`.
+
 ## 2026-07-06 L1 Combined Release Gate
 
 Added a single release gate that runs backend/API/APK smoke and frontend L1 checks together:
@@ -125,7 +139,7 @@ Current production result:
 - API overall: `PASS`
 - API P0 failed: `0`
 - Frontend overall: `FAIL`
-- Frontend failed: `4`
+- Frontend failed: `5`
 - Blocking gates: `frontend_l1_gate`
 
 This is now the L1 release decision command. A cloud deployment or APK refresh is not accepted as user-ready unless this command returns exit code `0` with `overall = PASS`.

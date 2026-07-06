@@ -107,7 +107,8 @@ The next frontend build is not accepted until all checks pass:
 7. Device tab shows a patient binding wizard, not debug transport UI.
 8. Profile shows cloud account, verified phone state, rehab profile, and calm `待完善` medical empty state.
 9. No demo patient, fake ID, fake stage, or fake medical warning appears as real data.
-10. 390px mobile screenshots show no overlap or unreachable primary controls.
+10. Source/included same-origin scripts reference required live API contracts: auth session, `/me`, `patient_view` sections, phone verification start/confirm, device bind, and Agent messages.
+11. 390px mobile screenshots show no overlap or unreachable primary controls.
 
 ## Codex Verification After Stitch
 
@@ -126,6 +127,7 @@ Required combined result:
 - `summary.api_overall = PASS`
 - `summary.frontend_overall = PASS`
 - `summary.blocking_gates = []`
+- `L1-FRONTEND-INTEGRATION-001` has no missing API contract requirements.
 
 If this combined gate fails, inspect the nested `api` and `frontend` sections. Do not accept the frontend build, cloud deployment, or refreshed APK as L1 user-ready while `frontend_l1_gate` or `api_smoke` is listed as a blocker.
 
