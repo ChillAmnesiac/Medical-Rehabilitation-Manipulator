@@ -77,24 +77,25 @@ Current result: `NOT READY`.
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Agent backend safety | PASS | Safe answer `200`, unsafe direct-control requests `400 UNSAFE_MOTION_REQUEST` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |
-| Home UI | FAIL | Browser screenshot shows false network error and raw workflow terms |
+| Home UI | FAIL | Browser screenshots `01-home-390-current.png` and `07-home-resmoke-390.png` show false network error and raw workflow terms |
 | Agent UI | FAIL | Visible assistant entries do not open chat |
 | Device UI | FAIL | Device page still looks like debug/engineering state |
-| Profile UI | FAIL | Profile shows demo identity and fake medical warning |
+| Profile UI | FAIL | Browser screenshots `05-profile-nav-390.png` and `06-profile-resmoke-390.png` show demo identity and fake medical warning |
 
 ## Next Work Order
 
 1. Run the Stitch prompt in `docs/stitch/rehab-mobile-stitch-execution-20260706.md`.
-2. Deploy updated frontend web assets to `http://106.55.62.122:3001/rehab-arm-mobile/`.
-3. Rebuild or refresh APK if the APK bundles frontend assets.
-4. Run `tools/qa_rehab_mobile_acceptance.py`.
-5. Browser QA at 390px:
+2. Follow the Stitch runbook in `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`.
+3. Deploy updated frontend web assets to `http://106.55.62.122:3001/rehab-arm-mobile/`.
+4. Rebuild or refresh APK if the APK bundles frontend assets.
+5. Run `tools/qa_rehab_mobile_acceptance.py`.
+6. Browser QA at 390px:
    - Home first screen.
    - `问康复师` chat open.
    - Unsafe Agent refusal.
    - Device binding wizard.
    - Profile account/phone/medical empty state.
-6. Update this scorecard after every large task.
+7. Update this scorecard after every large task.
 
 ## Git Discipline
 

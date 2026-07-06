@@ -21,8 +21,10 @@ The current deployed frontend does not consume the backend `data.patient_view` c
 3. `03-agent-floating-click-390.png` - Floating Agent-like button after click.
 4. `04-device-nav-390.png` - Device tab after navigation.
 5. `05-profile-nav-390.png` - Profile tab after navigation.
+6. `06-profile-resmoke-390.png` - Profile resmoke after git-managed backend QA commits.
+7. `07-home-resmoke-390.png` - Home resmoke after git-managed backend QA commits.
 
-All five screenshots were opened and inspected before being used as evidence. They show the deployed cloud app, not a blank page or wrong window.
+All screenshots were opened and inspected before being used as evidence. They show the deployed cloud app, not a blank page or wrong window.
 
 ## Step Review
 
@@ -33,6 +35,33 @@ All five screenshots were opened and inspected before being used as evidence. Th
 | 3 | Floating assistant button at lower right | FAIL | `03-agent-floating-click-390.png` |
 | 4 | Device tab from bottom navigation | FAIL | `04-device-nav-390.png` |
 | 5 | Profile tab from bottom navigation | FAIL | `05-profile-nav-390.png` |
+| 6 | Profile resmoke on current production frontend | FAIL | `06-profile-resmoke-390.png` |
+| 7 | Home resmoke on current production frontend | FAIL | `07-home-resmoke-390.png` |
+
+## 2026-07-06 L1 Resmoke
+
+After committing backend/QA contract work, the deployed frontend was resmoked in the in-app browser at `390 x 844`.
+
+Profile hit list:
+
+- `M33`
+- `避免过度伸展`
+- `setup_required`
+- `early_active`
+- `网络未连接`
+
+Home hit list:
+
+- `网络未连接`
+- `setup_required`
+- `M33`
+- `M55`
+- `early_active`
+- `left`
+- `动作队列`
+- `禁止`
+
+Result: L1 remains `FAIL`. The backend contract is ready, but the frontend still needs Stitch changes.
 
 ## Findings
 
@@ -121,10 +150,10 @@ Latest API/package acceptance smoke passed:
 - Overall: `PASS`
 - P0 failed: `0`
 - Total checks: `14`
-- Cloud PID: `758739`
+- Cloud PID: `798697`
 - Build ref: `app/rehab-arm-mobile-stitch`
-- Build SHA: `b6eac26`
-- Build time: `2026-07-05T15:51:26Z`
+- Build SHA: `b735d73`
+- Build time: `2026-07-05T16:32:07Z`
 - `P0-PATIENT-VIEW-001`: `PASS`
 - Agent safe answer: `PASS`
 - Agent unsafe refusal: `PASS`
@@ -155,7 +184,7 @@ Fresh verification:
 - Syntax checks: `py_compile` passed for backend route and QA script.
 - Stricter cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 14`.
 
-Cloud runtime already had the deployed patient-view contract, so no extra cloud code patch or restart was needed for this follow-up. Cloud PID remained `758739`, build SHA `b6eac26`.
+Cloud runtime already had the deployed patient-view contract, so no extra cloud code patch or restart was needed for this follow-up. Latest verified cloud PID is `798697`, build SHA `b735d73`.
 
 ## Accessibility Risks
 
@@ -180,3 +209,7 @@ The next deployed frontend must pass these browser checks at `390 x 844`:
 ## Current Product Decision
 
 Do not call this build user-ready. Backend is ready for Stitch to consume, but the rendered app still fails the patient-facing P0 gates.
+
+Stitch execution runbook:
+
+- `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`
