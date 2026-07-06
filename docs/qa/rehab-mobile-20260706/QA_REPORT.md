@@ -2364,3 +2364,55 @@ Acceptance boundary:
 - No cloud deployment or APK rebuild was performed in this pass because this
   work changes release/audit tooling and records the current APK as failing the
   new L1 gate.
+
+## 2026-07-07 L1 Evidence Bundle APK Asset Targets
+
+Codex tightened the final L1 evidence exporter so the evidence bundle now proves
+which local APK and Android WebView source directory were used for the packaged
+asset parity gate.
+
+Tooling changes:
+
+- `tools/export_rehab_mobile_l1_evidence.py` now records these target fields:
+  `apk_file`, `android_www_dir`, and `apk_asset_prefix`.
+- The exporter forwards `--apk-file`, `--android-www-dir`, and
+  `--apk-asset-prefix` into `tools/qa_rehab_mobile_l1_release.py`, so the
+  combined release gate and objective audit inspect the same APK/WebView asset
+  pair described in the evidence JSON.
+- The evidence summary now surfaces `apk_webview_assets_overall` and
+  `apk_webview_assets_failed` at top level.
+- Default local APK/WebView paths now point at the real App checkout under
+  `artifacts/external/rehab-arm-mobile-stitch/`, matching the branch
+  `app/rehab-arm-mobile-stitch`.
+
+Fresh verification:
+
+- Red exporter tests first failed because `target.apk_file` was missing and
+  `_run_release_gate()` did not pass APK WebView asset arguments into the
+  combined release gate.
+- Focused exporter tests:
+  `tools/test_export_rehab_mobile_l1_evidence.py` -> `4 passed`.
+- Related L1/APK regression suite:
+  `tools/test_export_rehab_mobile_l1_evidence.py`,
+  `tools/test_qa_rehab_mobile_l1_release.py`,
+  `tools/test_qa_rehab_mobile_l1_objective_audit.py`, and
+  `tools/test_verify_rehab_mobile_apk_webview_assets.py` -> `23 passed`.
+
+Current evidence bundle:
+
+- Evidence:
+  `docs/qa/rehab-mobile-20260706/l1-evidence-current-with-apk-assets-20260707.json`.
+- Result: `overall = FAIL`.
+- Health: `health_ok = true`.
+- APK URL: `apk_ok = true`.
+- Release blockers: `frontend_l1_gate`, `apk_webview_assets`.
+- Objective blockers:
+  `home_next_step`, `phone_binding`, `device_binding`,
+  `ask_therapist_safety`, `profile_no_fake_debug`, `apk_webview_assets`,
+  `browser_qa_evidence`, and `combined_l1_release`.
+
+Acceptance boundary:
+
+- No cloud deployment or APK rebuild was performed in this pass because this
+  work changes QA/evidence tooling only and the generated evidence still shows
+  current L1 failure.

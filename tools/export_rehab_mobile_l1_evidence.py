@@ -28,6 +28,11 @@ DEFAULT_API_BASE = "http://106.55.62.122:8011"
 DEFAULT_WEB_BASE = "http://106.55.62.122:3001/rehab-arm-mobile"
 DEFAULT_WEB_ORIGIN = "http://106.55.62.122:3001"
 DEFAULT_APK_URL = "http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"
+DEFAULT_APK_FILE = Path(
+    "artifacts/external/rehab-arm-mobile-stitch/apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"
+)
+DEFAULT_ANDROID_WWW_DIR = Path("artifacts/external/rehab-arm-mobile-stitch/apps/mobile/rehab-arm-android/www")
+DEFAULT_APK_ASSET_PREFIX = "assets/public"
 DEFAULT_OUTPUT = Path("artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence.json")
 
 ReleaseRunner = Callable[[argparse.Namespace], tuple[int, dict[str, Any]]]
@@ -53,6 +58,10 @@ def _load_json(path: Path) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError(f"{path} must contain a JSON object")
     return payload
+
+
+def _display_path(path: Path) -> str:
+    return path.as_posix()
 
 
 def _json_response(url: str, timeout: int) -> dict[str, Any]:
@@ -174,6 +183,12 @@ def _run_release_gate(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             args.web_origin,
             "--apk-url",
             args.apk_url,
+            "--apk-file",
+            str(args.apk_file),
+            "--android-www-dir",
+            str(args.android_www_dir),
+            "--apk-asset-prefix",
+            args.apk_asset_prefix,
             "--timeout",
             str(args.timeout),
         ]
@@ -228,6 +243,8 @@ def _summary(
         "overall": "PASS" if release_ok and objective_ok and health_ok and apk_ok else "FAIL",
         "release_overall": release_summary.get("overall"),
         "objective_overall": objective_summary.get("overall"),
+        "apk_webview_assets_overall": release_summary.get("apk_webview_assets_overall"),
+        "apk_webview_assets_failed": release_summary.get("apk_webview_assets_failed"),
         "health_ok": health_ok,
         "apk_ok": apk_ok,
         "release_blocking_gates": release_summary.get("blocking_gates") or [],
@@ -266,8 +283,11 @@ def build_evidence(
             "web_base": args.web_base,
             "web_origin": args.web_origin,
             "apk_url": args.apk_url,
-            "screenshots_dir": str(args.screenshots_dir),
-            "browser_metrics_json": str(args.browser_metrics_json),
+            "apk_file": _display_path(args.apk_file),
+            "android_www_dir": _display_path(args.android_www_dir),
+            "apk_asset_prefix": args.apk_asset_prefix,
+            "screenshots_dir": _display_path(args.screenshots_dir),
+            "browser_metrics_json": _display_path(args.browser_metrics_json),
         },
         "summary": _summary(release_payload, objective_payload, health, apk_head_payload),
         "git": active_git_getter(),
@@ -297,6 +317,13 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--web-base", default=os.getenv("REHAB_QA_WEB_BASE", DEFAULT_WEB_BASE))
     parser.add_argument("--web-origin", default=os.getenv("REHAB_QA_WEB_ORIGIN", DEFAULT_WEB_ORIGIN))
     parser.add_argument("--apk-url", default=os.getenv("REHAB_QA_APK_URL", DEFAULT_APK_URL))
+    parser.add_argument("--apk-file", type=Path, default=Path(os.getenv("REHAB_QA_APK_FILE", str(DEFAULT_APK_FILE))))
+    parser.add_argument(
+        "--android-www-dir",
+        type=Path,
+        default=Path(os.getenv("REHAB_QA_ANDROID_WWW_DIR", str(DEFAULT_ANDROID_WWW_DIR))),
+    )
+    parser.add_argument("--apk-asset-prefix", default=os.getenv("REHAB_QA_APK_ASSET_PREFIX", DEFAULT_APK_ASSET_PREFIX))
     parser.add_argument("--email", default=os.getenv("REHAB_QA_EMAIL"))
     parser.add_argument("--password", default=os.getenv("REHAB_QA_PASSWORD"))
     parser.add_argument("--timeout", type=int, default=int(os.getenv("REHAB_QA_TIMEOUT", "20")))

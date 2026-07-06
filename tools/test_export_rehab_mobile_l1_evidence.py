@@ -25,10 +25,13 @@ def _release_payload():
             "api_p0_failed": 0,
             "frontend_overall": "FAIL",
             "frontend_failed": 5,
+            "apk_webview_assets_overall": "FAIL",
+            "apk_webview_assets_failed": 3,
             "blocking_gates": ["frontend_l1_gate", "agent_cloud_model"],
         },
         "api": {"summary": {"overall": "PASS", "p0_failed": 0}},
         "frontend": {"summary": {"overall": "FAIL", "failed": 5}},
+        "apk_webview_assets": {"summary": {"overall": "FAIL", "failed": 3, "total": 3}},
     }
 
 
@@ -71,6 +74,9 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
         web_base="http://web.example/rehab-arm-mobile",
         web_origin="http://web.example",
         apk_url="http://web.example/app.apk",
+        apk_file=Path("app-checkout/apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"),
+        android_www_dir=Path("app-checkout/apps/mobile/rehab-arm-android/www"),
+        apk_asset_prefix="assets/public",
         screenshots_dir=Path("docs/qa/rehab-mobile-20260706/screenshots"),
         browser_metrics_json=Path("docs/qa/rehab-mobile-20260706/browser-metrics-gate.json"),
         timeout=3,
@@ -99,11 +105,17 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
     assert evidence["schema"] == "rehab-mobile-l1-evidence/v1"
     assert evidence["generated_at"] == "2026-07-06T16:00:00Z"
     assert evidence["target"]["browser_metrics_json"].endswith("browser-metrics-gate.json")
+    assert evidence["target"]["apk_file"].endswith("lingdong-rehab-arm-debug.apk")
+    assert evidence["target"]["android_www_dir"].endswith("apps/mobile/rehab-arm-android/www")
+    assert evidence["target"]["apk_asset_prefix"] == "assets/public"
     assert evidence["summary"]["overall"] == "FAIL"
     assert evidence["summary"]["release_overall"] == "FAIL"
     assert evidence["summary"]["objective_overall"] == "FAIL"
+    assert evidence["summary"]["apk_webview_assets_overall"] == "FAIL"
+    assert evidence["summary"]["apk_webview_assets_failed"] == 3
     assert evidence["summary"]["release_blocking_gates"] == ["frontend_l1_gate", "agent_cloud_model"]
     assert evidence["release"]["exit_code"] == 1
+    assert evidence["release"]["payload"]["apk_webview_assets"]["summary"]["overall"] == "FAIL"
     assert evidence["objective"]["summary"]["failed"] == 8
     assert evidence["browser_evidence"]["missing"] == ["home_first_screen", "ask_therapist_chat"]
     assert evidence["browser_evidence"]["invalid_files"]["home_first_screen"]["minimum_bytes"] == 1024
@@ -120,6 +132,46 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
     )
     assert evidence["required_artifacts"]["l1_evidence_default_output"].endswith("rehab-mobile-l1-evidence.json")
     assert "1234" not in json.dumps(evidence, ensure_ascii=False)
+
+
+def test_release_gate_receives_apk_webview_asset_targets(monkeypatch):
+    module = _load_module()
+    captured = {}
+    args = argparse.Namespace(
+        api_base="http://api.example",
+        web_base="http://web.example/rehab-arm-mobile",
+        web_origin="http://web.example",
+        apk_url="http://web.example/app.apk",
+        apk_file=Path("app-checkout/apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"),
+        android_www_dir=Path("app-checkout/apps/mobile/rehab-arm-android/www"),
+        apk_asset_prefix="assets/public",
+        timeout=3,
+        email="3245056131@qq.com",
+        password="1234",
+        release_json=None,
+    )
+
+    def fake_parse_args(argv):
+        captured["argv"] = argv
+        return argparse.Namespace(parsed=True)
+
+    monkeypatch.setattr(module.qa_rehab_mobile_l1_release, "parse_args", fake_parse_args)
+    monkeypatch.setattr(
+        module.qa_rehab_mobile_l1_release,
+        "run",
+        lambda _args: (1, _release_payload()),
+    )
+
+    exit_code, payload = module._run_release_gate(args)
+
+    assert exit_code == 1
+    assert payload["summary"]["apk_webview_assets_overall"] == "FAIL"
+    assert "--apk-file" in captured["argv"]
+    assert str(args.apk_file) in captured["argv"]
+    assert "--android-www-dir" in captured["argv"]
+    assert str(args.android_www_dir) in captured["argv"]
+    assert "--apk-asset-prefix" in captured["argv"]
+    assert args.apk_asset_prefix in captured["argv"]
 
 
 def test_main_writes_evidence_and_only_fails_l1_when_requested(tmp_path, monkeypatch):
