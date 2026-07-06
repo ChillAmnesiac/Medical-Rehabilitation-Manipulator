@@ -845,6 +845,28 @@ Fresh verification:
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
 
+## Frontend Release Bundle Tool Follow-Up
+
+2026-07-06 continuation work added a backend-owned packaging step for the moment Stitch returns updated frontend assets:
+
+- New script: `tools/prepare_rehab_mobile_frontend_release.py`
+- New tests: `tools/test_prepare_rehab_mobile_frontend_release.py`
+- Updated repair packet artifact: `required_artifacts.frontend_release_tool`
+- Updated V4 Stitch prompt section: `After Stitch Hands Back Frontend Files`
+
+The tool validates that the Stitch output contains `home.html`, `profile.html`, `device.html`, and `ai-plan.html`, writes `artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release.zip`, and records a manifest with deploy and verification commands.
+
+Fresh verification:
+
+- Red test first: `tools/prepare_rehab_mobile_frontend_release.py` did not exist.
+- Follow-up red test first: repair packet and V4 prompt did not expose the new release bundle tool.
+- Focused release-bundle/repair-packet/prompt tests: `8 passed`.
+- Full local backend plus QA suite: `86 passed, 1 warning`.
+- Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remains `FAIL`: `8 / 11` failing, including all five exact L1 success screenshots missing.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.
+
 ## Browser Evidence Dimension Gate Follow-Up
 
 2026-07-06 continuation work tightened browser QA evidence so screenshot filenames alone are no longer enough:

@@ -93,6 +93,23 @@ def _verification_section(packet: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _post_stitch_bundle_section(packet: dict[str, Any]) -> list[str]:
+    artifacts = packet.get("required_artifacts") or {}
+    tool = artifacts.get("frontend_release_tool") or "tools/prepare_rehab_mobile_frontend_release.py"
+    source_dir = (packet.get("target") or {}).get("frontend_edit_scope", "apps/web/public/rehab-arm-mobile/")
+    source_arg = source_dir.rstrip("/")
+    return [
+        "## After Stitch Hands Back Frontend Files",
+        "Codex will package the generated frontend assets before cloud deployment:",
+        "```powershell",
+        (
+            ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
+            f"{tool} --source-dir {source_arg} --output-dir artifacts/rehab-mobile-frontend-release"
+        ),
+        "```",
+    ]
+
+
 def render_prompt(packet: dict[str, Any], *, generated_at: str | None = None) -> str:
     target = packet.get("target") or {}
     artifacts = packet.get("required_artifacts") or {}
@@ -130,6 +147,8 @@ def render_prompt(packet: dict[str, Any], *, generated_at: str | None = None) ->
     lines.extend(_bullet(packet.get("integration_gaps") or []))
     lines.append("")
     lines.extend(_required_browser_qa_section(packet))
+    lines.append("")
+    lines.extend(_post_stitch_bundle_section(packet))
     lines.append("")
     lines.extend(_verification_section(packet))
     lines.append("")

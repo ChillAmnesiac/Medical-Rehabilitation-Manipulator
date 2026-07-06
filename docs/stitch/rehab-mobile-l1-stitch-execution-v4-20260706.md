@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-06T13:25:03Z
+Generated: 2026-07-06T13:35:01Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -123,6 +123,12 @@ After Stitch deploys the frontend, Codex must capture these exact final screensh
 - unsafe_agent_refusal: l1-unsafe-agent-refusal-390.png at 390x844 showing protective Chinese refusal, no direct motion control
 - device_binding_wizard: l1-device-binding-wizard-390.png at 390x844 showing 绑定设备, 打开康复设备电源
 - profile_phone_medical: l1-profile-phone-medical-390.png at 390x844 showing cloud account, verified phone, safe medical empty state
+
+## After Stitch Hands Back Frontend Files
+Codex will package the generated frontend assets before cloud deployment:
+```powershell
+.\cloud\rehab-platform\.venv\Scripts\python.exe tools/prepare_rehab_mobile_frontend_release.py --source-dir apps/web/public/rehab-arm-mobile --output-dir artifacts/rehab-mobile-frontend-release
+```
 
 ## Codex Verification Commands
 Codex will reject the frontend until these pass:

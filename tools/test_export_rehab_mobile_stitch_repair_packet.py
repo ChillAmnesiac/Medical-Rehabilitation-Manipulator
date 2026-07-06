@@ -161,6 +161,9 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
     assert packet["required_artifacts"]["stitch_prompt"].endswith(
         "rehab-mobile-l1-stitch-execution-v4-20260706.md"
     )
+    assert packet["required_artifacts"]["frontend_release_tool"].endswith(
+        "prepare_rehab_mobile_frontend_release.py"
+    )
     assert packet["required_artifacts"]["api_fixture"].endswith("rehab-mobile-l1-api-fixture-20260706.json")
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(packet["verification_commands"]["powershell"])
     assert "configure_rehab_model_relay.py" in packet["non_stitch_actions"][0]["command"]

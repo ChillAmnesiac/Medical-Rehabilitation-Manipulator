@@ -60,6 +60,7 @@ The packet is generated from the current cloud L1 release gate and objective aud
 - `integration_gaps`: required API wiring states that source/static checks still cannot find.
 - `browser_evidence_current`: current screenshot matches, missing required scenes, and screenshots whose dimensions are not the required `390 x 844`.
 - `current_fail_evidence`: current in-app browser screenshots that show what is broken today; these guide Stitch fixes but never count as L1 success evidence.
+- `required_artifacts.frontend_release_tool`: Codex's local packaging step after Stitch returns frontend files.
 
 Historical prompt kept for reference:
 
@@ -153,6 +154,14 @@ The next frontend build is not accepted until all checks pass:
 After Stitch changes are available and deployed, Codex must run:
 
 ```powershell
+cloud\rehab-platform\.venv\Scripts\python.exe tools\prepare_rehab_mobile_frontend_release.py --source-dir apps/web/public/rehab-arm-mobile --output-dir artifacts/rehab-mobile-frontend-release
+```
+
+This writes a zip bundle plus `artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json`. Review the manifest before copying assets to the cloud server.
+
+Then run:
+
+```powershell
 $env:REHAB_QA_EMAIL='<staging email>'
 $env:REHAB_QA_PASSWORD='<staging password>'
 cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_release.py
@@ -199,4 +208,4 @@ Then Codex must:
 
 ## Current Next Action
 
-Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` and `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`, deploy the generated frontend assets, then hand control back to Codex for browser QA and git-managed closeout.
+Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` and `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`, package the generated frontend assets with `tools/prepare_rehab_mobile_frontend_release.py`, deploy the reviewed bundle, then hand control back to Codex for browser QA and git-managed closeout.

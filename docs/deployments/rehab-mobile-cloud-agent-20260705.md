@@ -612,6 +612,25 @@
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
 
+## 2026-07-06 Frontend Release Bundle Tool
+
+- Added a local packaging tool for Stitch output:
+  - `tools/prepare_rehab_mobile_frontend_release.py`
+  - `tools/test_prepare_rehab_mobile_frontend_release.py`
+- The tool validates required frontend pages before deployment:
+  - `home.html`
+  - `profile.html`
+  - `device.html`
+  - `ai-plan.html`
+- It writes a deployable zip plus `rehab-mobile-frontend-release-manifest.json` containing the bundle SHA256, source file count, SSH copy commands, L1 release/objective commands, APK HEAD command, and required browser screenshot filenames.
+- Updated the live repair packet and V4 Stitch prompt so the release bundle tool is part of the normal post-Stitch handoff.
+- Focused release-bundle/repair-packet/prompt tests: `8 passed`.
+- Full local backend plus QA suite: `86 passed, 1 warning`.
+- Live L1 release gate remained `FAIL` with API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remained `FAIL` with `8 / 11` failing, including all five exact L1 success screenshots missing.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

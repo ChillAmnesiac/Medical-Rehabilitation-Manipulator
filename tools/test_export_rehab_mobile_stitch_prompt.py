@@ -32,6 +32,7 @@ def _packet():
         "required_artifacts": {
             "api_fixture": "docs/stitch/rehab-mobile-l1-api-fixture-20260706.json",
             "stitch_runbook": "docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md",
+            "frontend_release_tool": "tools/prepare_rehab_mobile_frontend_release.py",
         },
         "frontend_failures": [
             {
@@ -90,6 +91,8 @@ def test_render_prompt_includes_repair_packet_evidence_and_acceptance_commands()
     assert "agent_cloud_model" in prompt
     assert "qa_rehab_mobile_l1_release.py" in prompt
     assert "qa_rehab_mobile_l1_objective_audit.py" in prompt
+    assert "prepare_rehab_mobile_frontend_release.py" in prompt
+    assert "--source-dir apps/web/public/rehab-arm-mobile" in prompt
 
 
 def test_cli_writes_prompt_from_repair_packet(tmp_path):
@@ -113,3 +116,4 @@ def test_cli_writes_prompt_from_repair_packet(tmp_path):
     prompt = output_path.read_text(encoding="utf-8")
     assert "Stitch Execution Prompt V4" in prompt
     assert "docs/qa/current-fail-home-clip-390x844.png" in prompt
+    assert "prepare_rehab_mobile_frontend_release.py" in prompt
