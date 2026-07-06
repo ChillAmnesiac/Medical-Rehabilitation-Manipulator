@@ -86,6 +86,27 @@ Failed gates:
 
 This gate is intentionally strict and should remain failing until Stitch converts normal user pages to the `patient_view` contract.
 
+## 2026-07-06 L1 Combined Release Gate
+
+Added a single release gate that runs backend/API/APK smoke and frontend L1 checks together:
+
+```powershell
+$env:REHAB_QA_EMAIL='<staging email>'
+$env:REHAB_QA_PASSWORD='<staging password>'
+cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_release.py
+```
+
+Current production result:
+
+- Overall: `FAIL`
+- API overall: `PASS`
+- API P0 failed: `0`
+- Frontend overall: `FAIL`
+- Frontend failed: `4`
+- Blocking gates: `frontend_l1_gate`
+
+This is now the L1 release decision command. A cloud deployment or APK refresh is not accepted as user-ready unless this command returns exit code `0` with `overall = PASS`.
+
 ## Findings
 
 ### P0-Home-001 - False Network Error

@@ -97,19 +97,18 @@ After Stitch changes are available and deployed, Codex must run:
 ```powershell
 $env:REHAB_QA_EMAIL='<staging email>'
 $env:REHAB_QA_PASSWORD='<staging password>'
-cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_acceptance.py
+cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_release.py
 ```
 
-Then Codex must run the L1 static frontend gate:
+Required combined result:
 
-```powershell
-cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_frontend.py
-```
+- Exit code `0`
+- `summary.overall = PASS`
+- `summary.api_overall = PASS`
+- `summary.frontend_overall = PASS`
+- `summary.blocking_gates = []`
 
-Required result:
-
-- `overall = PASS`
-- `failed = 0`
+If this combined gate fails, inspect the nested `api` and `frontend` sections. Do not accept the frontend build, cloud deployment, or refreshed APK as L1 user-ready while `frontend_l1_gate` or `api_smoke` is listed as a blocker.
 
 Then Codex must capture browser screenshots at `390 x 844`:
 

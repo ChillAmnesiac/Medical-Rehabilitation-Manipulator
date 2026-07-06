@@ -77,6 +77,7 @@ Current result: `NOT READY`.
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Agent backend safety | PASS | Safe answer `200`, unsafe direct-control requests `400 UNSAFE_MOTION_REQUEST` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |
+| Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate` |
 | Home UI | FAIL | Browser screenshots plus `tools/qa_rehab_mobile_l1_frontend.py` gate `L1-HOME-STATIC-001` |
 | Agent UI | FAIL | Visible assistant entries do not open chat; static gate `L1-AGENT-STATIC-001` missing `问康复师` |
 | Device UI | FAIL | Device page still looks like debug/engineering state; static gate `L1-DEVICE-STATIC-001` hits `M33/M55/UUID/Gatekeeper` |
@@ -88,8 +89,8 @@ Current result: `NOT READY`.
 2. Follow the Stitch runbook in `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`.
 3. Deploy updated frontend web assets to `http://106.55.62.122:3001/rehab-arm-mobile/`.
 4. Rebuild or refresh APK if the APK bundles frontend assets.
-5. Run `tools/qa_rehab_mobile_acceptance.py`.
-6. Run `tools/qa_rehab_mobile_l1_frontend.py`; it must return `overall = PASS`.
+5. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
+6. If the combined gate fails, inspect the nested `api` and `frontend` sections before changing code.
 7. Browser QA at 390px:
    - Home first screen.
    - `问康复师` chat open.
