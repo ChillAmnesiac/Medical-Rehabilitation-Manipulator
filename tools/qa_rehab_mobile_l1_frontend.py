@@ -52,12 +52,12 @@ PAGE_GATES = {
     },
     "profile.html": {
         "gate": "L1-PROFILE-STATIC-001",
-        "required_terms": ("我的康复档案", "手机号"),
+        "required_terms": ("我的康复档案", "手机号", "绑定手机号", "验证码"),
         "summary": "Profile static page is cloud-account oriented and does not show demo medical data.",
     },
     "device.html": {
         "gate": "L1-DEVICE-STATIC-001",
-        "required_terms": ("设备",),
+        "required_terms": ("设备", "绑定设备", "打开康复设备电源"),
         "summary": "Device page avoids debug transport language in normal user flow.",
     },
     "ai-plan.html": {

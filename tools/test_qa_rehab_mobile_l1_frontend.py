@@ -64,3 +64,23 @@ def test_engineering_page_with_raw_terms_fails_gate():
     assert "问康复师" in result.detail["missing_terms"]
     assert "setup_required" in result.detail["forbidden_hits"]
     assert "M33" in result.detail["forbidden_hits"]
+
+
+def test_profile_gate_requires_phone_binding_and_code_copy():
+    module = _load_module()
+
+    required_terms = module.PAGE_GATES["profile.html"]["required_terms"]
+
+    assert "手机号" in required_terms
+    assert "绑定手机号" in required_terms
+    assert "验证码" in required_terms
+
+
+def test_device_gate_requires_patient_binding_wizard_copy():
+    module = _load_module()
+
+    required_terms = module.PAGE_GATES["device.html"]["required_terms"]
+
+    assert "设备" in required_terms
+    assert "绑定设备" in required_terms
+    assert "打开康复设备电源" in required_terms

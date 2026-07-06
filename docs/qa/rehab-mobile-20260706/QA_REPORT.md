@@ -96,6 +96,17 @@ Failed gates:
 
 This gate is intentionally strict and should remain failing until Stitch converts normal user pages to the `patient_view` contract.
 
+2026-07-06 continuation tightened the same gate so it verifies more of the actual L1 phone/device onboarding surface:
+
+- `L1-PROFILE-STATIC-001` now requires `绑定手机号` and `验证码` in addition to profile title and phone state.
+- `L1-DEVICE-STATIC-001` now requires `绑定设备` and `打开康复设备电源` in addition to a normal device page.
+- Fresh local gate tests: `4 passed`.
+- Fresh full local backend plus QA suite: `53 passed, 1 warning`.
+- Fresh cloud L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+- Current stricter frontend failures:
+  - Profile missing: `我的康复档案`, `手机号`, `绑定手机号`, `验证码`.
+  - Device missing: `绑定设备`, `打开康复设备电源`.
+
 ## 2026-07-06 L1 Combined Release Gate
 
 Added a single release gate that runs backend/API/APK smoke and frontend L1 checks together:

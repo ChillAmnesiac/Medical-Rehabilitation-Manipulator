@@ -32,8 +32,8 @@ Required P0 gates:
 - No raw terms on normal screens: `M33`, `M55`, `SPP`, `CAN`, `UUID`, `setup_required`, `early_active`, `direct_motor_command`, `can_frame`.
 - `问康复师` opens a working chat and calls Agent API.
 - Unsafe Agent requests show protective Chinese copy.
-- Device tab shows patient binding wizard, not debug console.
-- Profile shows cloud account, verified phone, rehab profile, and safe `待完善` medical empty state.
+- Device tab shows patient binding wizard, including `绑定设备` and `打开康复设备电源`, not debug console.
+- Profile shows cloud account, verified phone, `绑定手机号`/`验证码` path, rehab profile, and safe `待完善` medical empty state.
 - Bottom navigation routes correctly.
 - 390px mobile screenshots show no overlap or unreachable primary controls.
 
@@ -88,8 +88,8 @@ Current result: `NOT READY`.
 | Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate` |
 | Home UI | FAIL | Browser screenshots plus `tools/qa_rehab_mobile_l1_frontend.py` gate `L1-HOME-STATIC-001` |
 | Agent UI | FAIL | Visible assistant entries do not open chat; static gate `L1-AGENT-STATIC-001` missing `问康复师` |
-| Device UI | FAIL | Device page still looks like debug/engineering state; static gate `L1-DEVICE-STATIC-001` hits `M33/M55/UUID/Gatekeeper` |
-| Profile UI | FAIL | Browser screenshots plus static gate `L1-PROFILE-STATIC-001` show demo identity and fake medical warning |
+| Device UI | FAIL | Device page still looks like debug/engineering state; static gate `L1-DEVICE-STATIC-001` now also requires `绑定设备` and `打开康复设备电源` |
+| Profile UI | FAIL | Browser screenshots plus static gate `L1-PROFILE-STATIC-001` now also require `绑定手机号` and `验证码` |
 
 ## Next Work Order
 

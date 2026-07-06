@@ -223,6 +223,8 @@ Required acceptance after Stitch changes:
 3. Unsafe Agent refusal at 390px.
 4. Device binding wizard at 390px, including already-bound 409 copy path if possible.
 5. Profile at 390px with cloud account, phone state, and 待完善 medical empty state.
+6. Profile static/rendered text includes `绑定手机号` and `验证码` so a new user can find the phone binding path.
+7. Device static/rendered text includes `绑定设备` and `打开康复设备电源` so a new user sees the first binding step.
 
 Automated release gate Codex will run after deployment:
 $env:REHAB_QA_EMAIL='<staging email>'
@@ -234,6 +236,8 @@ The build is not L1 user-ready until:
 - summary.api_overall = PASS
 - summary.frontend_overall = PASS
 - summary.blocking_gates = []
+- L1-PROFILE-STATIC-001 no longer reports missing `绑定手机号` or `验证码`.
+- L1-DEVICE-STATIC-001 no longer reports missing `绑定设备` or `打开康复设备电源`.
 
 Current failure evidence:
 - docs/qa/rehab-mobile-20260706/screenshots/device-binding-home-390.png
