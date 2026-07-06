@@ -504,6 +504,31 @@
   - Browser evidence still lacks Ask Therapist chat, unsafe refusal, and device wizard screenshots.
 - No cloud runtime deployment was made for this QA-audit-only change.
 
+## 2026-07-06 Stitch Repair Packet Export
+
+- Added a machine-readable Stitch repair packet exporter:
+  - `tools/export_rehab_mobile_stitch_repair_packet.py`
+- Added tests:
+  - `tools/test_export_rehab_mobile_stitch_repair_packet.py`
+- Generated live repair packet:
+  - `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
+- The packet is built from the live cloud L1 release gate and objective audit.
+- It separates:
+  - Stitch blockers: frontend/user-flow requirements and browser evidence.
+  - Non-Stitch blockers: currently `agent_cloud_model`.
+  - Meta blockers: currently `combined_l1_release`.
+- It exports the current `5` frontend failures and `13` frontend integration gaps for Stitch.
+- Fresh verification:
+  - Red test first showed `combined_l1_release` was wrongly grouped with Stitch blockers.
+  - Focused repair-packet tests after implementation: `2 passed`.
+  - Related repair/objective/release/frontend tests: `15 passed`.
+  - Full local backend plus QA suite: `77 passed, 1 warning`.
+  - Live L1 release gate remained `FAIL` with API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+  - Live objective audit remained `FAIL` with `8 / 11` requirements failing.
+  - Live packet JSON parse check passed.
+  - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

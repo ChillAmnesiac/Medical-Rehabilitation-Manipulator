@@ -12,6 +12,7 @@ Codex owns backend, QA, deployment verification, APK verification, and git commi
 - APK delivery: `PASS`
 - Frontend L1: `FAIL`
 - Sanitized live API fixture: `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json`
+- Live Stitch repair packet: `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
 - Fixture now includes sanitized phone-verification `start_response` and `confirm_response` examples, with `verification_id` preserved as `fixture-verification-id` and debug codes removed.
 - Latest browser evidence:
   - `docs/qa/rehab-mobile-20260706/06-profile-resmoke-390.png`
@@ -37,6 +38,18 @@ Latest visible frontend blockers:
 Use this prompt as the primary frontend task:
 
 - `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`
+
+Use this machine-readable repair packet to keep the Stitch pass tied to the live failing gates:
+
+- `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
+
+The packet is generated from the current cloud L1 release gate and objective audit. It separates:
+
+- `summary.stitch_blockers`: frontend work Stitch can fix.
+- `summary.non_stitch_blockers`: backend/ops work, currently `agent_cloud_model`.
+- `summary.meta_blockers`: release-level proof that should turn green only after all underlying blockers are fixed.
+- `frontend_failures`: failed page gates, required additions, required removals, and visible text samples.
+- `integration_gaps`: required API wiring states that source/static checks still cannot find.
 
 Historical prompt kept for reference:
 
@@ -171,4 +184,4 @@ Then Codex must:
 
 ## Current Next Action
 
-Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`, deploy the generated frontend assets, then hand control back to Codex for browser QA and git-managed closeout.
+Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md` and `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`, deploy the generated frontend assets, then hand control back to Codex for browser QA and git-managed closeout.

@@ -803,3 +803,44 @@ Stitch execution runbook:
   - `ask_therapist_chat`
   - `unsafe_agent_refusal`
   - `device_binding_wizard`
+
+## Stitch Repair Packet Follow-Up
+
+2026-07-06 continuation work added a machine-readable repair packet so the next Stitch pass can target the exact live L1 failures instead of manually rereading the long QA report:
+
+- New script: `tools/export_rehab_mobile_stitch_repair_packet.py`
+- New tests: `tools/test_export_rehab_mobile_stitch_repair_packet.py`
+- Live packet: `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
+- Source data: current cloud `tools/qa_rehab_mobile_l1_release.py` payload plus objective audit.
+
+Fresh packet summary:
+
+- Overall: `FAIL`
+- Stitch blockers:
+  - `home_next_step`
+  - `phone_binding`
+  - `device_binding`
+  - `ask_therapist_safety`
+  - `profile_no_fake_debug`
+  - `browser_qa_evidence`
+  - `frontend_l1_gate`
+- Non-Stitch blocker:
+  - `agent_cloud_model`
+- Meta blocker:
+  - `combined_l1_release`
+- Frontend failures exported: `5`
+- Integration gaps exported: `13`
+
+The packet now prevents `combined_l1_release` from being misassigned to Stitch as a direct page task. It is kept as a meta blocker that should pass only after frontend, cloud model, and browser evidence are actually green.
+
+Fresh verification:
+
+- Red test first: `combined_l1_release` was initially grouped into `summary.stitch_blockers`.
+- Focused repair-packet tests after implementation: `2 passed`.
+- Related repair/objective/release/frontend tests: `15 passed`.
+- Full local backend plus QA suite after adding the repair packet: `77 passed, 1 warning`.
+- Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remains `FAIL`: `8 / 11` requirements failing.
+- Live packet JSON parse check passed and reported `5` frontend failures plus `13` integration gaps.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.
