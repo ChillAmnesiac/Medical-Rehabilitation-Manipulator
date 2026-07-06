@@ -867,6 +867,26 @@ Fresh verification:
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
 
+2026-07-06 continuation work tightened this path so Stitch output is checked before any cloud copy:
+
+- Updated script: `tools/qa_rehab_mobile_l1_frontend.py`
+- New tests: `tools/test_qa_rehab_mobile_l1_frontend_local_source.py`
+- Updated release tool: `tools/prepare_rehab_mobile_frontend_release.py`
+- Updated V4 Stitch prompt with `tools\qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile`
+
+The local source-dir gate reuses the same page text and integration-contract rules as the deployed frontend gate. The release bundle tool now refuses to write a deployable bundle when this local preflight fails.
+
+Fresh verification after adding source-dir preflight:
+
+- Red test first: `--source-dir` was not accepted by `tools/qa_rehab_mobile_l1_frontend.py`.
+- Follow-up red test first: the release bundle tool still wrote bundles for frontend sources that failed L1.
+- Focused local-source/preflight/release-bundle/prompt tests: `8 passed`.
+- Full local backend plus QA suite: `89 passed, 1 warning`.
+- Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remains `FAIL`: `8 / 11` failing, including all five exact L1 success screenshots missing.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.
+
 ## Browser Evidence Dimension Gate Follow-Up
 
 2026-07-06 continuation work tightened browser QA evidence so screenshot filenames alone are no longer enough:

@@ -83,7 +83,7 @@ Current result: `NOT READY`.
 | Deployment metadata | PASS | `P1-DEPLOY-META-001`: health exposes build SHA `8e17a51d`, ref `codex/rehab-mobile-backend-qa-20260706`, build time, and `app_env=staging` |
 | Stitch API fixture | PASS | `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` exported from live cloud API with tokens, codes, ids, email, and phone masked; now includes phone verification start/confirm response examples |
 | Stitch repair packet and V4 prompt | PASS | `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json` generated from the live cloud L1 release gate and objective audit; `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` is generated from the packet and is now the primary Stitch handoff |
-| Frontend release packaging | PASS | `tools/prepare_rehab_mobile_frontend_release.py` validates required Stitch output pages, writes a deployable zip, and records manifest deploy/verification commands before cloud copy |
+| Frontend release packaging | PASS | `tools/qa_rehab_mobile_l1_frontend.py --source-dir` preflights Stitch output locally; `tools/prepare_rehab_mobile_frontend_release.py` refuses failing frontend sources, writes a deployable zip, and records manifest deploy/verification commands before cloud copy |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code; `P1-PHONE-RESEND-001` rejects immediate resend with `retry_after` |
 | Phone SMS delivery readiness | WARN | Webhook delivery path is implemented and covered locally; `P1-PHONE-SMS-001` still warns because current staging mode is `debug_sms`, reason `debug_code_enabled` |
@@ -107,20 +107,21 @@ Current result: `NOT READY`.
 
 1. Run the Stitch prompt in `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` with `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`.
 2. Follow the Stitch runbook in `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`.
-3. Package updated frontend web assets with `tools/prepare_rehab_mobile_frontend_release.py` and review the generated manifest.
-4. Deploy the reviewed frontend bundle to `http://106.55.62.122:3001/rehab-arm-mobile/`.
-5. Rebuild or refresh APK if the APK bundles frontend assets.
-6. Configure the real Agent cloud model relay with `tools/configure_rehab_model_relay.py` after a real model endpoint/key is available.
-7. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
-8. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
-9. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
-10. Browser QA at exactly `390 x 844`:
+3. Run `tools/qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile`.
+4. Package updated frontend web assets with `tools/prepare_rehab_mobile_frontend_release.py` and review the generated manifest.
+5. Deploy the reviewed frontend bundle to `http://106.55.62.122:3001/rehab-arm-mobile/`.
+6. Rebuild or refresh APK if the APK bundles frontend assets.
+7. Configure the real Agent cloud model relay with `tools/configure_rehab_model_relay.py` after a real model endpoint/key is available.
+8. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
+9. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
+10. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
+11. Browser QA at exactly `390 x 844`:
    - Home first screen.
    - `问康复师` chat open.
    - Unsafe Agent refusal.
    - Device binding wizard.
    - Profile account/phone/medical empty state.
-11. Update this scorecard after every large task.
+12. Update this scorecard after every large task.
 
 ## Git Discipline
 

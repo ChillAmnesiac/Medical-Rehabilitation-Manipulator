@@ -19,12 +19,50 @@ def _load_module():
 
 
 def _write_frontend(source_dir: Path) -> None:
+    gate_module = _load_frontend_gate_module()
     source_dir.mkdir(parents=True)
-    for page in ("home.html", "profile.html", "device.html", "ai-plan.html"):
-        (source_dir / page).write_text(f"<html><body>{page}</body></html>\n", encoding="utf-8")
-    (source_dir / "mobile-bridge.js").write_text("window.__rehabBridge = true;\n", encoding="utf-8")
+    for page, config in gate_module.PAGE_GATES.items():
+        body = " ".join(config["required_terms"])
+        if page == "ai-plan.html":
+            body += '<button aria-label="闂悍澶嶅笀">闂悍澶嶅笀</button>'
+        (source_dir / page).write_text(
+            f'<html><body>{body}<script src="mobile-bridge.js"></script></body></html>\n',
+            encoding="utf-8",
+        )
+    (source_dir / "mobile-bridge.js").write_text(
+        """
+        localStorage.setItem('access_token', token);
+        fetch('/api/auth/session');
+        fetch('/api/rehab-arm/app/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+        const home = response.data.patient_view.home;
+        const profile = response.data.patient_view.profile;
+        const device = response.data.patient_view.device;
+        const agent = response.data.patient_view.agent;
+        fetch('/api/rehab-arm/app/v1/account/phone-verifications');
+        fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`);
+        if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
+        if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
+        if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
+        fetch('/api/rehab-arm/app/v1/devices/bind');
+        if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
+        fetch('/api/rehab-arm/app/v1/agent/messages');
+        if (error.code === 'UNSAFE_MOTION_REQUEST') showSafeRefusal();
+        renderModelStatus(response.data.model_status);
+        """,
+        encoding="utf-8",
+    )
     (source_dir / "assets").mkdir()
     (source_dir / "assets" / "style.css").write_text("body { color: #111; }\n", encoding="utf-8")
+
+
+def _load_frontend_gate_module():
+    gate_path = Path(__file__).with_name("qa_rehab_mobile_l1_frontend.py")
+    spec = importlib.util.spec_from_file_location("qa_rehab_mobile_l1_frontend", gate_path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    sys.modules[spec.name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def test_build_release_bundle_validates_pages_and_manifest(tmp_path):
@@ -53,6 +91,8 @@ def test_build_release_bundle_validates_pages_and_manifest(tmp_path):
     assert set(manifest["source"]["required_pages"]) == {"home.html", "profile.html", "device.html", "ai-plan.html"}
     assert manifest["artifact"]["file_count"] == 6
     assert manifest["artifact"]["zip_sha256"] == hashlib.sha256(artifact_path.read_bytes()).hexdigest()
+    assert manifest["frontend_l1_preflight"]["overall"] == "PASS"
+    assert manifest["frontend_l1_preflight"]["failed"] == 0
     assert manifest["deploy"]["remote_web_root"].endswith("/rehab-arm-mobile")
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(manifest["verification"]["powershell"])
     assert "scp" in "\n".join(manifest["deploy"]["commands"])
@@ -91,6 +131,27 @@ def test_build_release_bundle_rejects_missing_required_pages(tmp_path):
     assert "profile.html" in message
     assert "device.html" in message
     assert "ai-plan.html" in message
+
+
+def test_build_release_bundle_rejects_frontend_that_fails_l1_preflight(tmp_path):
+    module = _load_module()
+    source_dir = tmp_path / "rehab-arm-mobile"
+    source_dir.mkdir()
+    for page in ("home.html", "profile.html", "device.html", "ai-plan.html"):
+        (source_dir / page).write_text(f"<html><body>{page} M33 setup_required</body></html>", encoding="utf-8")
+
+    try:
+        module.build_release_bundle(
+            source_dir=source_dir,
+            output_dir=tmp_path / "release",
+            generated_at="2026-07-06T14:00:00Z",
+        )
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected failing L1 preflight to raise ValueError")
+
+    assert "frontend L1 local preflight failed" in message
 
 
 def test_cli_writes_release_manifest(tmp_path):

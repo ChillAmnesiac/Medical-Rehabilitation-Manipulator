@@ -631,6 +631,21 @@
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
 
+## 2026-07-06 Frontend Local Preflight Gate
+
+- Added local source support to the frontend L1 gate:
+  - `tools/qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile`
+  - `tools/test_qa_rehab_mobile_l1_frontend_local_source.py`
+- The source-dir mode uses the same page copy and integration-contract checks as the deployed HTTP gate.
+- Updated `tools/prepare_rehab_mobile_frontend_release.py` so a deployable frontend bundle is not written when the local L1 preflight fails.
+- Updated the V4 Stitch prompt and runbook so Codex runs the local gate before cloud copy.
+- Focused local-source/preflight/release-bundle/prompt tests: `8 passed`.
+- Full local backend plus QA suite: `89 passed, 1 warning`.
+- Live L1 release gate remained `FAIL` with API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remained `FAIL` with `8 / 11` failing, including all five exact L1 success screenshots missing.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

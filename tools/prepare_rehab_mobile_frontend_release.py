@@ -12,6 +12,12 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+TOOLS_DIR = Path(__file__).resolve().parent
+if str(TOOLS_DIR) not in sys.path:
+    sys.path.insert(0, str(TOOLS_DIR))
+
+import qa_rehab_mobile_l1_frontend  # noqa: E402
+
 
 DEFAULT_SOURCE_DIR = Path("apps/web/public/rehab-arm-mobile")
 DEFAULT_OUTPUT_DIR = Path("artifacts/rehab-mobile-frontend-release")
@@ -85,10 +91,19 @@ def _verification_commands(api_base: str, web_base: str, apk_url: str) -> list[s
         f"$env:REHAB_QA_API_BASE='{api_base}'",
         f"$env:REHAB_QA_WEB_BASE='{web_base}'",
         f"$env:REHAB_QA_APK_URL='{apk_url}'",
+        ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_release.py",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py",
         f"curl.exe -I -sS {apk_url}",
     ]
+
+
+def run_frontend_l1_preflight(source_dir: Path, timeout: int = 20) -> dict[str, Any]:
+    args = qa_rehab_mobile_l1_frontend.parse_args(
+        ["--source-dir", str(source_dir), "--timeout", str(timeout)]
+    )
+    _, payload = qa_rehab_mobile_l1_frontend.run(args)
+    return payload.get("summary") or {}
 
 
 def build_release_bundle(
@@ -105,6 +120,10 @@ def build_release_bundle(
     source_dir = Path(source_dir)
     output_dir = Path(output_dir)
     _validate_source(source_dir)
+    preflight_summary = run_frontend_l1_preflight(source_dir)
+    if preflight_summary.get("overall") != "PASS":
+        failed = preflight_summary.get("failed")
+        raise ValueError(f"frontend L1 local preflight failed: {failed} failing gates")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     zip_path = output_dir / "rehab-mobile-frontend-release.zip"
@@ -129,6 +148,7 @@ def build_release_bundle(
             "missing_required_pages": [],
             "required_page_artifacts": required_pages,
         },
+        "frontend_l1_preflight": preflight_summary,
         "artifact": {
             "zip_path": str(zip_path),
             "zip_sha256": _sha256(zip_path),

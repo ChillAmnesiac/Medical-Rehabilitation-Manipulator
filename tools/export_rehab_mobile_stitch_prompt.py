@@ -100,8 +100,9 @@ def _post_stitch_bundle_section(packet: dict[str, Any]) -> list[str]:
     source_arg = source_dir.rstrip("/")
     return [
         "## After Stitch Hands Back Frontend Files",
-        "Codex will package the generated frontend assets before cloud deployment:",
+        "Codex will run the local frontend L1 preflight and package the generated assets before cloud deployment:",
         "```powershell",
+        f".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_frontend.py --source-dir {source_arg}",
         (
             ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
             f"{tool} --source-dir {source_arg} --output-dir artifacts/rehab-mobile-frontend-release"

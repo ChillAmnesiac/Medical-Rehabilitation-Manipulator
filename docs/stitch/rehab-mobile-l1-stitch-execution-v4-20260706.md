@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-06T13:35:01Z
+Generated: 2026-07-06T13:45:35Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -125,8 +125,9 @@ After Stitch deploys the frontend, Codex must capture these exact final screensh
 - profile_phone_medical: l1-profile-phone-medical-390.png at 390x844 showing cloud account, verified phone, safe medical empty state
 
 ## After Stitch Hands Back Frontend Files
-Codex will package the generated frontend assets before cloud deployment:
+Codex will run the local frontend L1 preflight and package the generated assets before cloud deployment:
 ```powershell
+.\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools/prepare_rehab_mobile_frontend_release.py --source-dir apps/web/public/rehab-arm-mobile --output-dir artifacts/rehab-mobile-frontend-release
 ```
 

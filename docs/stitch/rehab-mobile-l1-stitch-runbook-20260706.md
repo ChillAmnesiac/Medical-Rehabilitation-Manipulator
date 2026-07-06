@@ -154,10 +154,11 @@ The next frontend build is not accepted until all checks pass:
 After Stitch changes are available and deployed, Codex must run:
 
 ```powershell
+cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile
 cloud\rehab-platform\.venv\Scripts\python.exe tools\prepare_rehab_mobile_frontend_release.py --source-dir apps/web/public/rehab-arm-mobile --output-dir artifacts/rehab-mobile-frontend-release
 ```
 
-This writes a zip bundle plus `artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json`. Review the manifest before copying assets to the cloud server.
+The release bundle tool repeats the local frontend L1 preflight and refuses to write a deployable bundle if the source files still fail. A successful run writes a zip bundle plus `artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json`. Review the manifest before copying assets to the cloud server.
 
 Then run:
 

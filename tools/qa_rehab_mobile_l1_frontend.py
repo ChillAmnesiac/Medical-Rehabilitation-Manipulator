@@ -18,6 +18,7 @@ import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from html import unescape
+from pathlib import Path
 from typing import Any
 
 
@@ -196,14 +197,90 @@ def fetch_source_bundle(page_url: str, timeout: int) -> str:
     return "\n".join(parts)
 
 
+def local_script_paths(html: str, page_path: Path) -> list[Path]:
+    paths: list[Path] = []
+    for src in SCRIPT_SRC_RE.findall(html):
+        resolved = urllib.parse.urlparse(src)
+        if resolved.scheme or resolved.netloc or src.startswith("/"):
+            continue
+        paths.append((page_path.parent / src).resolve())
+    return paths
+
+
+def load_local_source_bundle(source_dir: Path, page: str) -> tuple[bool, str, dict[str, Any]]:
+    page_path = source_dir / page
+    if not page_path.is_file():
+        return False, "", {"reason": "local_file_missing", "path": str(page_path)}
+    html = page_path.read_text(encoding="utf-8", errors="replace")
+    parts = [html]
+    for script_path in local_script_paths(html, page_path):
+        try:
+            script_path.relative_to(source_dir.resolve())
+        except ValueError:
+            continue
+        if script_path.is_file():
+            parts.append(script_path.read_text(encoding="utf-8", errors="replace"))
+    return True, "\n".join(parts), {"path": str(page_path)}
+
+
+def _append_page_result(
+    results: list[Result],
+    *,
+    path: str,
+    config: dict[str, Any],
+    text: str,
+    detail: dict[str, Any],
+) -> None:
+    result = check_page(
+        path.removesuffix(".html"),
+        text,
+        required_terms=config["required_terms"],
+        forbidden_terms=L1_FORBIDDEN_TERMS,
+    )
+    result.gate = str(config["gate"])
+    result.summary = str(config["summary"])
+    result.detail = {
+        **(result.detail or {}),
+        **detail,
+        "length": len(text),
+        "text_prefix": text[:500],
+    }
+    results.append(result)
+
+
 def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     results: list[Result] = []
-    base = args.web_base.rstrip("/")
+    base = args.web_base.rstrip("/") if not args.source_dir else None
     sources: dict[str, str] = {}
 
     for path, config in PAGE_GATES.items():
+        if args.source_dir:
+            source_dir = Path(args.source_dir)
+            exists, source, detail = load_local_source_bundle(source_dir, path)
+            sources[path] = source
+            if not exists:
+                results.append(
+                    Result(
+                        gate=config["gate"],
+                        level="L1",
+                        status="FAIL",
+                        summary=f"{path} exists in local frontend source.",
+                        detail=detail,
+                    )
+                )
+                continue
+            _append_page_result(
+                results,
+                path=path,
+                config=config,
+                text=visible_text(source),
+                detail={"source": "local", **detail},
+            )
+            continue
+
         url = f"{base}/{path}"
-        sources[path] = fetch_source_bundle(url, args.timeout)
+        source = fetch_source_bundle(url, args.timeout)
+        sources[path] = source
         status, text, headers = fetch_text(url, args.timeout)
         if status != 200:
             results.append(
@@ -216,22 +293,13 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
                 )
             )
             continue
-        result = check_page(
-            path.removesuffix(".html"),
-            text,
-            required_terms=config["required_terms"],
-            forbidden_terms=L1_FORBIDDEN_TERMS,
+        _append_page_result(
+            results,
+            path=path,
+            config=config,
+            text=text,
+            detail={"status_code": status, "url": url},
         )
-        result.gate = str(config["gate"])
-        result.summary = str(config["summary"])
-        result.detail = {
-            **(result.detail or {}),
-            "status_code": status,
-            "url": url,
-            "length": len(text),
-            "text_prefix": text[:500],
-        }
-        results.append(result)
 
     results.append(check_frontend_integration_contract(sources))
 
@@ -242,6 +310,7 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             "failed": len(failed),
             "total": len(results),
             "web_base": base,
+            "source_dir": str(args.source_dir) if args.source_dir else None,
         },
         "results": [result.__dict__ for result in results],
     }
@@ -251,6 +320,7 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--web-base", default=os.getenv("REHAB_QA_WEB_BASE", "http://106.55.62.122:3001/rehab-arm-mobile"))
+    parser.add_argument("--source-dir", type=Path)
     parser.add_argument("--timeout", type=int, default=int(os.getenv("REHAB_QA_TIMEOUT", "20")))
     return parser.parse_args(argv)
 
