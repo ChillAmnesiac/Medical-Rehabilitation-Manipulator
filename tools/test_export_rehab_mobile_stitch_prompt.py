@@ -23,7 +23,12 @@ def _packet():
         "target": {
             "api_base": "http://106.55.62.122:8011",
             "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
+            "frontend_branch": "app/rehab-arm-mobile-stitch",
+            "frontend_source_commit": "eaa08a40cdd3e1e62827809111f2323e7f92556f",
             "frontend_edit_scope": "apps/web/public/rehab-arm-mobile/",
+            "android_webview_mirror_scope": "apps/mobile/rehab-arm-android/www/",
+            "apk_webview_mirror_required": True,
+            "required_frontend_pages": ["home.html", "profile.html", "device.html", "ai-plan.html"],
         },
         "summary": {
             "stitch_blockers": ["home_next_step", "phone_binding"],
@@ -100,7 +105,12 @@ def test_render_prompt_includes_repair_packet_evidence_and_acceptance_commands()
     prompt = module.render_prompt(_packet(), generated_at="2026-07-06T13:30:00Z")
 
     assert "Stitch Execution Prompt V4" in prompt
+    assert "app/rehab-arm-mobile-stitch" in prompt
+    assert "eaa08a40cdd3e1e62827809111f2323e7f92556f" in prompt
     assert "apps/web/public/rehab-arm-mobile/" in prompt
+    assert "apps/mobile/rehab-arm-android/www/" in prompt
+    assert "home.html, profile.html, device.html, ai-plan.html" in prompt
+    assert "APK WebView mirror" in prompt
     assert "Do not change backend code" in prompt
     assert "docs/stitch/rehab-mobile-l1-api-fixture-20260706.json" in prompt
     assert "Do not hard-code fixture values" in prompt

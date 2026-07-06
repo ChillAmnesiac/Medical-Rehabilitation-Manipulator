@@ -1312,3 +1312,69 @@ Fresh verification:
   `问康复师` and still exposes `setup_required`/`M33` copy.
 - APK HEAD remained `200`, size `4198462`, content type
   `application/vnd.android.package-archive`.
+
+## Stitch Source Scope And APK Mirror Follow-Up
+
+2026-07-06 continuation work verified the real APP frontend branch and tightened
+the Stitch handoff around APK parity.
+
+Source evidence:
+
+- Remote branch: `app/rehab-arm-mobile-stitch`.
+- Remote commit verified by Codex:
+  `eaa08a40cdd3e1e62827809111f2323e7f92556f`.
+- Real web frontend path:
+  `apps/web/public/rehab-arm-mobile/`.
+- Real Android WebView asset path:
+  `apps/mobile/rehab-arm-android/www/`.
+
+Handoff updates:
+
+- `tools/export_rehab_mobile_stitch_repair_packet.py` now records the source
+  branch, source commit, web edit scope, required L1 pages, and Android WebView
+  mirror path.
+- `tools/export_rehab_mobile_stitch_prompt.py` now renders a `Source Scope`
+  section so Stitch sees the branch, source commit, web edit path, and APK
+  mirror requirement before changing frontend files.
+- Refreshed `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json` and
+  `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` now show
+  `non_stitch_blockers = []`, `ops_warnings = phone_sms_delivery`, and the
+  APK WebView mirror path.
+- Updated `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md` so it no
+  longer lists `agent_cloud_model` as a current backend blocker.
+- Added `docs/superpowers/plans/2026-07-06-rehab-mobile-stitch-l1-closure.md`
+  as the step-by-step closure plan from Stitch input through web deploy, APK
+  mirror, browser QA, evidence export, and git commit.
+
+Fresh verification:
+
+- Focused repair-packet/prompt tests: `6 passed`.
+- Full related backend/QA suite:
+  `121 passed, 1 warning`.
+- Live cloud API/APK acceptance:
+  `overall = PASS`, `p0_failed = 0`, `total = 22`.
+- Live cloud health during this verification reported build
+  `rehab-vla-fast-async-20260706`, ref `ai/game-loop-core`, build time
+  `2026-07-06T15:56:40Z`, and pid `2146425`.
+- Live L1 release remains `FAIL`: API `PASS`, frontend `FAIL`, blocking gate
+  `frontend_l1_gate` only.
+- Live objective audit remains `FAIL`: `7 / 11` failing, with blockers
+  `home_next_step`, `phone_binding`, `device_binding`,
+  `ask_therapist_safety`, `profile_no_fake_debug`, `browser_qa_evidence`, and
+  `combined_l1_release`.
+- L1 evidence bundle exported to
+  `artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence-20260706-stitch-source-scope.json`;
+  summary remains `overall = FAIL`, `health_ok = true`, `apk_ok = true`,
+  release blocker `frontend_l1_gate`.
+- APK HEAD remained `200`, size `4198462`, content type
+  `application/vnd.android.package-archive`.
+- In-app browser QA captured two current-fail mobile screenshots at
+  `390 x 844`:
+  `docs/qa/rehab-mobile-20260706/screenshots/stitch-source-scope-current-ai-plan-20260706-390x844.jpg`
+  and
+  `docs/qa/rehab-mobile-20260706/screenshots/stitch-source-scope-current-device-20260706-390x844.jpg`.
+  The Agent page still lacks `问康复师` and still shows `setup_required`/`M33`;
+  the device page still shows `M33`, `M55`, and `Gatekeeper`, and still lacks
+  `打开康复设备电源`.
+- No cloud runtime or frontend deployment was made for this documentation and
+  handoff-tooling change.

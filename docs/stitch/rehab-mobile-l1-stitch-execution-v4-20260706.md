@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-06T15:49:12Z
+Generated: 2026-07-06T16:04:46Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -21,6 +21,16 @@ Do not hard-code fixture values. Use the fixture only to understand response sha
 - Ops warnings: phone_sms_delivery
 
 Important: Stitch cannot clear provider-readiness warnings by UI work alone. The frontend must render those states honestly.
+
+## Source Scope
+- Source branch: app/rehab-arm-mobile-stitch
+- Source commit verified by Codex: eaa08a40cdd3e1e62827809111f2323e7f92556f
+- Web frontend edit path: apps/web/public/rehab-arm-mobile/
+- APK WebView mirror path: apps/mobile/rehab-arm-android/www/
+- APK WebView mirror required: true
+- Required mobile pages: home.html, profile.html, device.html, ai-plan.html
+
+Stitch must make the web pages pass first. Before APK packaging, the accepted web assets must be mirrored into the APK WebView path so installed APK behavior matches the deployed web app.
 
 ## Current In-App Browser Failure Evidence
 Use these screenshots as visual references for what must change. They are not L1 success evidence.

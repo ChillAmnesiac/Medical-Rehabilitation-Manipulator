@@ -11,6 +11,8 @@ Codex owns backend, QA, deployment verification, APK verification, and git commi
 - Backend/API: `PASS`
 - APK delivery: `PASS`
 - Frontend L1: `FAIL`
+- Frontend source branch: `app/rehab-arm-mobile-stitch`
+- Frontend source commit verified by Codex: `eaa08a40cdd3e1e62827809111f2323e7f92556f`
 - Sanitized live API fixture: `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json`
 - Live Stitch repair packet: `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
 - Primary Stitch prompt: `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`
@@ -24,6 +26,7 @@ Codex owns backend, QA, deployment verification, APK verification, and git commi
   - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png`
   - `docs/qa/rehab-mobile-20260706/screenshots/continuation-device-qa-20260706-390.png`
   - `docs/qa/rehab-mobile-20260706/screenshots/model-relay-ops-device-390.png`
+  - `docs/qa/rehab-mobile-20260706/screenshots/agent-cloud-ai-plan-20260706-390.jpg`
 - Current-fail browser evidence for Stitch visual repair reference:
   - `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-home-clip-390x844.png`
   - `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-ai-plan-clip-390x844.png`
@@ -54,7 +57,7 @@ Use this machine-readable repair packet to keep the Stitch pass tied to the live
 The packet is generated from the current cloud L1 release gate and objective audit. It separates:
 
 - `summary.stitch_blockers`: frontend work Stitch can fix.
-- `summary.non_stitch_blockers`: backend/ops work, currently `agent_cloud_model`.
+- `summary.non_stitch_blockers`: backend/ops blockers. Current packet value is `[]`; Agent cloud model is already live.
 - `summary.meta_blockers`: release-level proof that should turn green only after all underlying blockers are fixed.
 - `frontend_failures`: failed page gates, required additions, required removals, and visible text samples.
 - `integration_gaps`: required API wiring states that source/static checks still cannot find.
@@ -97,9 +100,15 @@ Use these screenshots as current failure evidence:
 
 ## Required Frontend Output
 
-Stitch must edit only:
+Stitch must edit the web frontend first:
 
 - `apps/web/public/rehab-arm-mobile/`
+
+After the web frontend passes local L1 preflight, the accepted assets must be mirrored before APK packaging:
+
+- `apps/mobile/rehab-arm-android/www/`
+
+The WebView mirror matters because the installed APK must show the same patient-ready experience as the deployed web app. Do not let the web build pass while the APK keeps stale debug pages.
 
 Stitch must not change backend endpoints.
 

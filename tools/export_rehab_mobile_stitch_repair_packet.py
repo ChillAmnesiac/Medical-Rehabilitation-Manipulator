@@ -36,6 +36,11 @@ DEFAULT_REQUIRED_ARTIFACTS = {
     "l1_evidence_exporter": "tools/export_rehab_mobile_l1_evidence.py",
 }
 
+DEFAULT_FRONTEND_BRANCH = "app/rehab-arm-mobile-stitch"
+DEFAULT_WEB_FRONTEND_SCOPE = "apps/web/public/rehab-arm-mobile/"
+DEFAULT_ANDROID_WEBVIEW_MIRROR_SCOPE = "apps/mobile/rehab-arm-android/www/"
+REQUIRED_FRONTEND_PAGES = ["home.html", "profile.html", "device.html", "ai-plan.html"]
+
 NON_STITCH_REQUIREMENTS = {"agent_cloud_model"}
 META_REQUIREMENTS = {"combined_l1_release"}
 
@@ -263,6 +268,8 @@ def build_repair_packet(
     api_base: str = "http://106.55.62.122:8011",
     web_base: str = "http://106.55.62.122:3001/rehab-arm-mobile",
     apk_url: str = "http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk",
+    frontend_branch: str = DEFAULT_FRONTEND_BRANCH,
+    frontend_source_commit: str | None = None,
     required_artifacts: dict[str, str] | None = None,
     current_fail_dir: Path | None = None,
 ) -> dict[str, Any]:
@@ -279,7 +286,12 @@ def build_repair_packet(
             "api_base": api_base,
             "web_base": web_base,
             "apk_url": apk_url,
-            "frontend_edit_scope": "apps/web/public/rehab-arm-mobile/",
+            "frontend_branch": frontend_branch,
+            "frontend_source_commit": frontend_source_commit,
+            "frontend_edit_scope": DEFAULT_WEB_FRONTEND_SCOPE,
+            "android_webview_mirror_scope": DEFAULT_ANDROID_WEBVIEW_MIRROR_SCOPE,
+            "apk_webview_mirror_required": True,
+            "required_frontend_pages": REQUIRED_FRONTEND_PAGES,
         },
         "summary": {
             "overall": (objective_payload.get("summary") or {}).get("overall")
@@ -297,6 +309,7 @@ def build_repair_packet(
             "Only change frontend assets under apps/web/public/rehab-arm-mobile/.",
             "Normal patient screens must not expose raw engineering terms such as M33, M55, UUID, Gatekeeper, setup_required, or direct motor control copy.",
             "Ask Therapist must call /api/rehab-arm/app/v1/agent/messages with the bearer token and must render unsafe refusals.",
+            "Mirror the accepted web frontend files into apps/mobile/rehab-arm-android/www/ before APK packaging so installed APK behavior matches deployed web behavior.",
         ],
         "frontend_failures": frontend_failures,
         "integration_gaps": _integration_gaps(frontend_failures),
@@ -366,6 +379,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--api-base", default=os.getenv("REHAB_QA_API_BASE", "http://106.55.62.122:8011"))
     parser.add_argument("--web-base", default=os.getenv("REHAB_QA_WEB_BASE", "http://106.55.62.122:3001/rehab-arm-mobile"))
     parser.add_argument("--web-origin", default=os.getenv("REHAB_QA_WEB_ORIGIN", "http://106.55.62.122:3001"))
+    parser.add_argument("--frontend-branch", default=os.getenv("REHAB_STITCH_FRONTEND_BRANCH", DEFAULT_FRONTEND_BRANCH))
+    parser.add_argument("--frontend-source-commit", default=os.getenv("REHAB_STITCH_FRONTEND_SOURCE_COMMIT"))
     parser.add_argument(
         "--apk-url",
         default=os.getenv(
@@ -394,6 +409,8 @@ def main(argv: list[str]) -> int:
         api_base=args.api_base,
         web_base=args.web_base,
         apk_url=args.apk_url,
+        frontend_branch=args.frontend_branch,
+        frontend_source_commit=args.frontend_source_commit,
         current_fail_dir=args.current_fail_dir,
     )
     rendered = json.dumps(packet, ensure_ascii=False, indent=2)

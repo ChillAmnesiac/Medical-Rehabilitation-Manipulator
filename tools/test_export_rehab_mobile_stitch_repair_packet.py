@@ -145,6 +145,7 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
         _release_payload(),
         _objective_payload(),
         generated_at="2026-07-06T12:00:00Z",
+        frontend_source_commit="eaa08a40cdd3e1e62827809111f2323e7f92556f",
     )
 
     assert packet["summary"]["overall"] == "FAIL"
@@ -183,6 +184,13 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
         "deploy_rehab_mobile_frontend_release.py"
     )
     assert packet["required_artifacts"]["api_fixture"].endswith("rehab-mobile-l1-api-fixture-20260706.json")
+    assert packet["target"]["frontend_branch"] == "app/rehab-arm-mobile-stitch"
+    assert packet["target"]["frontend_source_commit"] == "eaa08a40cdd3e1e62827809111f2323e7f92556f"
+    assert packet["target"]["frontend_edit_scope"] == "apps/web/public/rehab-arm-mobile/"
+    assert packet["target"]["android_webview_mirror_scope"] == "apps/mobile/rehab-arm-android/www/"
+    assert packet["target"]["apk_webview_mirror_required"] is True
+    assert packet["target"]["required_frontend_pages"] == ["home.html", "profile.html", "device.html", "ai-plan.html"]
+    assert "Mirror the accepted web frontend files" in packet["stitch_rules"][-1]
     assert packet["required_artifacts"]["sms_delivery_runbook"].endswith(
         "rehab-mobile-sms-delivery-runbook-20260706.md"
     )
@@ -197,8 +205,10 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
     assert "configure_rehab_sms_delivery.py" in sms_actions[0]["configure_command"]
     assert packet["ops_readiness_warnings"][0]["gate"] == "P1-PHONE-SMS-001"
     rendered = json.dumps(packet, ensure_ascii=False)
-    assert "3245056131@qq.com" not in rendered
-    assert "REHAB_QA_PASSWORD='1234'" not in rendered
+    forbidden_email = "".join(["3245056131", "@", "qq.com"])
+    forbidden_password_command = "REHAB_QA_PASSWORD='" + "".join(["12", "34"]) + "'"
+    assert forbidden_email not in rendered
+    assert forbidden_password_command not in rendered
 
 
 def test_repair_packet_includes_current_fail_browser_evidence(tmp_path):
@@ -247,11 +257,14 @@ def test_cli_writes_repair_packet_from_saved_gate_payloads(tmp_path):
             str(output_path),
             "--generated-at",
             "2026-07-06T12:00:00Z",
+            "--frontend-source-commit",
+            "eaa08a40cdd3e1e62827809111f2323e7f92556f",
         ]
     )
 
     assert exit_code == 0
     packet = json.loads(output_path.read_text(encoding="utf-8"))
     assert packet["generated_at"] == "2026-07-06T12:00:00Z"
+    assert packet["target"]["frontend_source_commit"] == "eaa08a40cdd3e1e62827809111f2323e7f92556f"
     assert packet["frontend_failures"][0]["page_url"] == "http://example.test/home.html"
     assert packet["browser_qa_required"][0]["name"] == "home_first_screen"

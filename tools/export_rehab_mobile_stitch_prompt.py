@@ -55,6 +55,32 @@ def _front_failures_section(packet: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _source_scope_section(packet: dict[str, Any]) -> list[str]:
+    target = packet.get("target") or {}
+    required_pages = target.get("required_frontend_pages") or []
+    lines = [
+        "## Source Scope",
+        f"- Source branch: {target.get('frontend_branch') or 'app/rehab-arm-mobile-stitch'}",
+    ]
+    source_commit = target.get("frontend_source_commit")
+    if source_commit:
+        lines.append(f"- Source commit verified by Codex: {source_commit}")
+    lines.extend(
+        [
+            f"- Web frontend edit path: {target.get('frontend_edit_scope') or 'apps/web/public/rehab-arm-mobile/'}",
+            f"- APK WebView mirror path: {target.get('android_webview_mirror_scope') or 'apps/mobile/rehab-arm-android/www/'}",
+            f"- APK WebView mirror required: {str(bool(target.get('apk_webview_mirror_required'))).lower()}",
+        ]
+    )
+    if required_pages:
+        lines.append(f"- Required mobile pages: {', '.join(str(page) for page in required_pages)}")
+    lines.append("")
+    lines.append(
+        "Stitch must make the web pages pass first. Before APK packaging, the accepted web assets must be mirrored into the APK WebView path so installed APK behavior matches the deployed web app."
+    )
+    return lines
+
+
 def _current_fail_section(packet: dict[str, Any]) -> list[str]:
     evidence = packet.get("current_fail_evidence") or []
     lines = ["## Current In-App Browser Failure Evidence"]
@@ -203,6 +229,8 @@ def render_prompt(packet: dict[str, Any], *, generated_at: str | None = None) ->
         _stitch_boundary_note(summary),
         "",
     ]
+    lines.extend(_source_scope_section(packet))
+    lines.append("")
     lines.extend(_current_fail_section(packet))
     lines.append("")
     lines.extend(_front_failures_section(packet))
