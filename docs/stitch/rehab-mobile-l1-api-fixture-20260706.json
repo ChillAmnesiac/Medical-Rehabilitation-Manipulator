@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generated_at": "2026-07-06T12:24:24Z",
+    "generated_at": "2026-07-06T21:10:05Z",
     "api_base": "http://106.55.62.122:8011",
     "purpose": "Sanitized live API fixture for the Stitch L1 frontend implementation.",
     "contains_access_token": false,
@@ -40,12 +40,12 @@
       "status": "ok",
       "version": "0.1.0",
       "deployment": {
-        "build_sha": "8e17a51d",
-        "build_ref": "codex/rehab-mobile-backend-qa-20260706",
-        "build_time": "2026-07-06T11:59:30Z",
+        "build_sha": "a4d1c1565de3",
+        "build_ref": "ai/game-loop-core",
+        "build_time": "2026-07-06T20:59:56Z",
         "app_env": "staging"
       },
-      "pid": 1916595,
+      "pid": 2367340,
       "host": "106.55.62.122",
       "port": 8011,
       "base_url": "http://106.55.62.122:8011",
@@ -125,11 +125,11 @@
       "agent": {
         "message_endpoint": "/api/rehab-arm/app/v1/agent/messages",
         "model_readiness": {
-          "mode": "fallback_rule_based",
-          "configured": false,
-          "provider": "server_model_relay",
-          "model": null,
-          "reason": "external_model_not_configured"
+          "mode": "cloud_model_configured",
+          "configured": true,
+          "provider": "qwen",
+          "model": "qwen-plus",
+          "reason": null
         }
       },
       "phone_verification": {
@@ -330,13 +330,13 @@
         "role": "patient",
         "phone": "+155****0000",
         "phone_verified": true,
-        "phone_verified_at": "2026-07-06T12:21:45.762759",
+        "phone_verified_at": "2026-07-06T21:08:57.538199",
         "affected_side": "left",
         "rehab_stage": "early_active",
         "medical_constraints": [],
         "pain_baseline": 2.0,
         "created_at": "2026-07-03T13:41:38",
-        "updated_at": "2026-07-06T12:21:45",
+        "updated_at": "2026-07-06T21:08:57",
         "control_boundary": "profile_data_only_not_medical_diagnosis"
       },
       "patient_view": {
@@ -2971,16 +2971,15 @@
     "safe_response": {
       "data": {
         "role": "rehab_therapist_agent",
-        "answer": "我还没有读到最近一次疼痛评分。建议下一次训练先保持低强度热身，动作质量稳定再逐步增加；如果疼痛升高、麻木或疲劳异常，请暂停并联系康复师。这个建议基于你的 主动训练早期 档案和云端训练记录。",
+        "answer": "手臂轻微酸胀（评分≤3/10）在早期主动阶段常见，可继续训练，但建议：  \n✅ 降低单次训练强度（如减少重复次数或阻力）  \n✅ 增加热身与放松时间（各5分钟）  \n✅ 训练后轻柔拉伸左臂肌肉，配合温敷  \n⚠️ 若酸胀加重、出现刺痛或影响睡眠，请暂停并记录症状，我们及时调整方案。",
         "safety_scope": "康复教育与训练建议",
         "boundary": "我可以解释训练和报告，但不能直接控制设备；开始训练前仍需要设备安全系统确认。",
         "input_echo": "今天手臂有点酸，还能训练吗？",
         "model_status": {
-          "mode": "fallback_rule_based",
-          "configured": false,
-          "provider": "openai_compatible",
-          "model": null,
-          "fallback_reason": "external_model_not_configured"
+          "mode": "cloud_model",
+          "configured": true,
+          "provider": "qwen",
+          "model": "qwen-plus"
         },
         "control_boundary": "康复师助手不能直接授权设备运动"
       },
@@ -3034,13 +3033,13 @@
           "role": "patient",
           "phone": "+155****0000",
           "phone_verified": true,
-          "phone_verified_at": "2026-07-06T12:24:24.259214",
+          "phone_verified_at": "2026-07-06T21:10:06.151310",
           "affected_side": "left",
           "rehab_stage": "early_active",
           "medical_constraints": [],
           "pain_baseline": 2.0,
           "created_at": "2026-07-03T13:41:38",
-          "updated_at": "2026-07-06T12:24:24",
+          "updated_at": "2026-07-06T21:10:06",
           "control_boundary": "profile_data_only_not_medical_diagnosis"
         },
         "verification": {

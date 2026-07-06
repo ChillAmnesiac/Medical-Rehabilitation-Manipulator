@@ -2048,3 +2048,43 @@ Stitch status:
   `list_screens`, so Codex could not request a new production API-integrated
   frontend candidate in this pass.
 - The real App branch `app/rehab-arm-mobile-stitch` remains clean and unchanged.
+
+## 2026-07-07 Live API Fixture Refresh And Stitch Auth Resmoke
+
+Codex refreshed the Stitch API fixture from the live cloud staging API after the
+POST-action gate hardening, without touching frontend source.
+
+Fresh live evidence:
+
+- `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` regenerated at
+  `2026-07-06T21:10:05Z`.
+- Fixture privacy check passed: no raw staging email, password, access token
+  value, or numeric `debug_code` value.
+- Fixture still contains the exact user-facing `patient_view` core copy:
+  `问康复师`, `查看康复师建议`, `打开康复设备电源`, and `手机号`.
+- Agent safe response now reports `model_status.mode = cloud_model`, provider
+  `qwen`, model `qwen-plus`.
+- Unsafe Agent request still returns `UNSAFE_MOTION_REQUEST`.
+- Phone verification start/confirm remains runnable in staging and the confirm
+  response reports `phone_verified = true`.
+
+Fresh gates:
+
+- `tools/qa_rehab_mobile_l1_release.py --timeout 30`: `overall = FAIL`,
+  API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate` only.
+- `tools/qa_rehab_mobile_l1_objective_audit.py --timeout 30
+  --browser-metrics-json docs/qa/rehab-mobile-20260706/browser-metrics-stitch-full-candidate-v3-20260707.json`:
+  `overall = FAIL`, `7 / 11` requirements failing. `agent_cloud_model`,
+  `cloud_deployment`, `login`, and `apk_delivery` pass.
+- `/health` reports deployment metadata build SHA `a4d1c1565de3`, ref
+  `ai/game-loop-core`, build time `2026-07-06T20:59:56Z`, `app_env=staging`.
+- `/api/rehab-arm/app/v1/public-config` reports Agent model readiness
+  `cloud_model_configured`, provider `qwen`, model `qwen-plus`; phone delivery
+  remains `debug_sms`, reason `debug_code_enabled`.
+
+Stitch status:
+
+- `list_screens` on project `323711356322969905` still returns
+  `401 invalid authentication credentials`.
+- Because no accepted Stitch output exists, Codex did not deploy frontend
+  assets or rebuild the APK in this pass.
