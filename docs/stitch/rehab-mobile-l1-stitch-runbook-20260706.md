@@ -62,6 +62,7 @@ The packet is generated from the current cloud L1 release gate and objective aud
 - `current_fail_evidence`: current in-app browser screenshots that show what is broken today; these guide Stitch fixes but never count as L1 success evidence.
 - `required_artifacts.frontend_release_tool`: Codex's local packaging step after Stitch returns frontend files.
 - `required_artifacts.frontend_release_verifier`: Codex's pre-deploy manifest/zip/preflight integrity check after packaging.
+- `required_artifacts.frontend_release_deployer`: Codex's guarded dry-run/execute deployment step after the manifest passes.
 
 Historical prompt kept for reference:
 
@@ -158,9 +159,18 @@ After Stitch changes are available and deployed, Codex must run:
 cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile --output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json
 cloud\rehab-platform\.venv\Scripts\python.exe tools\prepare_rehab_mobile_frontend_release.py --source-dir apps/web/public/rehab-arm-mobile --output-dir artifacts/rehab-mobile-frontend-release
 cloud\rehab-platform\.venv\Scripts\python.exe tools\verify_rehab_mobile_frontend_release.py --manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json --output artifacts/rehab-mobile-frontend-release/frontend-release-verification.json
+cloud\rehab-platform\.venv\Scripts\python.exe tools\deploy_rehab_mobile_frontend_release.py --manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json
 ```
 
 The first command writes the full local frontend preflight evidence to `artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json`. The release bundle tool repeats the local frontend L1 preflight and refuses to write a deployable bundle if the source files still fail. A successful run writes a zip bundle plus `artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json`. The release verifier then checks the manifest schema, zip sha256, preflight report, required pages, deploy commands, and final browser screenshot requirements before anything is copied to the cloud server.
+
+The deployer command above is a dry-run by default. It verifies the manifest again and prints the exact `scp`, `ssh`, and post-deploy verification plan. Only after reviewing that plan should Codex run:
+
+```powershell
+cloud\rehab-platform\.venv\Scripts\python.exe tools\deploy_rehab_mobile_frontend_release.py --manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json --execute --run-post-verify
+```
+
+The deployer refuses unsafe remote roots and bundles post-deploy verification commands into a single PowerShell process so the QA environment variables are preserved.
 
 Then run:
 
@@ -211,4 +221,4 @@ Then Codex must:
 
 ## Current Next Action
 
-Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` and `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`, package the generated frontend assets with `tools/prepare_rehab_mobile_frontend_release.py`, verify the generated manifest with `tools/verify_rehab_mobile_frontend_release.py`, deploy the reviewed bundle, then hand control back to Codex for browser QA and git-managed closeout.
+Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` and `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`, package the generated frontend assets with `tools/prepare_rehab_mobile_frontend_release.py`, verify the generated manifest with `tools/verify_rehab_mobile_frontend_release.py`, dry-run and then execute `tools/deploy_rehab_mobile_frontend_release.py`, then hand control back to Codex for browser QA and git-managed closeout.

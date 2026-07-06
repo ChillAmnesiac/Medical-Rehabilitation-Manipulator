@@ -84,7 +84,8 @@ Current result: `NOT READY`.
 | Stitch API fixture | PASS | `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` exported from live cloud API with tokens, codes, ids, email, and phone masked; now includes phone verification start/confirm response examples |
 | Stitch repair packet and V4 prompt | PASS | `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json` generated from the live cloud L1 release gate and objective audit; `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` is generated from the packet and is now the primary Stitch handoff |
 | Frontend release packaging | PASS | `tools/qa_rehab_mobile_l1_frontend.py --source-dir --output` preflights Stitch output locally and preserves JSON evidence; `tools/prepare_rehab_mobile_frontend_release.py` refuses failing frontend sources, writes a deployable zip, and records manifest deploy/verification commands before cloud copy |
-| Frontend release package verification | PASS | `tools/verify_rehab_mobile_frontend_release.py` validates the generated manifest schema, zip sha256, preflight report, required page artifacts, deploy commands, and exact browser QA screenshot checklist before cloud deployment |
+| Frontend release package verification | PASS | `tools/verify_rehab_mobile_frontend_release.py` validates the generated manifest schema, zip sha256, preflight report, required page artifacts, guarded deploy executor command, and exact browser QA screenshot checklist before cloud deployment |
+| Frontend release deployment guard | PASS | `tools/deploy_rehab_mobile_frontend_release.py` verifies the manifest again, defaults to dry-run, refuses unsafe remote roots, and requires `--execute --run-post-verify` before cloud copy plus post-deploy checks |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code; `P1-PHONE-RESEND-001` rejects immediate resend with `retry_after` |
 | Phone SMS delivery readiness | WARN | Webhook delivery path is implemented and covered locally; `P1-PHONE-SMS-001` still warns because current staging mode is `debug_sms`, reason `debug_code_enabled` |
@@ -111,19 +112,20 @@ Current result: `NOT READY`.
 3. Run `tools/qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile --output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json`.
 4. Package updated frontend web assets with `tools/prepare_rehab_mobile_frontend_release.py`.
 5. Verify the generated release manifest with `tools/verify_rehab_mobile_frontend_release.py` before any cloud copy.
-6. Deploy the reviewed frontend bundle to `http://106.55.62.122:3001/rehab-arm-mobile/`.
-7. Rebuild or refresh APK if the APK bundles frontend assets.
-8. Preflight the real Agent model key with `tools/smoke_rehab_model_provider.py`; only configure staging with `tools/configure_rehab_model_relay.py` when the preflight returns `status = ok` and `answer_present = true`.
-9. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
-10. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
-11. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
-12. Browser QA at exactly `390 x 844`:
+6. Dry-run `tools/deploy_rehab_mobile_frontend_release.py` and review the planned `scp`, `ssh`, and post-deploy verification commands.
+7. Deploy the reviewed frontend bundle with `tools/deploy_rehab_mobile_frontend_release.py --execute --run-post-verify`.
+8. Rebuild or refresh APK if the APK bundles frontend assets.
+9. Preflight the real Agent model key with `tools/smoke_rehab_model_provider.py`; only configure staging with `tools/configure_rehab_model_relay.py` when the preflight returns `status = ok` and `answer_present = true`.
+10. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
+11. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
+12. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
+13. Browser QA at exactly `390 x 844`:
    - Home first screen.
    - `问康复师` chat open.
    - Unsafe Agent refusal.
    - Device binding wizard.
    - Profile account/phone/medical empty state.
-13. Update this scorecard after every large task.
+14. Update this scorecard after every large task.
 
 ## Git Discipline
 

@@ -185,10 +185,13 @@ def _check_deployment(manifest: dict[str, Any]) -> Result:
     joined_commands = "\n".join(str(command) for command in commands)
     joined_verification = "\n".join(str(command) for command in verification_commands)
     remote_web_root = deploy.get("remote_web_root")
+    executor_command = deploy.get("executor_command")
     ok = (
         deploy.get("mode") == "manual_review_then_ssh"
         and isinstance(remote_web_root, str)
         and remote_web_root.endswith("/rehab-arm-mobile")
+        and isinstance(executor_command, str)
+        and "deploy_rehab_mobile_frontend_release.py --manifest" in executor_command
         and "scp " in joined_commands
         and "ssh " in joined_commands
         and "qa_rehab_mobile_l1_frontend.py" in joined_verification
@@ -203,6 +206,7 @@ def _check_deployment(manifest: dict[str, Any]) -> Result:
         {
             "mode": deploy.get("mode"),
             "remote_web_root": remote_web_root,
+            "executor_command": executor_command,
             "command_count": len(commands),
             "verification_command_count": len(verification_commands),
         },

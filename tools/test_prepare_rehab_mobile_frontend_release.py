@@ -98,6 +98,7 @@ def test_build_release_bundle_validates_pages_and_manifest(tmp_path):
     assert manifest["frontend_l1_preflight"]["failed"] == 0
     assert json.loads(preflight_path.read_text(encoding="utf-8"))["summary"]["overall"] == "PASS"
     assert manifest["deploy"]["remote_web_root"].endswith("/rehab-arm-mobile")
+    assert "deploy_rehab_mobile_frontend_release.py" in manifest["deploy"]["executor_command"]
     assert "verify_rehab_mobile_frontend_release.py" in "\n".join(manifest["verification"]["powershell"])
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(manifest["verification"]["powershell"])
     assert "scp" in "\n".join(manifest["deploy"]["commands"])

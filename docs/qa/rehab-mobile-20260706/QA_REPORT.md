@@ -974,6 +974,40 @@ Fresh verification:
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
 
+## Frontend Release Deployment Guard Follow-Up
+
+2026-07-06 continuation work added a guarded deploy executor for the moment
+Stitch returns frontend files that pass local preflight and manifest verification:
+
+- New script: `tools/deploy_rehab_mobile_frontend_release.py`
+- New tests: `tools/test_deploy_rehab_mobile_frontend_release.py`
+- Updated release manifest: `deploy.executor_command`
+- Updated release verifier: `FRONTEND-RELEASE-DEPLOYMENT` now requires the
+  deploy executor command.
+- Updated repair packet artifact: `required_artifacts.frontend_release_deployer`
+- Updated V4 Stitch prompt and runbook post-Stitch command list.
+
+Behavior:
+
+- Verifies the frontend release manifest before any deploy command can run.
+- Defaults to dry-run and prints the `scp`, `ssh`, and post-deploy verification
+  plan.
+- Requires `--execute` before copying assets to the cloud server.
+- Runs post-deploy checks only with `--run-post-verify`.
+- Refuses unsafe `remote_web_root` values outside the expected rehab mobile web
+  root.
+- Bundles post-deploy PowerShell verification into one process so QA environment
+  variables persist.
+
+Fresh verification:
+
+- Red test first: `tools/deploy_rehab_mobile_frontend_release.py` did not exist.
+- Follow-up red test first: post-deploy verification commands were executed as
+  separate shell commands instead of one PowerShell process.
+- Focused release-deploy/manifest/packet/prompt tests: `18 passed`.
+- No cloud runtime deployment was made for this tooling-only change because no
+  new Stitch frontend bundle exists yet.
+
 2026-07-06 continuation work tightened this path so Stitch output is checked before any cloud copy:
 
 - Updated script: `tools/qa_rehab_mobile_l1_frontend.py`

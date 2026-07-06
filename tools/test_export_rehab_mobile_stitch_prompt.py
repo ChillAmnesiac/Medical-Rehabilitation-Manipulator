@@ -33,6 +33,7 @@ def _packet():
             "api_fixture": "docs/stitch/rehab-mobile-l1-api-fixture-20260706.json",
             "stitch_runbook": "docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md",
             "frontend_release_tool": "tools/prepare_rehab_mobile_frontend_release.py",
+            "frontend_release_deployer": "tools/deploy_rehab_mobile_frontend_release.py",
         },
         "frontend_failures": [
             {
@@ -93,6 +94,7 @@ def test_render_prompt_includes_repair_packet_evidence_and_acceptance_commands()
     assert "qa_rehab_mobile_l1_objective_audit.py" in prompt
     assert "prepare_rehab_mobile_frontend_release.py" in prompt
     assert "verify_rehab_mobile_frontend_release.py" in prompt
+    assert "deploy_rehab_mobile_frontend_release.py" in prompt
     assert "--source-dir apps/web/public/rehab-arm-mobile" in prompt
     assert "qa_rehab_mobile_l1_frontend.py --source-dir" in prompt
     assert "--output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json" in prompt
@@ -121,5 +123,6 @@ def test_cli_writes_prompt_from_repair_packet(tmp_path):
     assert "docs/qa/current-fail-home-clip-390x844.png" in prompt
     assert "prepare_rehab_mobile_frontend_release.py" in prompt
     assert "verify_rehab_mobile_frontend_release.py" in prompt
+    assert "deploy_rehab_mobile_frontend_release.py" in prompt
     assert "qa_rehab_mobile_l1_frontend.py --source-dir" in prompt
     assert "frontend-l1-preflight.json" in prompt

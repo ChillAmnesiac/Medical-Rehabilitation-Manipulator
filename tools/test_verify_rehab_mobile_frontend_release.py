@@ -84,6 +84,9 @@ def test_verify_release_manifest_accepts_intact_stitch_bundle(tmp_path):
         "FRONTEND-RELEASE-DEPLOYMENT",
         "FRONTEND-RELEASE-BROWSER-EVIDENCE",
     }
+    deployment = next(result for result in payload["results"] if result["gate"] == "FRONTEND-RELEASE-DEPLOYMENT")
+    assert "tools\\deploy_rehab_mobile_frontend_release.py --manifest" in deployment["detail"]["executor_command"]
+    assert str(manifest_path).replace("\\", "/") in deployment["detail"]["executor_command"].replace("\\", "/")
 
 
 def test_verify_release_manifest_rejects_tampered_zip_hash(tmp_path):

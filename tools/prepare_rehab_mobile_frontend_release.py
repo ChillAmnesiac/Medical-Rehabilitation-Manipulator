@@ -25,6 +25,7 @@ DEFAULT_API_BASE = "http://106.55.62.122:8011"
 DEFAULT_WEB_BASE = "http://106.55.62.122:3001/rehab-arm-mobile"
 DEFAULT_APK_URL = "http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"
 DEFAULT_REMOTE_WEB_ROOT = "/home/ubuntu/apps/ai-collab/apps/web/public/rehab-arm-mobile"
+DEFAULT_MANIFEST_PATH = DEFAULT_OUTPUT_DIR / "rehab-mobile-frontend-release-manifest.json"
 REQUIRED_PAGES = ("home.html", "profile.html", "device.html", "ai-plan.html")
 FINAL_BROWSER_SCREENSHOTS = (
     "l1-home-390.png",
@@ -99,6 +100,13 @@ def _verification_commands(api_base: str, web_base: str, apk_url: str) -> list[s
     ]
 
 
+def _executor_command(manifest_path: Path) -> str:
+    return (
+        ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
+        f"tools\\deploy_rehab_mobile_frontend_release.py --manifest {manifest_path.as_posix()}"
+    )
+
+
 def run_frontend_l1_preflight(source_dir: Path, report_path: Path, timeout: int = 20) -> dict[str, Any]:
     args = qa_rehab_mobile_l1_frontend.parse_args(
         ["--source-dir", str(source_dir), "--timeout", str(timeout)]
@@ -165,6 +173,7 @@ def build_release_bundle(
         "deploy": {
             "mode": "manual_review_then_ssh",
             "remote_web_root": remote_web_root,
+            "executor_command": _executor_command(manifest_path),
             "commands": _deploy_commands(zip_path, remote_web_root),
         },
         "verification": {
