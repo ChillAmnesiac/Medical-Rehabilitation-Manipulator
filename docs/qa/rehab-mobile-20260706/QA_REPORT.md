@@ -32,6 +32,7 @@ The current deployed frontend does not consume the backend `data.patient_view` c
 14. `screenshots/phone-cooldown-profile-390.png` - Profile page browser QA after phone resend cooldown deployment.
 15. `screenshots/agent-readiness-ai-plan-390.png` - Agent page browser QA after public Agent readiness deployment.
 16. `screenshots/continuation-device-qa-20260706-390.png` - Device page continuation browser QA at the current cloud URL.
+17. `screenshots/stitch-packet-device-qa-430bfdf5-390.png` - Device page browser QA after the Stitch packet SMS/evidence refresh commit.
 
 All screenshots were opened and inspected before being used as evidence. They show the deployed cloud app, not a blank page or wrong window.
 
@@ -51,6 +52,7 @@ All screenshots were opened and inspected before being used as evidence. They sh
 | 10 | Profile page after phone resend cooldown deployment | FAIL | `screenshots/phone-cooldown-profile-390.png` |
 | 11 | Agent page after public Agent readiness deployment | FAIL | `screenshots/agent-readiness-ai-plan-390.png` |
 | 12 | Device page continuation resmoke on current production frontend | FAIL | `screenshots/continuation-device-qa-20260706-390.png` |
+| 13 | Device page resmoke after Stitch packet SMS/evidence refresh commit | FAIL | `screenshots/stitch-packet-device-qa-430bfdf5-390.png` |
 
 ## 2026-07-06 L1 Resmoke
 
@@ -1249,3 +1251,5 @@ Fresh verification:
 - L1 evidence export wrote `artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence-20260706-stitch-refresh.json`; summary `health_ok = true`, `apk_ok = true`, and no raw staging email/password in the JSON.
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime or frontend deployment was made for this tooling/handoff-only change.
+- In-app browser device-page resmoke captured `screenshots/stitch-packet-device-qa-430bfdf5-390.png` at `390 x 844`; it remains current-fail evidence only.
+- Visible blockers in that browser pass: false `网络未连接`, `setup_required`, `M33`, `M55`, `Gatekeeper`, and a visible `蓝牙调试 / 实机验证` route instead of a full patient device-binding wizard.
