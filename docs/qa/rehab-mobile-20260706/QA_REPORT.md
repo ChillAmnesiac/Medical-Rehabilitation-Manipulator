@@ -1968,3 +1968,43 @@ Acceptance boundary:
   been applied to the real `app/rehab-arm-mobile-stitch` branch, mirrored into
   the Android WebView asset bundle, deployed to the cloud URL, packaged into a
   new APK, or verified by the combined cloud L1 release gate.
+
+## 2026-07-07 API-Mock Source Gate Hardening
+
+After inspecting the v3 Stitch candidate, Codex found that the candidate still
+contained simulated frontend behavior. For example, Profile used `mockData` and
+a `Simulate API response` comment for phone verification instead of relying only
+on the real backend response.
+
+Tooling changes:
+
+- `tools/qa_rehab_mobile_l1_frontend.py` now rejects source that includes
+  `mockData`, mock response language, `Simulate API response`, `In real app`,
+  or console-only behavior in the frontend integration contract.
+- New regression:
+  `tools/test_qa_rehab_mobile_l1_frontend.py::test_frontend_integration_contract_rejects_mocked_api_behavior`.
+- `tools/export_rehab_mobile_stitch_prompt.py` now tells Stitch that generated
+  JavaScript must call real backend endpoints and may not use mock/simulated
+  API behavior for phone verification, device binding, or Ask Therapist
+  messages.
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` was regenerated
+  with this hard rule.
+
+Fresh verification:
+
+- Red regression first failed because a v3-style page with all source tokens
+  but `mockData` still returned `PASS`.
+- Focused frontend gate tests after implementation: `14 passed`.
+- Focused Stitch prompt tests after implementation: `4 passed`.
+- Hardened v3 source-gate report:
+  `docs/qa/rehab-mobile-20260706/frontend-l1-source-gate-stitch-full-candidate-v3-hardened-20260707.json`.
+- Hardened v3 result: `overall = FAIL`, blocking requirement
+  `no_mock_api_behavior`, forbidden source hits `mockData`,
+  `Simulate API response`, and `In real app`.
+
+Result:
+
+- The v3 candidate remains useful visual/browser evidence, but is now rejected
+  for deployment. The next accepted Stitch output must make real cloud API calls
+  before it can be copied into the real App branch, deployed, or packaged into
+  an APK.

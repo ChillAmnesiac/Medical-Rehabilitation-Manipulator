@@ -1,0 +1,89 @@
+{
+  "summary": {
+    "overall": "FAIL",
+    "failed": 1,
+    "total": 5,
+    "web_base": null,
+    "source_dir": "artifacts\\stitch\\l1-full-browser-qa-candidate-20260707"
+  },
+  "results": [
+    {
+      "gate": "L1-HOME-STATIC-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Home static page is patient-facing and free of raw workflow/debug terms.",
+      "detail": {
+        "missing_terms": [],
+        "forbidden_hits": [],
+        "source": "local",
+        "path": "artifacts\\stitch\\l1-full-browser-qa-candidate-20260707\\home.html",
+        "length": 267,
+        "text_prefix": "问康复师 - 首页 cloud_done 问康复师 设备已就绪 您好，康复伙伴 今天的康复建议已更新 每日目标 75% 上肢活动度强化训练 预计耗时 15 分钟，完成后可显著缓解晨间僵硬感。 exercise description 查看康复师建议 快捷功能 chat 问康复师 在线解答疑问 history 训练记录 查看康复进度 smartphone 账号认证状态 已验证 sensors 核心组件连接 正常 “康复是一场马拉松，每一步都算数。” home 首页 exercise 康复训练 chat 咨询 person 个人中心"
+      }
+    },
+    {
+      "gate": "L1-PROFILE-STATIC-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Profile static page is cloud-account oriented and does not show demo medical data.",
+      "detail": {
+        "missing_terms": [],
+        "forbidden_hits": [],
+        "source": "local",
+        "path": "artifacts\\stitch\\l1-full-browser-qa-candidate-20260707\\profile.html",
+        "length": 248,
+        "text_prefix": "我的康复档案 arrow_back 我的康复档案 康复中心云端账号 cloud_done 云端账号已登录 账号安全 手机号 138****1234 绑定手机号 验证码 获取 medical_services 医学状态 待完善 calendar_today 加入天数 12 天 详细资料 badge 个人基本资料 chevron_right history_edu 过往病史 chevron_right home 首页 fitness_center 康复训练 chat 咨询 person 个人中心"
+      }
+    },
+    {
+      "gate": "L1-DEVICE-STATIC-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Device page avoids debug transport language in normal user flow.",
+      "detail": {
+        "missing_terms": [],
+        "forbidden_hits": [],
+        "source": "local",
+        "path": "artifacts\\stitch\\l1-full-browser-qa-candidate-20260707\\device.html",
+        "length": 286,
+        "text_prefix": "设备绑定 - 问康复师 arrow_back 设备 cloud_done 寻找您的康复伙伴 跟随指引，轻松连接智能康复设备。 1 打开康复设备电源 确认设备指示灯为蓝色闪烁状态 2 保持手机靠近设备 建议距离在1米范围内，确保蓝牙信号稳定 3 选择并扫描康复设备 点击下方按钮开始搜索可用设备 4 等待安全确认 系统将自动完成临床安全参数校验 bluetooth_searching 绑定设备 error 设备已绑定 该康复伙伴当前已被其他账号绑定，请先解除原有绑定关系或咨询客服。 重试 home 首页 exercise 康复训练 chat 咨询 person 个人中心"
+      }
+    },
+    {
+      "gate": "L1-AGENT-STATIC-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Agent page exposes the rehab therapist entry.",
+      "detail": {
+        "missing_terms": [],
+        "forbidden_hits": [],
+        "source": "local",
+        "path": "artifacts\\stitch\\l1-full-browser-qa-candidate-20260707\\ai-plan.html",
+        "length": 291,
+        "text_prefix": "问康复师 - AI 康复计划 arrow_back 问康复师 cloud_done 云端康复师已连接 cloud 云端模型：已连接 您好，我是您的专属云端康复师。有什么我可以帮您的吗？ 09:12 AM 我的膝盖在练习后有点紧，可以加大助力吗？ 09:15 AM 建议您先进行5分钟的轻度拉伸。在没有医生评估的情况下，我们不建议直接调整机器的助力强度。 09:15 AM report 抱歉，为了您的安全，本应用无法直接绕过设备安全限制或手动控制电机。请在康复师的指导下操作设备。 add send home 首页 exercise 康复训练 chat 咨询 person 个人中心"
+      }
+    },
+    {
+      "gate": "L1-FRONTEND-INTEGRATION-001",
+      "level": "L1",
+      "status": "FAIL",
+      "summary": "Frontend source is wired to the required auth, patient_view, phone, device, and Agent API contracts.",
+      "detail": {
+        "missing_requirements": [
+          "no_mock_api_behavior"
+        ],
+        "forbidden_source_hits": [
+          "mockData",
+          "Simulate API response",
+          "In real app"
+        ],
+        "checked_pages": [
+          "ai-plan.html",
+          "device.html",
+          "home.html",
+          "profile.html"
+        ]
+      }
+    }
+  ]
+}

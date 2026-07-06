@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-07T03:43:16+08:00
+Generated: 2026-07-07T04:55:00Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -51,6 +51,8 @@ The 2026-07-07 four-page entity candidate passed source gates but is still rejec
 - Each bottom navigation item must render at least 64px wide and 48px high; do not let links shrink to label/icon content width.
 - The Ask Therapist / 问康复师 entry must be an actual button or link with an aria-label and a minimum 48px touch target in both width and height.
   Rejected candidate measurements included a 64x24 header action, a 40x40 back button, and 28x48 bottom-nav links.
+- Generated JavaScript must call the real backend endpoints. Do not use mockData, mock response objects, Simulate API response comments, In real app comments, or console-only behavior for phone verification, device binding, or Ask Therapist messages.
+  Profile must POST phone verification start/confirm requests, Device must POST /api/rehab-arm/app/v1/devices/bind, and Ask Therapist must POST /api/rehab-arm/app/v1/agent/messages.
 - Candidate screenshots are QA evidence only. Do not treat them as final L1 screenshots until the files are applied to the real App branch, mirrored into the APK WebView assets, deployed, and re-captured at exactly 390x844.
 
 ## Current Status

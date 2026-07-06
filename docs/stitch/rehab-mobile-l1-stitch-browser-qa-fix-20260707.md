@@ -59,6 +59,10 @@ Local source gate:
 - Report:
   `docs/qa/rehab-mobile-20260706/frontend-l1-source-gate-stitch-full-candidate-v3-20260707.json`.
 - Result: `overall = PASS`, `failed = 0`, `total = 5`.
+- Hardened report after API-mock detection:
+  `docs/qa/rehab-mobile-20260706/frontend-l1-source-gate-stitch-full-candidate-v3-hardened-20260707.json`.
+- Hardened result: `overall = FAIL`, blocker `no_mock_api_behavior`, with
+  source hits `mockData`, `Simulate API response`, and `In real app`.
 
 Rendered browser metrics gate:
 
@@ -75,13 +79,17 @@ Rendered browser metrics gate:
 
 ## Acceptance Boundary
 
-The V3 candidate is **not accepted for deployment yet** because it still exists
-as downloaded Stitch HTML in a local artifact directory. It has not been applied
-through the real App branch `app/rehab-arm-mobile-stitch`, mirrored into Android
-WebView assets, deployed to the cloud URL, packaged into a new APK, or verified
-by the combined cloud L1 release gate.
+The V3 candidate is **not accepted for deployment**. It passes visual browser
+metrics but fails the hardened source gate because parts of the generated
+JavaScript still simulate backend responses instead of relying only on real
+cloud API responses. It also still exists as downloaded Stitch HTML in a local
+artifact directory and has not been applied through the real App branch
+`app/rehab-arm-mobile-stitch`, mirrored into Android WebView assets, deployed
+to the cloud URL, packaged into a new APK, or verified by the combined cloud L1
+release gate.
 
-Next work is to apply this accepted candidate through the real App branch,
-mirror Android WebView assets, run source gate, browser metrics, release
-manifest verification, cloud deployment with post-deploy checks, APK
-verification, and final objective audit.
+Next work is to get a new Stitch output that makes real backend calls for phone
+verification, device binding, and Ask Therapist messages, then apply only that
+accepted output through the real App branch, mirror Android WebView assets, run
+source gate, browser metrics, release manifest verification, cloud deployment
+with post-deploy checks, APK verification, and final objective audit.

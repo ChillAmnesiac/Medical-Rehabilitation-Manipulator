@@ -188,6 +188,10 @@ def test_render_prompt_hardens_browser_candidate_copy_and_touch_targets():
     assert "bottom navigation item must render at least 64px wide and 48px high" in prompt
     assert "Back buttons must render at least 48px by 48px" in prompt
     assert "aria-label" in prompt
+    assert "Do not use mockData" in prompt
+    assert "Simulate API response" in prompt
+    assert "In real app" in prompt
+    assert "must call the real backend endpoints" in prompt
 
 
 def test_cli_writes_prompt_from_repair_packet(tmp_path):

@@ -95,6 +95,18 @@ INTEGRATION_REQUIREMENTS = {
     "agent_model_status": (("model_status",), ("modelStatus",)),
 }
 
+MOCK_API_FORBIDDEN_TERMS = (
+    "mockData",
+    "mock data",
+    "mock response",
+    "Simulate API response",
+    "simulate API",
+    "simulated API",
+    "In real app",
+    "in real app",
+    "console only",
+)
+
 SCRIPT_SRC_RE = re.compile(r"""(?is)<script\b[^>]*\bsrc=["']([^"']+)["']""")
 
 
@@ -151,6 +163,12 @@ def check_frontend_integration_contract(sources: dict[str, str]) -> Result:
         for name, alternatives in INTEGRATION_REQUIREMENTS.items()
         if not _matches_requirement(combined_source, alternatives)
     ]
+    decoded_source = unescape(combined_source)
+    forbidden_source_hits = [
+        term for term in MOCK_API_FORBIDDEN_TERMS if term in combined_source or term in decoded_source
+    ]
+    if forbidden_source_hits:
+        missing_requirements.append("no_mock_api_behavior")
     return Result(
         gate="L1-FRONTEND-INTEGRATION-001",
         level="L1",
@@ -158,6 +176,7 @@ def check_frontend_integration_contract(sources: dict[str, str]) -> Result:
         summary="Frontend source is wired to the required auth, patient_view, phone, device, and Agent API contracts.",
         detail={
             "missing_requirements": missing_requirements,
+            "forbidden_source_hits": forbidden_source_hits,
             "checked_pages": sorted(sources),
         },
     )
