@@ -3,6 +3,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     app_name: str = "Lingdong Rehab Cloud"
+    app_env: str = "local"
     database_url: str = "sqlite+pysqlite:///./rehab-platform.db"
     jwt_secret: str = "dev-rehab-platform-secret-change-me"
     jwt_algorithm: str = "HS256"

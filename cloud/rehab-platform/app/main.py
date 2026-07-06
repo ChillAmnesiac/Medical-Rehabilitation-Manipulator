@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -48,7 +50,13 @@ def create_app(database_url: str | None = None) -> FastAPI:
 
     @app.get("/health")
     def health():
-        return {"data": {"status": "ok", "service": "rehab-platform"}}
+        return {
+            "data": {
+                "status": "ok",
+                "service": "rehab-platform",
+                "deployment": _deployment_metadata(settings),
+            }
+        }
 
     app.include_router(auth.router)
     app.include_router(rehab_app.router)
@@ -63,6 +71,15 @@ def ensure_runtime_schema(engine) -> None:
     if "phone_verified_at" not in user_columns:
         with engine.begin() as connection:
             connection.execute(text("ALTER TABLE users ADD COLUMN phone_verified_at DATETIME"))
+
+
+def _deployment_metadata(settings: Settings) -> dict[str, str]:
+    return {
+        "build_sha": os.environ.get("AI_COLLAB_BUILD_SHA", "").strip() or "unknown",
+        "build_ref": os.environ.get("AI_COLLAB_BUILD_REF", "").strip() or "unknown",
+        "build_time": os.environ.get("AI_COLLAB_BUILD_TIME", "").strip() or "unknown",
+        "app_env": settings.app_env,
+    }
 
 
 app = create_app()

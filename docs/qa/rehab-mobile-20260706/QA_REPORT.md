@@ -255,16 +255,17 @@ Expected:
 
 ## Backend/API Evidence
 
-Latest API/package acceptance smoke passed after the Agent public-config readiness deployment:
+Latest API/package acceptance smoke passed after the deployment metadata gate:
 
 - Overall: `PASS`
 - P0 failed: `0`
-- Total checks: `21`
-- Cloud PID: `1666259`
+- Total checks: `22`
+- Cloud PID: `1677646`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
-- Build SHA: `unknown`
-- Build time: `unknown`
+- Build SHA: `b925e316`
+- Build time: `2026-07-06T07:50:07Z`
 - `P0-PATIENT-VIEW-001`: `PASS`
+- `P1-DEPLOY-META-001`: `PASS`
 - `P0-PHONE-FLOW-001`: `PASS`
 - `P1-PHONE-RESEND-001`: `PASS`
 - `P0-DEVICE-FLOW-001`: `PASS`
@@ -279,6 +280,43 @@ Latest API/package acceptance smoke passed after the Agent public-config readine
 - APK HEAD: `PASS`, size over 1 MB
 
 The remaining blocker is frontend rendering and interaction.
+
+## Backend Deployment Metadata Follow-Up
+
+2026-07-06 continuation work made every cloud acceptance run traceable to a deployed build:
+
+- `GET /health` now returns `data.deployment`.
+- Deployment fields:
+  - `build_sha`
+  - `build_ref`
+  - `build_time`
+  - `app_env`
+- Acceptance smoke now includes `P1-DEPLOY-META-001`.
+- Acceptance phone flow now generates a fresh default staging phone number per run when `--phone-test-phone` is not supplied, avoiding false P0 failures from the 60-second resend cooldown.
+- Cloud restart:
+  - PID: `1677646`
+  - API: `http://106.55.62.122:8011`
+  - `APP_ENV = staging`
+  - `AI_COLLAB_BUILD_SHA = b925e316`
+  - `AI_COLLAB_BUILD_REF = codex/rehab-mobile-backend-qa-20260706`
+  - `AI_COLLAB_BUILD_TIME = 2026-07-06T07:50:07Z`
+
+Fresh verification:
+
+- Red tests first:
+  - health test failed with `KeyError: 'deployment'`;
+  - acceptance helper tests failed because `deployment_metadata_readiness` did not exist;
+  - generated-phone test failed because `default_phone_test_phone` did not exist.
+- Focused health metadata test after implementation: `1 passed, 1 warning`.
+- Focused deployment metadata helper tests after implementation: `2 passed`.
+- Focused generated-phone helper test after implementation: `1 passed`.
+- Full local backend plus QA suite: `60 passed, 1 warning`.
+- Cloud health now returns deployment metadata with build SHA `b925e316`.
+- Cloud acceptance: `overall = PASS`, `p0_failed = 0`, `total = 22`.
+- `P1-DEPLOY-META-001` -> `PASS`.
+- APK smoke remained `PASS` with size `4198462` bytes and content type `application/vnd.android.package-archive`.
+- Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+- Browser QA attempt for this pass reached the in-app browser but screenshot capture timed out twice; no new screenshot was accepted for this metadata-only backend deployment. Existing screenshots and the frontend L1 static gate still document the visible frontend blockers.
 
 ## Backend Agent Public Config Readiness Follow-Up
 

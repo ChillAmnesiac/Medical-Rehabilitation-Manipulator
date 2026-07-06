@@ -353,6 +353,40 @@
   - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/agent-readiness-ai-plan-390.png`.
   - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
 
+## 2026-07-06 Deployment Metadata Gate
+
+- Added traceable deployment metadata to the local FastAPI health response:
+  - `GET /health`
+  - `data.deployment.build_sha`
+  - `data.deployment.build_ref`
+  - `data.deployment.build_time`
+  - `data.deployment.app_env`
+- Added acceptance visibility:
+  - `P1-DEPLOY-META-001`
+- Fixed automated phone-flow QA to use a generated default staging phone number when no explicit phone is supplied, so repeated acceptance runs do not fail because of the resend cooldown from a prior run.
+- Cloud restart:
+  - PID: `1677646`
+  - API: `http://106.55.62.122:8011`
+  - Database URL: `sqlite:///./ai_collab_server.db`
+  - `APP_ENV=staging`
+  - `AI_COLLAB_BUILD_SHA=b925e316`
+  - `AI_COLLAB_BUILD_REF=codex/rehab-mobile-backend-qa-20260706`
+  - `AI_COLLAB_BUILD_TIME=2026-07-06T07:50:07Z`
+- Fresh verification:
+  - Red health test first failed because `data.deployment` was missing.
+  - Red acceptance helper tests first failed because `deployment_metadata_readiness` was missing.
+  - Red generated-phone test first failed because `default_phone_test_phone` was missing.
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests\test_health.py::test_health_exposes_deployment_metadata -q` -> `1 passed, 1 warning`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools\test_qa_rehab_mobile_acceptance.py::test_deployment_metadata_readiness_reports_traceable_build tools\test_qa_rehab_mobile_acceptance.py::test_deployment_metadata_readiness_warns_on_unknown_build -q` -> `2 passed`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools\test_qa_rehab_mobile_acceptance.py::test_phone_verification_default_phone_is_generated_for_each_acceptance_run -q` -> `1 passed`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud/rehab-platform/tests tools/test_qa_rehab_mobile_acceptance.py tools/test_qa_rehab_mobile_l1_frontend.py tools/test_qa_rehab_mobile_l1_release.py -q` -> `60 passed, 1 warning`
+  - Cloud health returned build SHA `b925e316`, ref `codex/rehab-mobile-backend-qa-20260706`, build time `2026-07-06T07:50:07Z`, and `app_env=staging`.
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 22`
+  - `P1-DEPLOY-META-001` -> `PASS`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
+  - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
+- In-app browser QA attempt for this metadata-only backend deployment reached the browser but screenshot capture timed out; no new screenshot was accepted for this pass.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

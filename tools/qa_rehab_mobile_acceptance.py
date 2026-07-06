@@ -167,6 +167,26 @@ def agent_public_config_readiness(value: Any) -> tuple[bool, dict[str, Any]]:
     ), detail
 
 
+def deployment_metadata_readiness(value: Any) -> tuple[bool, dict[str, Any]]:
+    deployment = data(value).get("deployment")
+    if not isinstance(deployment, dict):
+        return False, {"reason": "deployment_metadata_missing"}
+    detail = {
+        "build_sha": deployment.get("build_sha"),
+        "build_ref": deployment.get("build_ref"),
+        "build_time": deployment.get("build_time"),
+        "app_env": deployment.get("app_env"),
+    }
+    missing_or_unknown = [
+        key
+        for key in ("build_sha", "build_ref", "build_time", "app_env")
+        if not detail.get(key) or detail.get(key) == "unknown"
+    ]
+    if missing_or_unknown:
+        return False, {**detail, "reason": "deployment_metadata_unset", "missing_or_unknown": missing_or_unknown}
+    return True, detail
+
+
 def phone_delivery_readiness(value: Any) -> tuple[bool, dict[str, Any]]:
     phone_verification = data(value).get("phone_verification")
     delivery_status = phone_verification.get("delivery_status") if isinstance(phone_verification, dict) else None
@@ -184,6 +204,10 @@ def phone_delivery_readiness(value: Any) -> tuple[bool, dict[str, Any]]:
         and delivery_status.get("configured") is True
         and delivery_status.get("exposes_debug_code") is False
     ), detail
+
+
+def default_phone_test_phone() -> str:
+    return f"+15558{int(time.time() * 1000) % 10_000_000:07d}"
 
 
 def get_or_create_session_token(
@@ -441,6 +465,23 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "Cloud API health returns ok.",
         {"status_code": health_status, "pid": health_data.get("pid"), "body": health_body},
     )
+    deploy_meta_ready, deploy_meta_detail = deployment_metadata_readiness(health_body)
+    if deploy_meta_ready:
+        add(
+            results,
+            "P1-DEPLOY-META-001",
+            "P1",
+            True,
+            "Cloud health exposes traceable deployment metadata.",
+            deploy_meta_detail,
+        )
+    else:
+        warn(
+            results,
+            "P1-DEPLOY-META-001",
+            "Cloud health deployment metadata is missing or still unknown.",
+            {"status_code": health_status, **deploy_meta_detail},
+        )
 
     public_config_status, public_config_body, _ = client.request("GET", "/api/rehab-arm/app/v1/public-config")
     phone_sms_ready, phone_sms_detail = phone_delivery_readiness(public_config_body)
@@ -565,7 +606,11 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             "Staging account has a verified phone binding.",
             {"phone_present": bool(profile.get("phone")), "phone_verified": profile.get("phone_verified")},
         )
-        phone_flow_ok, phone_flow_detail = run_phone_verification_flow(client, token, args.phone_test_phone)
+        phone_flow_ok, phone_flow_detail = run_phone_verification_flow(
+            client,
+            token,
+            args.phone_test_phone or default_phone_test_phone(),
+        )
         add(
             results,
             "P0-PHONE-FLOW-001",
@@ -782,7 +827,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--email", default=os.getenv("REHAB_QA_EMAIL"))
     parser.add_argument("--password", default=os.getenv("REHAB_QA_PASSWORD"))
-    parser.add_argument("--phone-test-phone", default=os.getenv("REHAB_QA_PHONE_TEST_PHONE", "+8613800006131"))
+    parser.add_argument("--phone-test-phone", default=os.getenv("REHAB_QA_PHONE_TEST_PHONE"))
     parser.add_argument("--phone-cooldown-test-phone", default=os.getenv("REHAB_QA_PHONE_COOLDOWN_TEST_PHONE"))
     parser.add_argument(
         "--device-test-id",

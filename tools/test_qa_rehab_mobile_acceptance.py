@@ -143,6 +143,47 @@ def test_agent_public_config_readiness_warns_on_fallback_config():
     assert detail["reason"] == "external_model_not_configured"
 
 
+def test_deployment_metadata_readiness_reports_traceable_build():
+    module = _load_module()
+
+    ok, detail = module.deployment_metadata_readiness(
+        {
+            "data": {
+                "deployment": {
+                    "build_sha": "b925e316",
+                    "build_ref": "codex/rehab-mobile-backend-qa-20260706",
+                    "build_time": "2026-07-06T12:34:56Z",
+                    "app_env": "staging",
+                }
+            }
+        }
+    )
+
+    assert ok is True
+    assert detail["build_sha"] == "b925e316"
+    assert detail["build_ref"] == "codex/rehab-mobile-backend-qa-20260706"
+
+
+def test_deployment_metadata_readiness_warns_on_unknown_build():
+    module = _load_module()
+
+    ok, detail = module.deployment_metadata_readiness(
+        {
+            "data": {
+                "deployment": {
+                    "build_sha": "unknown",
+                    "build_ref": "unknown",
+                    "build_time": "unknown",
+                    "app_env": "staging",
+                }
+            }
+        }
+    )
+
+    assert ok is False
+    assert detail["reason"] == "deployment_metadata_unset"
+
+
 def test_phone_verification_flow_uses_debug_code_to_confirm_staging_phone():
     module = _load_module()
 
@@ -191,6 +232,17 @@ def test_phone_verification_flow_fails_without_debug_code_for_automated_staging(
 
     assert ok is False
     assert detail["reason"] == "debug_code_missing"
+
+
+def test_phone_verification_default_phone_is_generated_for_each_acceptance_run():
+    module = _load_module()
+
+    args = module.parse_args([])
+    phone = module.default_phone_test_phone()
+
+    assert args.phone_test_phone is None
+    assert phone.startswith("+15558")
+    assert len(phone) == len("+155580000000")
 
 
 def test_phone_resend_cooldown_accepts_retry_after_in_details():

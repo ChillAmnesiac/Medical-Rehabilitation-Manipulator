@@ -25,7 +25,8 @@ Move the rehab mobile frontend from engineering dashboard to L1 patient-ready st
 Current backend status:
 - API smoke is PASS.
 - APK delivery is PASS.
-- Backend acceptance total is 21 checks with 0 P0 failures.
+- Backend acceptance total is 22 checks with 0 P0 failures.
+- Health exposes traceable deployment metadata; `P1-DEPLOY-META-001` is PASS.
 - Device binding is verified for both same-account idempotency and cross-account already-bound conflict.
 - Public config exposes Agent readiness at `data.agent.model_readiness`; current staging is `fallback_rule_based`, reason `external_model_not_configured`.
 - Current staging Agent model readiness is WARN: `model_status.mode = fallback_rule_based`, reason `external_model_not_configured`.
