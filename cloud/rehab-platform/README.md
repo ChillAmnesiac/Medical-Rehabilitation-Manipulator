@@ -1,0 +1,66 @@
+# Lingdong Rehab Cloud
+
+Backend MVP for the Stitch mobile rehab app at branch `app/rehab-arm-mobile-stitch`.
+
+## Safety Boundary
+
+The cloud service authenticates users, stores profile/device/session evidence, generates plan suggestions, and prepares transport frames. It never directly controls motors. Real movement remains:
+
+`JointTrajectory -> NanoPi -> M33 safety/control layer -> motors`
+
+## Local Run
+
+```powershell
+cd cloud/rehab-platform
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -e ".[dev]"
+.\.venv\Scripts\python -m pytest -v
+.\.venv\Scripts\python -m uvicorn app.main:app --host 127.0.0.1 --port 8011
+```
+
+Health check:
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:8011/health
+```
+
+## Docker
+
+```powershell
+cd cloud/rehab-platform
+docker compose up --build -d
+```
+
+The API listens on `http://SERVER_IP:8011`.
+
+## Mobile App Contract
+
+The backend exposes the routes already used by `apps/web/public/rehab-arm-mobile/mobile-bridge.js`:
+
+- `POST /api/auth/session`
+- `GET /api/rehab-arm/app/v1/public-config`
+- `GET /api/rehab-arm/app/v1/catalog`
+- `GET /api/rehab-arm/app/v1/me`
+- `PUT /api/rehab-arm/app/v1/me/profile`
+- `GET /api/rehab-arm/app/v1/me/workflow`
+- `POST /api/rehab-arm/app/v1/me/workflow/actions`
+- `POST /api/rehab-arm/app/v1/devices/bind`
+- `POST /api/rehab-arm/app/v1/devices/{device_id}/legacy-spp/inbound`
+- `GET /api/rehab-arm/app/v1/emg/latest`
+- `POST /api/rehab-arm/app/v1/ai-training-drafts/generate`
+- `POST /api/rehab-arm/app/v1/ai-training-drafts/{draft_id}/accept`
+- `POST /api/rehab-arm/app/v1/training-plans/{plan_id}/sync-to-device`
+- `POST /api/rehab-arm/app/v1/devices/{device_id}/ble/messages`
+- `POST /api/rehab-arm/app/v1/training-sessions`
+- `GET /api/rehab-arm/app/v1/training-sessions/recent`
+- `POST /api/rehab-arm/app/v1/agent/messages`
+
+## QA Gate
+
+Before calling a milestone complete:
+
+1. Run `python -m pytest -v`.
+2. Start the API locally and check `/health`.
+3. Point the Stitch app API base to the deployed API.
+4. Login, bind device, generate and accept an AI plan, sync it, and confirm a sendable legacy frame.
+5. Build the install package and record artifact path plus smoke-test result.
