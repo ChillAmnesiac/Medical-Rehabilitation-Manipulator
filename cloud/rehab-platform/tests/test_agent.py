@@ -68,6 +68,9 @@ def test_ai_training_draft_uses_profile_and_recent_session_context():
     assert response.status_code == 200
     draft = response.json()["data"]
     assert draft["id"]
+    assert draft["generated_plan"]["title"] == "康复师训练建议"
+    assert "强度" in draft["generated_plan"]["goal"]
+    assert "Keep" not in draft["generated_plan"]["goal"]
     assert draft["generated_plan"]["movement_type"] == "elbow_flexion"
     assert draft["generated_plan"]["sets"] == 2
     assert draft["generated_plan"]["reps"] == 8
@@ -75,7 +78,11 @@ def test_ai_training_draft_uses_profile_and_recent_session_context():
     assert draft["context_snapshot"]["profile"]["rehab_stage"] == "subacute"
     assert draft["context_snapshot"]["latest_report"]["pain_score"] == 2
     assert draft["context_snapshot"]["ai_planner"]["status"] == "fallback_rule_based"
-    assert "M33" in draft["risk_notes"][0]
+    risk_text = " ".join(draft["risk_notes"])
+    assert "设备安全系统" in risk_text
+    assert "训练前安全确认" in risk_text
+    for raw_term in ("M33", "preflight", "CAN", "Stop"):
+        assert raw_term not in risk_text
 
     me = client.get("/api/rehab-arm/app/v1/me", headers=headers).json()["data"]
     assert me["latest_open_ai_draft"]["id"] == draft["id"]

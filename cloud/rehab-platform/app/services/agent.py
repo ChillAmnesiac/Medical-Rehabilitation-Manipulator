@@ -54,7 +54,7 @@ def build_rule_based_draft(
     assist_level = 0.45 if completion_rate < 0.6 else 0.35
     speed_level = "very_slow" if pain_score >= 4 else "slow"
     generated_plan = {
-        "title": "AI rehab draft",
+        "title": "康复师训练建议",
         "goal": _goal_text(user, latest_report, input_text),
         "movement_type": movement_type,
         "sets": sets,
@@ -64,8 +64,8 @@ def build_rule_based_draft(
         "target_angle_range": [0, 45],
     }
     risk_notes = [
-        "M33 safety acceptance and preflight are required before any real movement.",
-        "Stop and contact a clinician if pain rises sharply, numbness appears, or fatigue becomes unusual.",
+        "开始真实训练前，需要完成设备安全系统的训练前安全确认。",
+        "如果疼痛明显升高、麻木或疲劳异常，请暂停并联系康复师。",
     ]
     context_snapshot = {
         "profile": {
@@ -216,9 +216,10 @@ def _agent_messages(user: User, latest_report: TrainingReport | None, message: s
 
 def _goal_text(user: User, latest_report: TrainingReport | None, input_text: str) -> str:
     if latest_report is None:
-        return f"{input_text} Keep the first session conservative for {user.rehab_stage or 'the current stage'}."
+        stage = user.rehab_stage or "当前阶段"
+        return f"{input_text}。第一次训练先保守，适合{stage}，强度从低开始。"
     percent = int(latest_report.completion_rate * 100)
-    return f"{input_text} Last session completion was {percent}%, so keep intensity controlled."
+    return f"{input_text}。上次训练完成率 {percent}%，这次保持强度可控。"
 
 
 def _report_context(report: TrainingReport | None) -> dict[str, object] | None:
