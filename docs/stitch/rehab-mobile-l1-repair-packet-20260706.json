@@ -1,6 +1,6 @@
 {
   "schema": "rehab-mobile-stitch-repair-packet/v1",
-  "generated_at": "2026-07-06T15:17:31Z",
+  "generated_at": "2026-07-06T15:46:48Z",
   "target": {
     "api_base": "http://106.55.62.122:8011",
     "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
@@ -20,9 +20,7 @@
       "browser_qa_evidence",
       "frontend_l1_gate"
     ],
-    "non_stitch_blockers": [
-      "agent_cloud_model"
-    ],
+    "non_stitch_blockers": [],
     "meta_blockers": [
       "combined_l1_release"
     ],
@@ -246,13 +244,6 @@
   ],
   "non_stitch_actions": [
     {
-      "blocker": "agent_cloud_model",
-      "owner": "Codex/backend ops once a real model endpoint and key are available",
-      "runbook": "docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md",
-      "preflight_command": "python tools/smoke_rehab_model_provider.py --provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY> --message <SAFE_REHAB_SMOKE_MESSAGE>",
-      "configure_command": "python tools/configure_rehab_model_relay.py --provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY>"
-    },
-    {
       "blocker": "phone_sms_delivery",
       "owner": "Codex/backend ops once a real SMS webhook endpoint and token are available",
       "runbook": "docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md",
@@ -326,20 +317,18 @@
       "frontend_overall": "FAIL",
       "frontend_failed": 5,
       "blocking_gates": [
-        "frontend_l1_gate",
-        "agent_cloud_model"
+        "frontend_l1_gate"
       ]
     },
     "objective": {
       "overall": "FAIL",
-      "failed": 8,
+      "failed": 7,
       "total": 11,
       "blocking_requirements": [
         "home_next_step",
         "phone_binding",
         "device_binding",
         "ask_therapist_safety",
-        "agent_cloud_model",
         "profile_no_fake_debug",
         "browser_qa_evidence",
         "combined_l1_release"

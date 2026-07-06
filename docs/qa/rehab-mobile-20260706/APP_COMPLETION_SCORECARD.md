@@ -16,7 +16,7 @@ Required:
 - Phone SMS delivery readiness is visible; webhook delivery is implemented; staging warns when still using debug SMS codes.
 - Device binding APIs pass, including same-account idempotency and cross-account already-bound conflict.
 - Agent safe answer and unsafe refusal pass.
-- Agent model readiness is visible in public config and in Agent answers; current staging warns when using fallback rules instead of a configured cloud model.
+- Agent model readiness is visible in public config and in Agent answers; current staging must report the configured cloud model.
 - CORS passes from deployed web origin.
 - APK URL is reachable.
 
@@ -80,9 +80,9 @@ Current result: `NOT READY`.
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Backend API | PASS | `tools/qa_rehab_mobile_acceptance.py`, `overall = PASS`, `p0_failed = 0` |
-| Deployment metadata | PASS | `P1-DEPLOY-META-001`: health exposes build SHA `d2f81c92`, ref `codex/rehab-mobile-backend-qa-20260706`, build time `2026-07-06T14:19:13Z`, and `app_env=staging` |
+| Deployment metadata | PASS | `P1-DEPLOY-META-001`: health exposes build SHA `agent-model-env-path-20260706`, ref `codex/rehab-mobile-backend-qa-20260706`, build time `2026-07-06T15:40:39Z`, and `app_env=staging` |
 | Stitch API fixture | PASS | `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` exported from live cloud API with tokens, codes, ids, email, and phone masked; now includes phone verification start/confirm response examples |
-| Stitch repair packet and V4 prompt | PASS | `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json` generated from the live cloud L1 release gate and objective audit; `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` is generated from the packet and is now the primary Stitch handoff. The packet/prompt now include SMS ops readiness, L1 evidence export, and no raw staging email/password |
+| Stitch repair packet and V4 prompt | PASS | `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json` generated from the live cloud L1 release gate and objective audit; `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` is generated from the packet and is now the primary Stitch handoff. The packet/prompt now show `non_stitch_blockers = []`, include SMS ops readiness, L1 evidence export, and no raw staging email/password |
 | Frontend release packaging | PASS | `tools/qa_rehab_mobile_l1_frontend.py --source-dir --output` preflights Stitch output locally and preserves JSON evidence; `tools/prepare_rehab_mobile_frontend_release.py` refuses failing frontend sources, writes a deployable zip, and records manifest deploy/verification commands before cloud copy |
 | Frontend release package verification | PASS | `tools/verify_rehab_mobile_frontend_release.py` validates the generated manifest schema, zip sha256, preflight report, required page artifacts, guarded deploy executor command, and exact browser QA screenshot checklist before cloud deployment |
 | Frontend release deployment guard | PASS | `tools/deploy_rehab_mobile_frontend_release.py` verifies the manifest again, defaults to dry-run, refuses unsafe remote roots, and requires `--execute --run-post-verify` before cloud copy plus post-deploy checks |
@@ -93,12 +93,12 @@ Current result: `NOT READY`.
 | Device binding flow | PASS | `P0-DEVICE-FLOW-001` repeats binding against the same record; `P0-DEVICE-CONFLICT-001` rejects a second account with `DEVICE_ALREADY_BOUND` |
 | Agent backend safety | PASS | Safe answer `200` with `model_status`, unsafe direct-control requests `400 UNSAFE_MOTION_REQUEST` |
 | Agent draft patient copy | PASS | AI training draft risk notes now use patient-facing Chinese and cloud smoke found no `M33`, `preflight`, `m33_accepted`, `CAN`, or `Stop` in `risk_notes` |
-| Agent public config readiness | WARN | `P1-AGENT-CONFIG-001`: public-config exposes `data.agent.model_readiness`; current staging mode is `fallback_rule_based`, reason `external_model_not_configured` |
-| Agent cloud model readiness | FAIL | L1 release now blocks on `agent_cloud_model` until `P1-AGENT-CONFIG-001` and `P1-AGENT-MODEL-001` are `PASS`; current staging is `fallback_rule_based`, reason `external_model_not_configured` |
-| Agent model relay ops | READY, KEY BLOCKED | Backend Agent now supports `openai_compatible` and `gemini`; `tools/smoke_rehab_model_provider.py` must pass before `tools/configure_rehab_model_relay.py` writes staging config. The user-provided Google/Stitch key returned `403 provider_http_error` for Gemini preflights and was not saved. Runbook: `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md` |
+| Agent public config readiness | PASS | `P1-AGENT-CONFIG-001`: public config reports `data.agent.model_readiness.mode = cloud_model_configured`, provider `qwen`, model `qwen-plus`, with no API key exposed |
+| Agent cloud model readiness | PASS | `P1-AGENT-MODEL-001`: safe Agent answers report `data.model_status.mode = cloud_model`, provider `qwen`, model `qwen-plus`; `agent_cloud_model` is no longer an L1 blocker |
+| Agent model relay ops | PASS, CLOUD MODEL LIVE | Backend Agent supports provider config and safe fallback; current cloud runtime is configured for `qwen-plus`. Runbook: `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |
-| Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, 5 failed frontend gates, blockers `frontend_l1_gate` and `agent_cloud_model` |
-| Objective-level L1 audit | FAIL | `tools/qa_rehab_mobile_l1_objective_audit.py`: 8/11 objective requirements failing: home next step, phone UI, device UI, Ask Therapist UI, cloud model, profile no-fake-data, browser evidence, combined release; browser evidence now validates decoded PNG/JPEG dimensions against `390 x 844` |
+| Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, 5 failed frontend gates, blocker `frontend_l1_gate` only |
+| Objective-level L1 audit | FAIL | `tools/qa_rehab_mobile_l1_objective_audit.py`: 7/11 objective requirements failing: home next step, phone UI, device UI, Ask Therapist UI, profile no-fake-data, browser evidence, combined release; browser evidence validates decoded PNG/JPEG dimensions against `390 x 844` |
 | Current-fail browser evidence | PASS | Four in-app browser screenshots in `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/` decode to `390 x 844`; they document current blockers and intentionally do not satisfy L1 success evidence |
 | Home UI | FAIL | Browser screenshots plus `tools/qa_rehab_mobile_l1_frontend.py` gate `L1-HOME-STATIC-001` |
 | Agent UI | FAIL | Visible assistant entries do not open chat; static gate `L1-AGENT-STATIC-001` missing `问康复师` |
@@ -116,7 +116,7 @@ Current result: `NOT READY`.
 6. Dry-run `tools/deploy_rehab_mobile_frontend_release.py` and review the planned `scp`, `ssh`, and post-deploy verification commands.
 7. Deploy the reviewed frontend bundle with `tools/deploy_rehab_mobile_frontend_release.py --execute --run-post-verify`.
 8. Rebuild or refresh APK if the APK bundles frontend assets.
-9. Preflight the real Agent model key with `tools/smoke_rehab_model_provider.py`; only configure staging with `tools/configure_rehab_model_relay.py` when the preflight returns `status = ok` and `answer_present = true`.
+9. Re-run Agent model smoke only when rotating the model provider/key; current staging cloud model is live.
 10. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
 11. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
 12. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.

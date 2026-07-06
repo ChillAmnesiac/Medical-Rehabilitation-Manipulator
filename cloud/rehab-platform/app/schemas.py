@@ -77,3 +77,11 @@ class PhoneVerificationStartRequest(BaseModel):
 
 class PhoneVerificationConfirmRequest(BaseModel):
     code: str = Field(min_length=4, max_length=12)
+
+
+class ModelRelayConfigRequest(BaseModel):
+    provider: str = Field(min_length=1)
+    base_url: str | None = None
+    model: str = Field(min_length=1)
+    api_key: str = Field(min_length=1)
+    external_enabled: bool = True

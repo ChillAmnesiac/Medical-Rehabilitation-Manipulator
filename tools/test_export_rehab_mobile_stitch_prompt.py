@@ -125,6 +125,21 @@ def test_render_prompt_includes_repair_packet_evidence_and_acceptance_commands()
     assert "--output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json" in prompt
 
 
+def test_render_prompt_omits_resolved_agent_cloud_model_blocker():
+    module = _load_module()
+    packet = _packet()
+    packet["summary"]["non_stitch_blockers"] = []
+    packet["non_stitch_actions"] = [
+        action for action in packet["non_stitch_actions"] if action["blocker"] != "agent_cloud_model"
+    ]
+
+    prompt = module.render_prompt(packet, generated_at="2026-07-06T15:45:00Z")
+
+    assert "Non-Stitch blockers: none" in prompt
+    assert "agent_cloud_model" not in prompt
+    assert "phone_sms_delivery" in prompt
+
+
 def test_cli_writes_prompt_from_repair_packet(tmp_path):
     module = _load_module()
     packet_path = tmp_path / "repair-packet.json"

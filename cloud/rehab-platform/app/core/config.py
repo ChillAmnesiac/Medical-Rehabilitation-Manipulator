@@ -22,5 +22,6 @@ class Settings(BaseSettings):
     agent_model_timeout_seconds: float = 8.0
     agent_model_temperature: float = 0.2
     agent_model_max_tokens: int = 500
+    runtime_env_path: str = ".env"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

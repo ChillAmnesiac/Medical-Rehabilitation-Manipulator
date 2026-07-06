@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import inspect, text
 
-from app.api.routes import auth, rehab_app
+from app.api.routes import auth, model_relay, rehab_app
 from app.core.config import Settings
 from app.db import Base, make_sessionmaker
 from app.services.auth import seed_default_user
@@ -60,6 +60,7 @@ def create_app(database_url: str | None = None) -> FastAPI:
 
     app.include_router(auth.router)
     app.include_router(rehab_app.router)
+    app.include_router(model_relay.router)
     return app
 
 

@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-06T15:17:31Z
+Generated: 2026-07-06T15:49:12Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -17,10 +17,10 @@ Do not hard-code fixture values. Use the fixture only to understand response sha
 
 ## Current Status
 - Stitch blockers: home_next_step, phone_binding, device_binding, ask_therapist_safety, profile_no_fake_debug, browser_qa_evidence, frontend_l1_gate
-- Non-Stitch blockers: agent_cloud_model
+- Non-Stitch blockers: none
 - Ops warnings: phone_sms_delivery
 
-Important: Stitch cannot clear agent_cloud_model or provider-readiness warnings by UI work alone. The frontend must still render model/SMS readiness honestly.
+Important: Stitch cannot clear provider-readiness warnings by UI work alone. The frontend must render those states honestly.
 
 ## Current In-App Browser Failure Evidence
 Use these screenshots as visual references for what must change. They are not L1 success evidence.
@@ -116,10 +116,6 @@ These items cannot be fixed by frontend UI alone, but the UI must render their s
 - phone_sms_delivery: P1-PHONE-SMS-001 WARN - Phone verification is not configured for production SMS delivery; staging may rely on debug codes.
 
 Backend/Ops follow-up commands:
-- agent_cloud_model
-  Runbook: docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md
-  Preflight: `python tools/smoke_rehab_model_provider.py --provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY> --message <SAFE_REHAB_SMOKE_MESSAGE>`
-  Configure: `python tools/configure_rehab_model_relay.py --provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY>`
 - phone_sms_delivery
   Runbook: docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md
   Preflight: `python tools/smoke_rehab_sms_provider.py --provider webhook --webhook-url <SMS_WEBHOOK_URL> --webhook-token <SMS_WEBHOOK_TOKEN> --phone <REAL_TEST_PHONE> --code 123456 --purpose bind_account --verification-id sms-provider-smoke --expires-in 300`

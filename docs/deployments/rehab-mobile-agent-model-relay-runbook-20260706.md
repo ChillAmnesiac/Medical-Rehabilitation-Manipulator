@@ -1,25 +1,28 @@
 # Rehab Mobile Agent Model Relay Runbook - 2026-07-06
 
-This runbook closes the `agent_cloud_model` L1 blocker after a real cloud model
-endpoint and API key are available. The backend supports `openai_compatible`
-chat completions and Google `gemini` generateContent.
+This runbook records how the `agent_cloud_model` L1 blocker is kept closed.
+The backend supports OpenAI-compatible chat completions and Google `gemini`
+generateContent, with guarded fallback when a provider call fails.
 
 ## Current Staging State
 
 - Cloud API: `http://106.55.62.122:8011`
 - Web app: `http://106.55.62.122:3001/rehab-arm-mobile`
-- Latest verified backend build: `d2f81c92`
-- Current Agent mode: `fallback_rule_based`
-- Current reason: `external_model_not_configured`
+- Latest verified backend build: `agent-model-env-path-20260706`
+- Current Agent mode: `cloud_model`
+- Current provider: `qwen`
+- Current model: `qwen-plus`
 - Current model relay config on the server:
-  - `REHAB_ARM_MODEL_RELAY_PROVIDER`: empty
-  - `REHAB_ARM_MODEL_RELAY_BASE_URL`: empty
-  - `REHAB_ARM_MODEL_RELAY_MODEL`: empty
-  - `REHAB_ARM_MODEL_RELAY_API_KEY`: empty
-  - `REHAB_ARM_MODEL_RELAY_EXTERNAL_ENABLED`: false
-  - XiaoZhi ASR/TTS model keys: empty
+  - `REHAB_ARM_MODEL_RELAY_PROVIDER`: `qwen`
+  - `REHAB_ARM_MODEL_RELAY_BASE_URL`: DashScope OpenAI-compatible endpoint
+  - `REHAB_ARM_MODEL_RELAY_MODEL`: `qwen-plus`
+  - `REHAB_ARM_MODEL_RELAY_API_KEY`: configured and redacted
+  - `REHAB_ARM_MODEL_RELAY_EXTERNAL_ENABLED`: true
+- Runtime env file for the current cloud API process:
+  `/home/ubuntu/apps/ai-collab/apps/api/.env`
 
-Do not mark L1 as user-ready while the Agent is in this fallback mode.
+`agent_cloud_model` is no longer an L1 blocker. L1 is still blocked by the
+frontend gate until Stitch replaces the current static/debug pages.
 
 ## Preflight Provider Before Configuring
 
@@ -51,10 +54,10 @@ $env:REHAB_MODEL_SMOKE_MESSAGE = '今天训练后肩膀有点酸痛，明天还�
 Only continue to `tools\configure_rehab_model_relay.py` when the preflight exits
 with code `0`, `status = ok`, and `answer_present = true`.
 
-2026-07-06 evidence: the user-provided Google/Stitch API key was tested against
-Gemini `generateContent` with `gemini-3.5-flash` and `gemini-2.5-flash`. Both
-preflights returned `403 provider_http_error`, so the key was not saved to
-staging and `agent_cloud_model` remains blocked.
+Historical 2026-07-06 evidence: the user-provided Google/Stitch API key was
+tested against Gemini `generateContent` with `gemini-3.5-flash` and
+`gemini-2.5-flash`. Both preflights returned `403 provider_http_error`, so that
+key was not saved to staging.
 
 ## Configure Through API
 
@@ -65,8 +68,8 @@ when `data.model_status.mode` is `cloud_model`.
 OpenAI-compatible PowerShell:
 
 ```powershell
-$env:REHAB_QA_EMAIL = '3245056131@qq.com'
-$env:REHAB_QA_PASSWORD = '1234'
+$env:REHAB_QA_EMAIL = '<staging-email>'
+$env:REHAB_QA_PASSWORD = '<staging-password>'
 $env:REHAB_MODEL_RELAY_PROJECT_ID = 'e201f41c-25a6-46e1-baf8-be6dcb83284c'
 $env:REHAB_MODEL_RELAY_PROVIDER = 'openai_compatible'
 $env:REHAB_MODEL_RELAY_BASE_URL = 'https://api.openai.com/v1'
@@ -78,8 +81,8 @@ $env:REHAB_MODEL_RELAY_API_KEY = '<real-api-key>'
 Gemini PowerShell:
 
 ```powershell
-$env:REHAB_QA_EMAIL = '3245056131@qq.com'
-$env:REHAB_QA_PASSWORD = '1234'
+$env:REHAB_QA_EMAIL = '<staging-email>'
+$env:REHAB_QA_PASSWORD = '<staging-password>'
 $env:REHAB_MODEL_RELAY_PROJECT_ID = 'e201f41c-25a6-46e1-baf8-be6dcb83284c'
 $env:REHAB_MODEL_RELAY_PROVIDER = 'gemini'
 $env:REHAB_MODEL_RELAY_MODEL = '<gemini-model-name>'
@@ -95,7 +98,7 @@ real key into docs, screenshots, commits, or chat.
 
 ## Configure Through Server Env
 
-If API config is unavailable, update the cloud server `.env` with:
+If API config is unavailable, update the current cloud API `.env` with:
 
 ```dotenv
 REHAB_ARM_MODEL_RELAY_PROVIDER=openai_compatible
@@ -117,13 +120,14 @@ REHAB_ARM_MODEL_RELAY_EXTERNAL_ENABLED=true
 
 Then restart the API process and verify `/health` reports the new deployment
 metadata. The config API clears settings cache when it writes `.env`; direct env
-edits still require a process restart.
+edits still require a process restart. The deployed API sets `AI_COLLAB_ENV_FILE`
+so config writes land in the same `.env` file the running service reads.
 
 ## Acceptance Commands
 
 ```powershell
-$env:REHAB_QA_EMAIL = '3245056131@qq.com'
-$env:REHAB_QA_PASSWORD = '1234'
+$env:REHAB_QA_EMAIL = '<staging-email>'
+$env:REHAB_QA_PASSWORD = '<staging-password>'
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_acceptance.py
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_release.py
 ```

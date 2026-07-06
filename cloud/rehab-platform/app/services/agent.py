@@ -175,7 +175,7 @@ def answer_patient_question(
                     "model": settings.agent_model_name,
                 },
             )
-        except CloudModelError:
+        except (CloudModelError, OSError, TypeError, ValueError):
             model_status = {
                 "mode": "fallback_rule_based",
                 "configured": True,

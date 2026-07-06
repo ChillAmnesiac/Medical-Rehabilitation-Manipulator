@@ -33,6 +33,7 @@ The current deployed frontend does not consume the backend `data.patient_view` c
 15. `screenshots/agent-readiness-ai-plan-390.png` - Agent page browser QA after public Agent readiness deployment.
 16. `screenshots/continuation-device-qa-20260706-390.png` - Device page continuation browser QA at the current cloud URL.
 17. `screenshots/stitch-packet-device-qa-430bfdf5-390.png` - Device page browser QA after the Stitch packet SMS/evidence refresh commit.
+18. `screenshots/agent-cloud-ai-plan-20260706-390.jpg` - Agent page browser QA after cloud model runtime deployment.
 
 All screenshots were opened and inspected before being used as evidence. They show the deployed cloud app, not a blank page or wrong window.
 
@@ -53,6 +54,7 @@ All screenshots were opened and inspected before being used as evidence. They sh
 | 11 | Agent page after public Agent readiness deployment | FAIL | `screenshots/agent-readiness-ai-plan-390.png` |
 | 12 | Device page continuation resmoke on current production frontend | FAIL | `screenshots/continuation-device-qa-20260706-390.png` |
 | 13 | Device page resmoke after Stitch packet SMS/evidence refresh commit | FAIL | `screenshots/stitch-packet-device-qa-430bfdf5-390.png` |
+| 14 | Agent page after cloud model runtime deployment | FAIL | `screenshots/agent-cloud-ai-plan-20260706-390.jpg` |
 
 ## 2026-07-06 L1 Resmoke
 
@@ -1253,3 +1255,60 @@ Fresh verification:
 - No cloud runtime or frontend deployment was made for this tooling/handoff-only change.
 - In-app browser device-page resmoke captured `screenshots/stitch-packet-device-qa-430bfdf5-390.png` at `390 x 844`; it remains current-fail evidence only.
 - Visible blockers in that browser pass: false `网络未连接`, `setup_required`, `M33`, `M55`, `Gatekeeper`, and a visible `蓝牙调试 / 实机验证` route instead of a full patient device-binding wizard.
+
+## Agent Cloud Model Runtime Follow-Up
+
+2026-07-06 continuation work closed the backend `agent_cloud_model` blocker.
+This section supersedes earlier entries in this report that listed
+`agent_cloud_model` as a current blocker.
+
+Root cause and fix:
+
+- Cloud Agent safe-answer calls could fail before fallback when model context
+  contained non-JSON-serializable values such as datetimes.
+- Local regression test added: `test_rehab_agent_falls_back_when_cloud_model_path_raises_type_error`.
+- Local backend now catches cloud-model `TypeError`, `ValueError`, and `OSError`
+  with the same safe fallback path as provider errors.
+- Cloud runtime was patched so model-context JSON serialization uses a safe
+  default and provider failures still fall back safely.
+- Cloud model relay env persistence was corrected so config writes land in the
+  `.env` file read by the running API process.
+
+Cloud deployment:
+
+- Build SHA: `agent-model-env-path-20260706`.
+- Build ref: `codex/rehab-mobile-backend-qa-20260706`.
+- Build time: `2026-07-06T15:40:39Z`.
+- API pid during verification: `2130675`.
+
+Current live Agent state:
+
+- Public config: `P1-AGENT-CONFIG-001 = PASS`.
+- Safe Agent answer: `P1-AGENT-MODEL-001 = PASS`.
+- Model mode: `cloud_model`.
+- Provider/model: `qwen` / `qwen-plus`.
+- API key remains configured server-side and is not exposed in public config,
+  logs, repair packet, prompt, or evidence bundle.
+
+Fresh verification:
+
+- Focused local Agent/model relay tests: `14 passed, 1 warning`.
+- Prompt regression test after removing stale `agent_cloud_model` handoff copy:
+  `3 passed`.
+- Full local related backend/QA suite:
+  `121 passed, 1 warning`.
+- Live cloud API/APK acceptance: `overall = PASS`, `p0_failed = 0`, `total = 22`.
+- Live L1 release remains `FAIL`: API `PASS`, frontend `FAIL`, blocker
+  `frontend_l1_gate` only.
+- Live objective audit remains `FAIL`: `7 / 11` failing. Passing objectives now
+  include `cloud_deployment`, `login`, `agent_cloud_model`, and `apk_delivery`.
+- Refreshed Stitch repair packet now has `non_stitch_blockers = []`; remaining
+  Stitch blockers are `home_next_step`, `phone_binding`, `device_binding`,
+  `ask_therapist_safety`, `profile_no_fake_debug`, `browser_qa_evidence`, and
+  `frontend_l1_gate`.
+- In-app browser QA captured
+  `docs/qa/rehab-mobile-20260706/screenshots/agent-cloud-ai-plan-20260706-390.jpg`
+  at `390 x 844`; it remains current-fail evidence because the page still lacks
+  `问康复师` and still exposes `setup_required`/`M33` copy.
+- APK HEAD remained `200`, size `4198462`, content type
+  `application/vnd.android.package-archive`.

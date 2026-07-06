@@ -322,6 +322,31 @@ def test_rehab_agent_falls_back_when_cloud_model_is_unavailable():
     assert answer["model_status"]["fallback_reason"] == "cloud_model_unavailable"
 
 
+def test_rehab_agent_falls_back_when_cloud_model_path_raises_type_error():
+    user = User(email="patient@example.com", password_hash="x", name="康复用户")
+    settings = Settings(
+        agent_model_api_key="sk-test",
+        agent_model_base_url="https://model.example/v1",
+        agent_model_name="rehab-cloud-model",
+    )
+
+    def failing_model_call(_settings, _messages):
+        raise TypeError("Object of type datetime is not JSON serializable")
+
+    answer = answer_patient_question(
+        user,
+        None,
+        "今天训练后酸痛怎么办？",
+        settings=settings,
+        cloud_model_caller=failing_model_call,
+    )
+
+    assert answer["answer"]
+    assert answer["model_status"]["mode"] == "fallback_rule_based"
+    assert answer["model_status"]["configured"] is True
+    assert answer["model_status"]["fallback_reason"] == "cloud_model_unavailable"
+
+
 def test_agent_endpoint_reports_model_status_without_cloud_config():
     client = TestClient(create_app(database_url="sqlite+pysqlite:///:memory:"))
     headers = _auth_headers(client)

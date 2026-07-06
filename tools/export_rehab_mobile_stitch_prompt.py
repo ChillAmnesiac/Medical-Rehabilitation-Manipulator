@@ -22,6 +22,10 @@ def _bullet(items: list[Any], *, indent: str = "- ") -> list[str]:
     return [f"{indent}{item}" for item in items]
 
 
+def _inline_list(items: list[Any]) -> str:
+    return ", ".join(str(item) for item in items) if items else "none"
+
+
 def _front_failures_section(packet: dict[str, Any]) -> list[str]:
     lines = ["## Frontend Failures To Fix"]
     for failure in packet.get("frontend_failures") or []:
@@ -119,6 +123,22 @@ def _ops_readiness_section(packet: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _stitch_boundary_note(summary: dict[str, Any]) -> str:
+    non_stitch = set(summary.get("non_stitch_blockers") or [])
+    ops_warnings = set(summary.get("ops_warnings") or [])
+    if "agent_cloud_model" in non_stitch:
+        return (
+            "Important: Stitch cannot clear agent_cloud_model by UI work alone. "
+            "The frontend must still render model/SMS readiness honestly."
+        )
+    if ops_warnings:
+        return (
+            "Important: Stitch cannot clear provider-readiness warnings by UI work alone. "
+            "The frontend must render those states honestly."
+        )
+    return "Important: backend/API blockers are clear in this packet; focus Stitch work on frontend L1 behavior and final browser evidence."
+
+
 def _post_stitch_bundle_section(packet: dict[str, Any]) -> list[str]:
     artifacts = packet.get("required_artifacts") or {}
     tool = artifacts.get("frontend_release_tool") or "tools/prepare_rehab_mobile_frontend_release.py"
@@ -176,11 +196,11 @@ def render_prompt(packet: dict[str, Any], *, generated_at: str | None = None) ->
         "Do not hard-code fixture values. Use the fixture only to understand response shape and required field names.",
         "",
         "## Current Status",
-        f"- Stitch blockers: {', '.join(summary.get('stitch_blockers') or [])}",
-        f"- Non-Stitch blockers: {', '.join(summary.get('non_stitch_blockers') or [])}",
-        f"- Ops warnings: {', '.join(summary.get('ops_warnings') or [])}",
+        f"- Stitch blockers: {_inline_list(summary.get('stitch_blockers') or [])}",
+        f"- Non-Stitch blockers: {_inline_list(summary.get('non_stitch_blockers') or [])}",
+        f"- Ops warnings: {_inline_list(summary.get('ops_warnings') or [])}",
         "",
-        "Important: Stitch cannot clear agent_cloud_model or provider-readiness warnings by UI work alone. The frontend must still render model/SMS readiness honestly.",
+        _stitch_boundary_note(summary),
         "",
     ]
     lines.extend(_current_fail_section(packet))
