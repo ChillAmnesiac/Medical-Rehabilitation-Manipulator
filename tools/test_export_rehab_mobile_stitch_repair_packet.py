@@ -16,6 +16,21 @@ def _load_module():
     return module
 
 
+def _write_jpeg_header(path, width, height):
+    path.write_bytes(
+        b"\xff\xd8"
+        + b"\xff\xe0"
+        + (16).to_bytes(2, "big")
+        + b"JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+        + b"\xff\xc0"
+        + (17).to_bytes(2, "big")
+        + b"\x08"
+        + height.to_bytes(2, "big")
+        + width.to_bytes(2, "big")
+        + b"\x03\x01\x11\x00\x02\x11\x00\x03\x11\x00"
+    )
+
+
 def _release_payload():
     return {
         "summary": {
@@ -146,6 +161,34 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
     assert packet["required_artifacts"]["api_fixture"].endswith("rehab-mobile-l1-api-fixture-20260706.json")
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(packet["verification_commands"]["powershell"])
     assert "configure_rehab_model_relay.py" in packet["non_stitch_actions"][0]["command"]
+
+
+def test_repair_packet_includes_current_fail_browser_evidence(tmp_path):
+    module = _load_module()
+    for name in (
+        "current-fail-home-clip-390x844.png",
+        "current-fail-ai-plan-clip-390x844.png",
+        "current-fail-device-clip2-390x844.png",
+        "current-fail-profile-clip2-390x844.png",
+    ):
+        _write_jpeg_header(tmp_path / name, 390, 844)
+
+    packet = module.build_repair_packet(
+        _release_payload(),
+        _objective_payload(),
+        generated_at="2026-07-06T12:00:00Z",
+        current_fail_dir=tmp_path,
+    )
+
+    assert [item["screen"] for item in packet["current_fail_evidence"]] == [
+        "home",
+        "ai-plan",
+        "device",
+        "profile",
+    ]
+    assert packet["current_fail_evidence"][0]["dimensions"] == {"width": 390, "height": 844}
+    assert packet["current_fail_evidence"][0]["purpose"] == "Documents current deployed frontend failure only."
+    assert packet["current_fail_evidence"][0]["counts_for_l1_success"] is False
 
 
 def test_cli_writes_repair_packet_from_saved_gate_payloads(tmp_path):

@@ -911,3 +911,27 @@ These screenshots are intentionally kept outside `docs/qa/rehab-mobile-20260706/
 - Profile still shows raw stage/debug/medical constraint content instead of the final cloud account, phone, and safe medical empty-state layout.
 
 The refreshed repair packet now reports `browser_evidence_current.matched = {}` and missing all five exact L1 success screenshot names.
+
+## Stitch Repair Packet Current-Fail Evidence Follow-Up
+
+2026-07-06 continuation work connected the in-app browser failure screenshots directly into the machine-readable Stitch repair packet:
+
+- Updated script: `tools/export_rehab_mobile_stitch_repair_packet.py`
+- Updated tests: `tools/test_export_rehab_mobile_stitch_repair_packet.py`
+- Refreshed packet: `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
+
+New packet field:
+
+- `current_fail_evidence`
+
+It lists the current-fail screenshots for `home`, `ai-plan`, `device`, and `profile`, with decoded dimensions and `counts_for_l1_success = false`. Stitch should use these as visual failure references only.
+
+Fresh verification:
+
+- Red test first: `build_repair_packet(..., current_fail_dir=...)` was unsupported.
+- Focused objective-audit and repair-packet tests: `9 passed`.
+- Full local backend plus QA suite: `81 passed, 1 warning`.
+- Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remains `FAIL`: `8 / 11` failing, including all five exact L1 success screenshots missing.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- Live repair packet JSON parse confirms all four current-fail screenshots are listed at `390 x 844`.

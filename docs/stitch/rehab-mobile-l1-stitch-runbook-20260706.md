@@ -51,6 +51,7 @@ The packet is generated from the current cloud L1 release gate and objective aud
 - `frontend_failures`: failed page gates, required additions, required removals, and visible text samples.
 - `integration_gaps`: required API wiring states that source/static checks still cannot find.
 - `browser_evidence_current`: current screenshot matches, missing required scenes, and screenshots whose dimensions are not the required `390 x 844`.
+- `current_fail_evidence`: current in-app browser screenshots that show what is broken today; these guide Stitch fixes but never count as L1 success evidence.
 
 Historical prompt kept for reference:
 

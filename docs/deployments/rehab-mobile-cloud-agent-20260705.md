@@ -571,6 +571,26 @@
 - The refreshed repair packet now reports `browser_evidence_current.matched = {}` and all five required L1 success screenshots missing.
 - No cloud runtime deployment was made for this browser-QA evidence-only change.
 
+## 2026-07-06 Repair Packet Current-Fail Evidence
+
+- Updated `tools/export_rehab_mobile_stitch_repair_packet.py` so the live repair packet includes `current_fail_evidence`.
+- The field lists the current in-app browser failure screenshots for:
+  - `home`
+  - `ai-plan`
+  - `device`
+  - `profile`
+- Each entry includes the screenshot path, decoded dimensions, and `counts_for_l1_success = false`.
+- Refreshed `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`.
+- Fresh verification:
+  - Red test first showed `current_fail_dir` was unsupported.
+  - Focused objective-audit and repair-packet tests: `9 passed`.
+  - Full local backend plus QA suite: `81 passed, 1 warning`.
+  - Live L1 release gate remained `FAIL` with API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+  - Live objective audit remained `FAIL` with `8 / 11` failing, including all five exact L1 success screenshots missing.
+  - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+  - Live repair packet JSON parse confirmed all four current-fail screenshots are listed at `390 x 844`.
+- No cloud runtime deployment was made for this QA/tooling-only change.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

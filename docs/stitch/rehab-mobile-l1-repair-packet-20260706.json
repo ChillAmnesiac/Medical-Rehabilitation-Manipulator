@@ -1,6 +1,6 @@
 {
   "schema": "rehab-mobile-stitch-repair-packet/v1",
-  "generated_at": "2026-07-06T13:08:57Z",
+  "generated_at": "2026-07-06T13:15:55Z",
   "target": {
     "api_base": "http://106.55.62.122:8011",
     "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
@@ -176,6 +176,48 @@
       "height": 844
     }
   },
+  "current_fail_evidence": [
+    {
+      "screen": "home",
+      "file": "docs\\qa\\rehab-mobile-20260706\\browser-current-fail-20260706\\current-fail-home-clip-390x844.png",
+      "dimensions": {
+        "width": 390,
+        "height": 844
+      },
+      "purpose": "Documents current deployed frontend failure only.",
+      "counts_for_l1_success": false
+    },
+    {
+      "screen": "ai-plan",
+      "file": "docs\\qa\\rehab-mobile-20260706\\browser-current-fail-20260706\\current-fail-ai-plan-clip-390x844.png",
+      "dimensions": {
+        "width": 390,
+        "height": 844
+      },
+      "purpose": "Documents current deployed frontend failure only.",
+      "counts_for_l1_success": false
+    },
+    {
+      "screen": "device",
+      "file": "docs\\qa\\rehab-mobile-20260706\\browser-current-fail-20260706\\current-fail-device-clip2-390x844.png",
+      "dimensions": {
+        "width": 390,
+        "height": 844
+      },
+      "purpose": "Documents current deployed frontend failure only.",
+      "counts_for_l1_success": false
+    },
+    {
+      "screen": "profile",
+      "file": "docs\\qa\\rehab-mobile-20260706\\browser-current-fail-20260706\\current-fail-profile-clip2-390x844.png",
+      "dimensions": {
+        "width": 390,
+        "height": 844
+      },
+      "purpose": "Documents current deployed frontend failure only.",
+      "counts_for_l1_success": false
+    }
+  ],
   "non_stitch_actions": [
     {
       "blocker": "agent_cloud_model",

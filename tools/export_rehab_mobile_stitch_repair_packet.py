@@ -65,6 +65,8 @@ BROWSER_QA_REQUIRED = [
     },
 ]
 
+CURRENT_FAIL_SCREEN_ORDER = ["home", "ai-plan", "device", "profile"]
+
 
 def _utc_now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -136,6 +138,34 @@ def _requirement_evidence(objective_payload: dict[str, Any], requirement: str) -
     return {}
 
 
+def _current_fail_screen_name(filename: str) -> str | None:
+    for screen in CURRENT_FAIL_SCREEN_ORDER:
+        if filename.startswith(f"current-fail-{screen}-"):
+            return screen
+    return None
+
+
+def _current_fail_evidence(current_fail_dir: Path | None) -> list[dict[str, Any]]:
+    if not current_fail_dir or not current_fail_dir.exists():
+        return []
+    evidence: list[dict[str, Any]] = []
+    for path in sorted(current_fail_dir.glob("current-fail-*.png")):
+        screen = _current_fail_screen_name(path.name)
+        if not screen:
+            continue
+        evidence.append(
+            {
+                "screen": screen,
+                "file": str(path),
+                "dimensions": qa_rehab_mobile_l1_objective_audit._image_dimensions(path),
+                "purpose": "Documents current deployed frontend failure only.",
+                "counts_for_l1_success": False,
+            }
+        )
+    order = {screen: index for index, screen in enumerate(CURRENT_FAIL_SCREEN_ORDER)}
+    return sorted(evidence, key=lambda item: order.get(item["screen"], len(order)))
+
+
 def _split_blockers(
     objective_payload: dict[str, Any], release_payload: dict[str, Any]
 ) -> tuple[list[str], list[str], list[str]]:
@@ -162,7 +192,8 @@ def build_repair_packet(
     web_base: str = "http://106.55.62.122:3001/rehab-arm-mobile",
     apk_url: str = "http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk",
     required_artifacts: dict[str, str] | None = None,
-    ) -> dict[str, Any]:
+    current_fail_dir: Path | None = None,
+) -> dict[str, Any]:
     frontend_failures = _frontend_failures(release_payload)
     stitch_blockers, non_stitch_blockers, meta_blockers = _split_blockers(objective_payload, release_payload)
     artifacts = dict(DEFAULT_REQUIRED_ARTIFACTS)
@@ -196,6 +227,7 @@ def build_repair_packet(
         "frontend_failures": frontend_failures,
         "integration_gaps": _integration_gaps(frontend_failures),
         "browser_evidence_current": _requirement_evidence(objective_payload, "browser_qa_evidence"),
+        "current_fail_evidence": _current_fail_evidence(current_fail_dir),
         "non_stitch_actions": [
             {
                 "blocker": "agent_cloud_model",
@@ -259,6 +291,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--output", type=Path)
     parser.add_argument("--generated-at")
     parser.add_argument("--screenshots-dir", type=Path, default=Path("docs/qa/rehab-mobile-20260706/screenshots"))
+    parser.add_argument(
+        "--current-fail-dir",
+        type=Path,
+        default=Path("docs/qa/rehab-mobile-20260706/browser-current-fail-20260706"),
+    )
     parser.add_argument("--api-base", default=os.getenv("REHAB_QA_API_BASE", "http://106.55.62.122:8011"))
     parser.add_argument("--web-base", default=os.getenv("REHAB_QA_WEB_BASE", "http://106.55.62.122:3001/rehab-arm-mobile"))
     parser.add_argument("--web-origin", default=os.getenv("REHAB_QA_WEB_ORIGIN", "http://106.55.62.122:3001"))
@@ -290,6 +327,7 @@ def main(argv: list[str]) -> int:
         api_base=args.api_base,
         web_base=args.web_base,
         apk_url=args.apk_url,
+        current_fail_dir=args.current_fail_dir,
     )
     rendered = json.dumps(packet, ensure_ascii=False, indent=2)
     if args.output:
