@@ -720,7 +720,7 @@ Do not call this build user-ready. Backend is ready for Stitch to consume, but t
 Stitch execution runbook:
 
 - `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`
-- Primary Stitch prompt: `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`
+- Primary Stitch prompt: `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`
 
 ## Stitch Fixture And Prompt V3 Follow-Up
 
@@ -935,3 +935,31 @@ Fresh verification:
 - Live objective audit remains `FAIL`: `8 / 11` failing, including all five exact L1 success screenshots missing.
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - Live repair packet JSON parse confirms all four current-fail screenshots are listed at `390 x 844`.
+
+## Stitch Prompt V4 Follow-Up
+
+2026-07-06 continuation work turned the live repair packet into a generated Stitch prompt so the frontend handoff no longer drifts from the current release/objective gates:
+
+- New script: `tools/export_rehab_mobile_stitch_prompt.py`
+- New tests: `tools/test_export_rehab_mobile_stitch_prompt.py`
+- Primary prompt: `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`
+- Refreshed repair packet: `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
+
+The V4 prompt includes:
+
+- Current Stitch blockers: `home_next_step`, `phone_binding`, `device_binding`, `ask_therapist_safety`, `profile_no_fake_debug`, `browser_qa_evidence`, and `frontend_l1_gate`.
+- Non-Stitch blocker: `agent_cloud_model`.
+- All four current-fail browser screenshots with `counts_for_l1_success = false`.
+- Exact required L1 success screenshot filenames, including `l1-home-390.png`.
+- Final Codex verification commands for the combined L1 release gate and objective audit.
+
+Fresh verification:
+
+- Red test first: `tools/export_rehab_mobile_stitch_prompt.py` did not exist.
+- Follow-up red test first: repair packet still pointed at V3 before `required_artifacts.stitch_prompt` was switched to V4.
+- Focused repair-packet/prompt tests: `5 passed`.
+- Full local backend plus QA suite: `83 passed, 1 warning`.
+- Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remains `FAIL`: `8 / 11` failing, including all five exact L1 success screenshots missing.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.

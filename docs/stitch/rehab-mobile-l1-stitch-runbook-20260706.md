@@ -13,6 +13,7 @@ Codex owns backend, QA, deployment verification, APK verification, and git commi
 - Frontend L1: `FAIL`
 - Sanitized live API fixture: `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json`
 - Live Stitch repair packet: `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
+- Primary Stitch prompt: `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`
 - Fixture now includes sanitized phone-verification `start_response` and `confirm_response` examples, with `verification_id` preserved as `fixture-verification-id` and debug codes removed.
 - Latest browser evidence:
   - `docs/qa/rehab-mobile-20260706/06-profile-resmoke-390.png`
@@ -23,6 +24,11 @@ Codex owns backend, QA, deployment verification, APK verification, and git commi
   - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png`
   - `docs/qa/rehab-mobile-20260706/screenshots/continuation-device-qa-20260706-390.png`
   - `docs/qa/rehab-mobile-20260706/screenshots/model-relay-ops-device-390.png`
+- Current-fail browser evidence for Stitch visual repair reference:
+  - `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-home-clip-390x844.png`
+  - `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-ai-plan-clip-390x844.png`
+  - `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-device-clip2-390x844.png`
+  - `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-profile-clip2-390x844.png`
 
 Latest visible frontend blockers:
 
@@ -37,7 +43,9 @@ Latest visible frontend blockers:
 
 Use this prompt as the primary frontend task:
 
-- `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`
+
+This prompt is generated from the live repair packet by `tools/export_rehab_mobile_stitch_prompt.py`. Regenerate it after refreshing the repair packet instead of manually copying blocker lists.
 
 Use this machine-readable repair packet to keep the Stitch pass tied to the live failing gates:
 
@@ -55,6 +63,7 @@ The packet is generated from the current cloud L1 release gate and objective aud
 
 Historical prompt kept for reference:
 
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`
 - `docs/stitch/rehab-mobile-l1-stitch-execution-v2-20260706.md`
 - `docs/stitch/rehab-mobile-stitch-execution-20260706.md`
 
@@ -190,4 +199,4 @@ Then Codex must:
 
 ## Current Next Action
 
-Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md` and `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`, deploy the generated frontend assets, then hand control back to Codex for browser QA and git-managed closeout.
+Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` and `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`, deploy the generated frontend assets, then hand control back to Codex for browser QA and git-managed closeout.

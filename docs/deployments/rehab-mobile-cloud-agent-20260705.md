@@ -591,6 +591,27 @@
   - Live repair packet JSON parse confirmed all four current-fail screenshots are listed at `390 x 844`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
 
+## 2026-07-06 Stitch Prompt V4 Export
+
+- Added a generated Stitch prompt exporter:
+  - `tools/export_rehab_mobile_stitch_prompt.py`
+  - `tools/test_export_rehab_mobile_stitch_prompt.py`
+- Generated the current primary Stitch handoff:
+  - `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`
+- Updated the repair packet default artifact so `required_artifacts.stitch_prompt` points to V4 instead of V3.
+- Refreshed:
+  - `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
+  - `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`
+  - `docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md`
+  - `docs/qa/rehab-mobile-20260706/QA_REPORT.md`
+- The V4 prompt carries the current-fail browser evidence, exact L1 success screenshot filenames, Stitch blockers, and the non-Stitch `agent_cloud_model` blocker.
+- Focused repair-packet/prompt tests: `5 passed`.
+- Full local backend plus QA suite: `83 passed, 1 warning`.
+- Live L1 release gate remained `FAIL` with API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remained `FAIL` with `8 / 11` failing, including all five exact L1 success screenshots missing.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

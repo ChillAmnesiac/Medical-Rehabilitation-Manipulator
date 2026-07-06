@@ -21,7 +21,7 @@ import qa_rehab_mobile_l1_release  # noqa: E402
 
 
 DEFAULT_REQUIRED_ARTIFACTS = {
-    "stitch_prompt": "docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md",
+    "stitch_prompt": "docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md",
     "stitch_runbook": "docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md",
     "api_fixture": "docs/stitch/rehab-mobile-l1-api-fixture-20260706.json",
     "scorecard": "docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md",
