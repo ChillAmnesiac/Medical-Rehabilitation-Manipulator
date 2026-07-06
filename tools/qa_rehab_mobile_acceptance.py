@@ -127,6 +127,21 @@ def agent_model_status_ok(value: Any) -> bool:
     return False
 
 
+def agent_cloud_model_readiness(value: Any) -> tuple[bool, dict[str, Any]]:
+    model_status = data(value).get("model_status")
+    if not isinstance(model_status, dict):
+        return False, {"mode": None, "reason": "model_status_missing"}
+    mode = model_status.get("mode")
+    detail = {
+        "mode": mode,
+        "configured": model_status.get("configured"),
+        "provider": model_status.get("provider"),
+        "model": model_status.get("model"),
+        "reason": model_status.get("fallback_reason"),
+    }
+    return mode == "cloud_model" and bool(model_status.get("model")), detail
+
+
 def get_or_create_session_token(
     client: Client,
     email: str,
@@ -496,6 +511,7 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         )
         agent_terms = text_has_terms(safe_body)
         model_status_ok = agent_model_status_ok(safe_body)
+        cloud_model_ready, cloud_model_detail = agent_cloud_model_readiness(safe_body)
         add(
             results,
             "P0-AGENT-001",
@@ -509,6 +525,22 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
                 "model_status": data(safe_body).get("model_status"),
             },
         )
+        if cloud_model_ready:
+            add(
+                results,
+                "P1-AGENT-MODEL-001",
+                "P1",
+                True,
+                "Rehab therapist Agent is backed by a configured cloud model.",
+                cloud_model_detail,
+            )
+        else:
+            warn(
+                results,
+                "P1-AGENT-MODEL-001",
+                "Rehab therapist Agent is using safe fallback rules; configure the cloud model before production.",
+                cloud_model_detail,
+            )
 
         unsafe_details = []
         unsafe_ok = True

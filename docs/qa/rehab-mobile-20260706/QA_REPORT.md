@@ -117,7 +117,7 @@ After deploying `device-binding-hardening-20260706` and adding the cross-account
 
 - Overall: `PASS`
 - P0 failed: `0`
-- Total: `17`
+- Total: `18`
 - Cloud PID: `1449627`
 - Build SHA: `device-binding-hardening-20260706`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
@@ -132,6 +132,10 @@ After deploying `device-binding-hardening-20260706` and adding the cross-account
   - Second account bind status: `409`
   - Second account error code: `DEVICE_ALREADY_BOUND`
   - Conflict test device: `QA-REHAB-ARM-CONFLICT-001`
+- `P1-AGENT-MODEL-001`: `WARN`
+  - Mode: `fallback_rule_based`
+  - Reason: `external_model_not_configured`
+  - Meaning: safe Q&A works, but staging is not currently backed by a configured external cloud model.
 - APK HEAD: `PASS`, size `4198462`, content type `application/vnd.android.package-archive`
 
 Combined L1 release gate after this deployment:
@@ -236,7 +240,7 @@ Latest API/package acceptance smoke passed:
 
 - Overall: `PASS`
 - P0 failed: `0`
-- Total checks: `17`
+- Total checks: `18`
 - Cloud PID: `1449627`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
 - Build SHA: `device-binding-hardening-20260706`
@@ -247,6 +251,7 @@ Latest API/package acceptance smoke passed:
 - `P0-DEVICE-CONFLICT-001`: `PASS`
 - Agent safe answer with `data.model_status`: `PASS`
 - Current Agent model mode: `fallback_rule_based`, reason `external_model_not_configured`
+- `P1-AGENT-MODEL-001`: `WARN`, configure external cloud model credentials before claiming production-grade model-backed Agent.
 - Agent unsafe refusal: `PASS`
 - CORS from deployed web origin: `PASS`
 - APK HEAD: `PASS`, size over 1 MB
@@ -342,6 +347,28 @@ Fresh verification:
 - Total L1 release gate after conflict gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`; second QA account login was reused and the second bind returned `409 DEVICE_ALREADY_BOUND`.
 - Browser QA screenshots: `docs/qa/rehab-mobile-20260706/screenshots/device-binding-*.png`.
 - APK smoke remained `PASS` with size `4198462` bytes.
+
+## Backend Agent Model Readiness Follow-Up
+
+2026-07-06 continuation work added explicit visibility for whether `问康复师` is answered by a configured cloud model or the safe local fallback:
+
+- Acceptance smoke now includes `P1-AGENT-MODEL-001`.
+- Cloud environment inspection found external model credentials unset:
+  - `REHAB_ARM_MODEL_RELAY_API_KEY`: unset
+  - `AGENT_MODEL_API_KEY`: unset
+  - `OPENAI_API_KEY`: unset
+- Current staging Agent result:
+  - `model_status.mode = fallback_rule_based`
+  - `fallback_reason = external_model_not_configured`
+
+Fresh verification:
+
+- Red test first: `agent_cloud_model_readiness` was missing and helper tests failed.
+- Acceptance helper tests after implementation: `10 passed`.
+- Cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 18`.
+- `P1-AGENT-MODEL-001` -> `WARN`.
+- Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+- In-app browser plugin QA attempt: the Codex in-app browser instance was discoverable, but `selected` tab and tab-list reads timed out; no new screenshot evidence was captured in this pass.
 
 ## Accessibility Risks
 

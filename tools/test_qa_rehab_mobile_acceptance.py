@@ -52,6 +52,48 @@ def test_agent_model_status_rejects_missing_or_ambiguous_status():
     assert not module.agent_model_status_ok({"data": {"model_status": {"mode": "unknown"}}})
 
 
+def test_agent_cloud_model_readiness_reports_cloud_model_ready():
+    module = _load_module()
+
+    ok, detail = module.agent_cloud_model_readiness(
+        {
+            "data": {
+                "model_status": {
+                    "mode": "cloud_model",
+                    "configured": True,
+                    "provider": "openai_compatible",
+                    "model": "rehab-cloud-model",
+                }
+            }
+        }
+    )
+
+    assert ok is True
+    assert detail["mode"] == "cloud_model"
+    assert detail["model"] == "rehab-cloud-model"
+
+
+def test_agent_cloud_model_readiness_warns_on_rule_based_fallback():
+    module = _load_module()
+
+    ok, detail = module.agent_cloud_model_readiness(
+        {
+            "data": {
+                "model_status": {
+                    "mode": "fallback_rule_based",
+                    "configured": False,
+                    "provider": "openai_compatible",
+                    "fallback_reason": "external_model_not_configured",
+                }
+            }
+        }
+    )
+
+    assert ok is False
+    assert detail["mode"] == "fallback_rule_based"
+    assert detail["reason"] == "external_model_not_configured"
+
+
 def test_phone_verification_flow_uses_debug_code_to_confirm_staging_phone():
     module = _load_module()
 

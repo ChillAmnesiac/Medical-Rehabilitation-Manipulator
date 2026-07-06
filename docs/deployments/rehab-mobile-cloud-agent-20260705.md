@@ -199,6 +199,23 @@
   - Repeated run reused the second QA account login and still returned `409 DEVICE_ALREADY_BOUND`.
   - APK remains reachable: `Content-Length: 4198462`, content type `application/vnd.android.package-archive`.
 
+## 2026-07-06 Agent Model Readiness Gate
+
+- Added acceptance visibility for whether the rehab therapist Agent is backed by a configured external cloud model:
+  - `P1-AGENT-MODEL-001`
+- Current cloud runtime has no external model credentials configured:
+  - `REHAB_ARM_MODEL_RELAY_API_KEY`: unset
+  - `AGENT_MODEL_API_KEY`: unset
+  - `OPENAI_API_KEY`: unset
+- No new cloud code deployment was required; the deployed Agent already returns `data.model_status`.
+- Fresh verification:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools\test_qa_rehab_mobile_acceptance.py -q` -> `10 passed`
+  - `py_compile` passed for `tools\qa_rehab_mobile_acceptance.py`
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 18`
+  - `P1-AGENT-MODEL-001` -> `WARN`, mode `fallback_rule_based`, reason `external_model_not_configured`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
+- In-app browser plugin attempt: the Codex in-app browser backend was listed, but selected-tab and tab-list reads timed out, so no new rendered screenshot could be captured for this gate.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

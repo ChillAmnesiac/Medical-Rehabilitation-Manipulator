@@ -14,6 +14,7 @@ Required:
 - Phone binding APIs pass.
 - Device binding APIs pass, including same-account idempotency and cross-account already-bound conflict.
 - Agent safe answer and unsafe refusal pass.
+- Agent model readiness is visible; current staging warns when using fallback rules instead of a configured cloud model.
 - CORS passes from deployed web origin.
 - APK URL is reachable.
 
@@ -79,6 +80,7 @@ Current result: `NOT READY`.
 | Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code end to end |
 | Device binding flow | PASS | `P0-DEVICE-FLOW-001` repeats binding against the same record; `P0-DEVICE-CONFLICT-001` rejects a second account with `DEVICE_ALREADY_BOUND` |
 | Agent backend safety | PASS | Safe answer `200` with `model_status`, unsafe direct-control requests `400 UNSAFE_MOTION_REQUEST` |
+| Agent cloud model readiness | WARN | `P1-AGENT-MODEL-001`: current staging mode is `fallback_rule_based`, reason `external_model_not_configured` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |
 | Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate` |
 | Home UI | FAIL | Browser screenshots plus `tools/qa_rehab_mobile_l1_frontend.py` gate `L1-HOME-STATIC-001` |

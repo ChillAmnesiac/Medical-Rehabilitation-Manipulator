@@ -25,8 +25,9 @@ Move the rehab mobile frontend from engineering dashboard to L1 patient-ready st
 Current backend status:
 - API smoke is PASS.
 - APK delivery is PASS.
-- Backend acceptance total is 17 checks with 0 P0 failures.
+- Backend acceptance total is 18 checks with 0 P0 failures.
 - Device binding is verified for both same-account idempotency and cross-account already-bound conflict.
+- Current staging Agent model readiness is WARN: `model_status.mode = fallback_rule_based`, reason `external_model_not_configured`.
 - The remaining blocker is frontend rendering and interaction.
 
 Use this API base by default:
@@ -129,7 +130,8 @@ Fix 3 - Rehab therapist Agent:
   Body:
     { "message": "...", "context_snapshot": { "page": currentPage, "source": "rehab-mobile" } }
 - Render response.data.answer, response.data.boundary, and response.data.model_status in patient-friendly form.
-- If model_status.mode is fallback_rule_based, show a subtle helper such as "当前由安全规则建议辅助回答"; do not make it sound like fake AI.
+- If model_status.mode is fallback_rule_based, show a subtle helper such as "当前由安全规则建议辅助回答"; do not describe it as a live cloud model.
+- If model_status.mode is cloud_model, show a subtle helper such as "已连接云端康复模型".
 - For 400 error code UNSAFE_MOTION_REQUEST, show the backend unsafe_copy or:
   "为了保护你，我不能绕过设备安全系统或发送直接运动指令。可以帮你调整训练建议或解释报告。"
 - Include quick chips:
