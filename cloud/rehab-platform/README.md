@@ -55,6 +55,16 @@ The backend exposes the routes already used by `apps/web/public/rehab-arm-mobile
 - `GET /api/rehab-arm/app/v1/training-sessions/recent`
 - `POST /api/rehab-arm/app/v1/agent/messages`
 
+### Rehab Therapist Agent
+
+`POST /api/rehab-arm/app/v1/agent/messages` uses an OpenAI-compatible chat endpoint when `AGENT_MODEL_API_KEY` is configured. If no external model is configured or the provider is unavailable, the endpoint safely falls back to a rule-based patient answer and always returns `data.model_status`.
+
+Required response status contract:
+
+- `model_status.mode = cloud_model` when the external model answered.
+- `model_status.mode = fallback_rule_based` when the backend used the safe local fallback.
+- Unsafe direct-control or safety-bypass requests still return `400 UNSAFE_MOTION_REQUEST`.
+
 ## QA Gate
 
 Before calling a milestone complete:

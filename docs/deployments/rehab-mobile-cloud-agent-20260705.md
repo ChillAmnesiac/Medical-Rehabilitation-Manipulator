@@ -101,6 +101,33 @@
 - Profile mixes home workflow content above the rehab profile and uses risky demo-style medical constraint copy.
 - Stitch handoff prompt: `docs/stitch/rehab-mobile-qa-fixes-20260705-prompt.md`
 
+## 2026-07-06 Agent Cloud Model Status
+
+- Local backend source now supports an OpenAI-compatible rehab therapist Agent call:
+  - Configure with `AGENT_MODEL_PROVIDER`, `AGENT_MODEL_BASE_URL`, `AGENT_MODEL_NAME`, `AGENT_MODEL_API_KEY`, timeout, temperature, and max-token settings.
+  - `POST /api/rehab-arm/app/v1/agent/messages` returns `data.model_status` for every safe answer.
+  - `model_status.mode = cloud_model` means the configured cloud model answered.
+  - `model_status.mode = fallback_rule_based` means the safe local fallback answered.
+  - Unsafe direct-control and safety-bypass requests still return `400 UNSAFE_MOTION_REQUEST`.
+- Cloud patch deployed to `ubuntu@106.55.62.122:/home/ubuntu/apps/ai-collab/apps/api/app/modules/rehab_arm/app_router.py`.
+- Cloud backup created at `app/modules/rehab_arm/app_router.py.bak-agent-model-status-20260706`.
+- Cloud restart:
+  - PID: `1409766`
+  - Explicit database URL: `sqlite:///./ai_collab_server.db`
+  - Build SHA label: `agent-model-status-20260706`
+  - Build ref: `codex/rehab-mobile-backend-qa-20260706`
+  - Build time: `2026-07-06T03:13:48Z`
+  - API: `http://106.55.62.122:8011`
+- Fresh local verification before deploy:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests -q` -> `25 passed, 1 warning`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools\test_qa_rehab_mobile_acceptance.py -q` -> `2 passed`
+  - `py_compile` passed for Agent config/service/router and QA script.
+- Fresh cloud acceptance after deploy:
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 14`
+  - `P0-AGENT-001` now checks `data.model_status`.
+  - Current cloud model status: `fallback_rule_based`, `fallback_reason = external_model_not_configured`.
+  - APK remains reachable: `Content-Length: 4198462`, content type `application/vnd.android.package-archive`.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

@@ -194,12 +194,13 @@ Latest API/package acceptance smoke passed:
 - Overall: `PASS`
 - P0 failed: `0`
 - Total checks: `14`
-- Cloud PID: `798697`
-- Build ref: `app/rehab-arm-mobile-stitch`
-- Build SHA: `b735d73`
-- Build time: `2026-07-05T16:32:07Z`
+- Cloud PID: `1409766`
+- Build ref: `codex/rehab-mobile-backend-qa-20260706`
+- Build SHA: `agent-model-status-20260706`
+- Build time: `2026-07-06T03:13:48Z`
 - `P0-PATIENT-VIEW-001`: `PASS`
-- Agent safe answer: `PASS`
+- Agent safe answer with `data.model_status`: `PASS`
+- Current Agent model mode: `fallback_rule_based`, reason `external_model_not_configured`
 - Agent unsafe refusal: `PASS`
 - CORS from deployed web origin: `PASS`
 - APK HEAD: `PASS`, size over 1 MB
@@ -228,7 +229,26 @@ Fresh verification:
 - Syntax checks: `py_compile` passed for backend route and QA script.
 - Stricter cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 14`.
 
-Cloud runtime already had the deployed patient-view contract, so no extra cloud code patch or restart was needed for this follow-up. Latest verified cloud PID is `798697`, build SHA `b735d73`.
+Cloud runtime already had the deployed patient-view contract, so no extra cloud code patch or restart was needed for that source-parity follow-up. The later Agent model-status follow-up restarted the cloud service; latest verified cloud PID is `1409766`.
+
+## Backend Agent Cloud-Model Follow-Up
+
+2026-07-06 continuation work added a verified Agent model-status contract:
+
+- Local backend `answer_patient_question` supports an OpenAI-compatible cloud model call when configured.
+- If the cloud model is not configured or unavailable, the endpoint returns a safe rule-based answer.
+- Every safe Agent answer now includes `data.model_status` so the app can disclose whether the response came from `cloud_model` or `fallback_rule_based`.
+- Cloud deployment patched `app/modules/rehab_arm/app_router.py` on `106.55.62.122`.
+- Latest cloud acceptance passed with `P0-AGENT-001` checking `model_status`.
+
+Fresh verification:
+
+- Red test first: `tools/test_qa_rehab_mobile_acceptance.py` failed because `agent_model_status_ok` did not exist.
+- Agent focused tests: `7 passed, 1 warning`.
+- Local backend suite: `25 passed, 1 warning`.
+- Acceptance helper tests: `2 passed`.
+- Cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 14`.
+- APK smoke remained `PASS` with size `4198462` bytes.
 
 ## Accessibility Risks
 

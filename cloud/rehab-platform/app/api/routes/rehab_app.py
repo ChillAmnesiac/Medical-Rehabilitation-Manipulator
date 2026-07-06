@@ -433,6 +433,7 @@ def create_agent_message(
     request: AgentMessageRequest,
     user: User = Depends(require_current_user),
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ):
     if is_unsafe_motion_request(request.message):
         raise HTTPException(
@@ -442,7 +443,7 @@ def create_agent_message(
                 "message": "The rehab agent can educate and suggest plans, but cannot issue direct motion commands.",
             },
         )
-    return {"data": answer_patient_question(user, _latest_report(db, user.id), request.message)}
+    return {"data": answer_patient_question(user, _latest_report(db, user.id), request.message, settings=settings)}
 
 
 @router.post("/training-plans/{plan_id}/sync-to-device")

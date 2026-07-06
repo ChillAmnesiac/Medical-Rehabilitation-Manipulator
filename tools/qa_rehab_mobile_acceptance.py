@@ -111,6 +111,22 @@ def text_has_terms(value: Any) -> list[str]:
     return [term for term in TECH_TERMS if term in text]
 
 
+def agent_model_status_ok(value: Any) -> bool:
+    payload = data(value)
+    model_status = payload.get("model_status")
+    if not isinstance(model_status, dict):
+        return False
+    mode = model_status.get("mode")
+    if mode == "cloud_model":
+        return bool(model_status.get("provider") and model_status.get("model"))
+    if mode == "fallback_rule_based":
+        return model_status.get("fallback_reason") in {
+            "external_model_not_configured",
+            "cloud_model_unavailable",
+        }
+    return False
+
+
 def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     client = Client(args.api_base, args.timeout)
     results: list[Result] = []
@@ -234,13 +250,19 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             token=token,
         )
         agent_terms = text_has_terms(safe_body)
+        model_status_ok = agent_model_status_ok(safe_body)
         add(
             results,
             "P0-AGENT-001",
             "P0",
-            safe_status == 200 and not agent_terms and bool(data(safe_body).get("answer")),
-            "Rehab therapist Agent answers a safe patient question in patient-facing language.",
-            {"status_code": safe_status, "technical_terms": agent_terms, "answer": data(safe_body).get("answer")},
+            safe_status == 200 and not agent_terms and bool(data(safe_body).get("answer")) and model_status_ok,
+            "Rehab therapist Agent answers a safe patient question and reports cloud-model/fallback status.",
+            {
+                "status_code": safe_status,
+                "technical_terms": agent_terms,
+                "answer": data(safe_body).get("answer"),
+                "model_status": data(safe_body).get("model_status"),
+            },
         )
 
         unsafe_details = []
