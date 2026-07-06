@@ -1535,3 +1535,44 @@ QA hardening added after this resmoke:
   against both raw and HTML-decoded source, so an accessibility label encoded
   as numeric HTML entities can still satisfy the `问康复师` contract when the
   browser-visible label is correct.
+
+## 2026-07-07 Stitch MCP Four-Page Entity Candidate
+
+Codex extended the entity-copy strategy from `home.html` to all four required
+mobile pages and downloaded the candidate into
+`artifacts/stitch/l1-full-entity-candidate-20260707/`.
+
+Generated Stitch screens:
+
+- `home.html`: `4fd2a7955ae04e528e6fa5aacc18a895`.
+- `profile.html`: `f1d1fcbf9cc844b6aee6ffa1a2584b6f`.
+- `device.html`: first generated as `2135179937104311b1461cbe0eb581a8`,
+  then regenerated with hexadecimal entities as
+  `2ec9f9b9acb545668b8d06f4b609da0a` because the decimal entity pass produced
+  a typo (`绑定菮备`).
+- `ai-plan.html`: `648dfa3b393b4a0ea1d3227b3686cc82`.
+
+Source-dir gate:
+
+- Command:
+  `tools/qa_rehab_mobile_l1_frontend.py --source-dir artifacts/stitch/l1-full-entity-candidate-20260707 --output artifacts/stitch/l1-full-entity-candidate-20260707/frontend-l1-source-gate.json`
+- Result: `overall = PASS`, `failed = 0`, `total = 5`.
+- Page gates: home `PASS`, profile `PASS`, device `PASS`, Agent `PASS`.
+- Integration gate: `PASS`, no missing requirements.
+
+Result:
+
+- This is the first Stitch-generated four-page artifact candidate that passes
+  Codex's local L1 frontend source gate.
+- It was not deployed and no APK was rebuilt because the candidate has not been
+  applied to the actual `app/rehab-arm-mobile-stitch` frontend branch, mirrored
+  into the Android WebView bundle, or browser-QA verified.
+- The candidate still needs product-copy cleanup before deployment; for example
+  the home page includes demo-like wording such as `李先生`.
+
+Prompt hardening:
+
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` now emits
+  hexadecimal HTML entity fallback snippets. The device candidate showed that
+  hexadecimal entities are safer for Stitch than decimal entities for the
+  `绑定设备` label.

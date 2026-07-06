@@ -120,8 +120,9 @@ def test_render_prompt_includes_repair_packet_evidence_and_acceptance_commands()
     assert "home.html: 查看康复师建议, 问康复师" in prompt
     assert "Do not paraphrase, translate, rename, or replace these strings with synonyms." in prompt
     assert "HTML entity fallback snippets" in prompt
-    assert "&#26597;&#30475;&#24247;&#22797;&#24072;&#24314;&#35758;" in prompt
-    assert "&#38382;&#24247;&#22797;&#24072;" in prompt
+    assert "&#x67E5;&#x770B;&#x5EB7;&#x590D;&#x5E08;&#x5EFA;&#x8BAE;" in prompt
+    assert "&#x95EE;&#x5EB7;&#x590D;&#x5E08;" in prompt
+    assert "&#x7ED1;&#x5B9A;&#x8BBE;&#x5907;" in prompt
     assert "docs/qa/current-fail-home-clip-390x844.png" in prompt
     assert "counts_for_l1_success = false" in prompt
     assert "L1-HOME-STATIC-001" in prompt

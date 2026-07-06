@@ -63,7 +63,7 @@ def _front_failures_section(packet: dict[str, Any]) -> list[str]:
 
 
 def _html_entity_text(term: str) -> str:
-    return "".join(f"&#{ord(char)};" for char in term)
+    return "".join(f"&#x{ord(char):X};" for char in term)
 
 
 def _exact_visible_copy_section() -> list[str]:
