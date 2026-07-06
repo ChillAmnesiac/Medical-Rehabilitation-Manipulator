@@ -13,6 +13,13 @@ from typing import Any
 
 DEFAULT_REPAIR_PACKET = Path("docs/stitch/rehab-mobile-l1-repair-packet-20260706.json")
 
+EXACT_VISIBLE_COPY = {
+    "home.html": ("查看康复师建议", "问康复师"),
+    "profile.html": ("我的康复档案", "手机号", "绑定手机号", "验证码"),
+    "device.html": ("绑定设备", "打开康复设备电源"),
+    "ai-plan.html": ("问康复师",),
+}
+
 
 def _utc_now() -> str:
     return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -52,6 +59,23 @@ def _front_failures_section(packet: dict[str, Any]) -> list[str]:
         if sample:
             lines.append("Current visible text sample to replace:")
             lines.append(f"> {sample[:500]}")
+    return lines
+
+
+def _exact_visible_copy_section() -> list[str]:
+    lines = [
+        "## Exact Release-Gated Visible Copy",
+        "Do not paraphrase, translate, rename, or replace these strings with synonyms.",
+        "They must appear verbatim as visible HTML text on the listed page:",
+    ]
+    for page, terms in EXACT_VISIBLE_COPY.items():
+        lines.append(f"- {page}: {', '.join(terms)}")
+    lines.extend(
+        [
+            "",
+            "Stitch must reject its own output if any generated page replaces these strings with softer copy such as 开始康复训练, 康复助手, 咨询治疗师, or 设备连接.",
+        ]
+    )
     return lines
 
 
@@ -236,14 +260,20 @@ def render_prompt(packet: dict[str, Any], *, generated_at: str | None = None) ->
         "",
         "Do not hard-code fixture values. Use the fixture only to understand response shape and required field names.",
         "",
-        "## Current Status",
-        f"- Stitch blockers: {_inline_list(summary.get('stitch_blockers') or [])}",
-        f"- Non-Stitch blockers: {_inline_list(summary.get('non_stitch_blockers') or [])}",
-        f"- Ops warnings: {_inline_list(summary.get('ops_warnings') or [])}",
-        "",
-        _stitch_boundary_note(summary),
-        "",
     ]
+    lines.extend(_exact_visible_copy_section())
+    lines.extend(
+        [
+            "",
+            "## Current Status",
+            f"- Stitch blockers: {_inline_list(summary.get('stitch_blockers') or [])}",
+            f"- Non-Stitch blockers: {_inline_list(summary.get('non_stitch_blockers') or [])}",
+            f"- Ops warnings: {_inline_list(summary.get('ops_warnings') or [])}",
+            "",
+            _stitch_boundary_note(summary),
+            "",
+        ]
+    )
     lines.extend(_source_scope_section(packet))
     lines.append("")
     lines.extend(_current_fail_section(packet))

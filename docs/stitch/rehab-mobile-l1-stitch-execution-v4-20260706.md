@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-06T16:44:26Z
+Generated: 2026-07-07T01:50:00Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -14,6 +14,16 @@ Sanitized API fixture: docs/stitch/rehab-mobile-l1-api-fixture-20260706.json
 Runbook: docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md
 
 Do not hard-code fixture values. Use the fixture only to understand response shape and required field names.
+
+## Exact Release-Gated Visible Copy
+Do not paraphrase, translate, rename, or replace these strings with synonyms.
+They must appear verbatim as visible HTML text on the listed page:
+- home.html: 查看康复师建议, 问康复师
+- profile.html: 我的康复档案, 手机号, 绑定手机号, 验证码
+- device.html: 绑定设备, 打开康复设备电源
+- ai-plan.html: 问康复师
+
+Stitch must reject its own output if any generated page replaces these strings with softer copy such as 开始康复训练, 康复助手, 咨询治疗师, or 设备连接.
 
 ## Current Status
 - Stitch blockers: home_next_step, phone_binding, device_binding, ask_therapist_safety, profile_no_fake_debug, browser_qa_evidence, frontend_l1_gate

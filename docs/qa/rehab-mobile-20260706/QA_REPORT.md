@@ -1462,3 +1462,41 @@ Fresh live gate after this attempt:
 
 - `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, blocker
   `frontend_l1_gate` only.
+
+## 2026-07-07 Stitch MCP Home Literal Copy Resmoke
+
+Codex used the Stitch MCP endpoint again, this time with a narrow `home.html`
+prompt and then an `edit_screens` literal-copy correction prompt.
+
+Evidence:
+
+- Source branch mirror refreshed to
+  `app/rehab-arm-mobile-stitch@eaa08a40cdd3e1e62827809111f2323e7f92556f`.
+- Latest APP source local frontend gate remains `FAIL`, `failed = 5`.
+- Latest APP source Android WebView mirror gate remains `FAIL`; the checkout
+  has `apps/web/public/rehab-arm-mobile/`, but no
+  `apps/mobile/rehab-arm-android/www/` mirror directory.
+- Stitch home candidate `fd3aae8953714a058cd8b54a9217a223` generated
+  `artifacts/stitch/l1-mcp-iteration-20260707/home-flash.html`.
+- Stitch home edit candidate `bdcea50a83a74eb68075807aaf7120dc` generated
+  `artifacts/stitch/l1-mcp-iteration-20260707/home-flash-edit-literal.html`.
+
+Result:
+
+- The candidate home HTML no longer contains the raw forbidden terms scanned by
+  `tools/qa_rehab_mobile_l1_frontend.py`.
+- The candidate still fails visible copy requirements. It renders
+  `开始康复训练` and `咨询治疗师` instead of the required
+  `查看康复师建议` and `问康复师`.
+- No Stitch-generated HTML was copied into frontend source or the APK WebView
+  mirror.
+
+QA hardening added after this failed resmoke:
+
+- `L1-HOME-STATIC-001` now requires `查看康复师建议` as well as `问康复师`.
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` now includes
+  an `Exact Release-Gated Visible Copy` section listing the exact strings
+  Stitch must preserve page by page.
+- Fresh deployed frontend gate after the hardening still returns `overall =
+  FAIL`, `failed = 5`; `home.html` is missing both `查看康复师建议` and
+  `问康复师` and still exposes `M33`, `M55`, and `RoboRehab Controller`.

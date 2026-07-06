@@ -177,3 +177,12 @@ def test_device_gate_requires_patient_binding_wizard_copy():
     assert "设备" in required_terms
     assert "绑定设备" in required_terms
     assert "打开康复设备电源" in required_terms
+
+
+def test_home_gate_requires_clear_therapist_next_action_copy():
+    module = _load_module()
+
+    required_terms = module.PAGE_GATES["home.html"]["required_terms"]
+
+    assert "查看康复师建议" in required_terms
+    assert "问康复师" in required_terms

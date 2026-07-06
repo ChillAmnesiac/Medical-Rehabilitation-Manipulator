@@ -49,7 +49,7 @@ L1_FORBIDDEN_TERMS = (
 PAGE_GATES = {
     "home.html": {
         "gate": "L1-HOME-STATIC-001",
-        "required_terms": ("问康复师",),
+        "required_terms": ("查看康复师建议", "问康复师"),
         "summary": "Home static page is patient-facing and free of raw workflow/debug terms.",
     },
     "profile.html": {

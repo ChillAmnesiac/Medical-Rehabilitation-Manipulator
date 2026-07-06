@@ -48,6 +48,43 @@ Automated text QA on downloaded Stitch HTML:
 The screens are directionally patient-facing and clean of raw engineering terms,
 but they cannot be accepted because current L1 gates require exact visible copy.
 
+## 2026-07-07 Home Literal Copy Iteration
+
+Codex ran one narrower Stitch MCP iteration focused only on `home.html`.
+
+Artifacts, not committed as frontend source:
+
+- `artifacts/stitch/l1-mcp-iteration-20260707/home-flash.html`
+- `artifacts/stitch/l1-mcp-iteration-20260707/home-flash-edit-literal.html`
+- `artifacts/stitch/l1-mcp-iteration-20260707/home-flash.jpg`
+- `artifacts/stitch/l1-mcp-iteration-20260707/home-flash-edit-literal.jpg`
+
+Generated screens:
+
+| Page | Screen ID | Title | Accepted |
+| --- | --- | --- | --- |
+| `home.html` | `fd3aae8953714a058cd8b54a9217a223` | `首页 - 领动康复手臂` | No |
+| `home.html` | `bdcea50a83a74eb68075807aaf7120dc` | `首页 - 领动康复手臂 (QA 修正版)` | No |
+
+Result:
+
+- Stitch removed raw engineering terms from the home candidate.
+- Stitch kept basic source references for `/api/auth/session`,
+  `/api/rehab-arm/app/v1/me`, `patient_view`, `Authorization`, and `Bearer`.
+- Stitch still rewrote the exact release-gated visible copy:
+  - Expected: `查看康复师建议`, `问康复师`.
+  - Actual: `开始康复训练`, `咨询治疗师`.
+- No generated HTML was copied into `apps/web/public/rehab-arm-mobile/` or
+  `apps/mobile/rehab-arm-android/www/`.
+
+Follow-up hardening:
+
+- `tools/qa_rehab_mobile_l1_frontend.py` now requires both
+  `查看康复师建议` and `问康复师` on `home.html`.
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` now includes
+  an `Exact Release-Gated Visible Copy` section so Stitch cannot treat these as
+  optional UX labels.
+
 ## Next Stitch Prompt Delta
 
 The next Stitch iteration should be even more constrained:
