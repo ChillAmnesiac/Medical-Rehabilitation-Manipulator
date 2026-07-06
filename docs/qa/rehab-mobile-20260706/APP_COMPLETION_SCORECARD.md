@@ -84,7 +84,7 @@ Current result: `NOT READY`.
 | Stitch API fixture | PASS | `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` exported from live cloud API with tokens, codes, ids, email, and phone masked; now includes phone verification start/confirm response examples |
 | Stitch repair packet and V4 prompt | PASS | `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json` generated from the live cloud L1 release gate and objective audit; `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` is generated from the packet and is now the primary Stitch handoff. The packet/prompt now show `non_stitch_blockers = []`, include SMS ops readiness, L1 evidence export, no raw staging email/password, an `Exact Release-Gated Visible Copy` section, hexadecimal HTML entity fallback snippets, and a `Stitch Browser Candidate QA Blockers` section for fake/demo names, `48 x 48` interactive targets, `48 x 48` back buttons, and `64 x 48` bottom-nav items; the frontend L1 gate also rejects common fake/demo identities |
 | Stitch source scope | PASS | Real frontend branch verified as `app/rehab-arm-mobile-stitch` at commit `eaa08a40cdd3e1e62827809111f2323e7f92556f`; prompt/packet now identify web edit path `apps/web/public/rehab-arm-mobile/` and APK WebView mirror path `apps/mobile/rehab-arm-android/www/` |
-| Stitch MCP generation attempt | PARTIAL SINGLE-PAGE FIX, NOT DEPLOYED | Stitch MCP is reachable again. New project `projects/323711356322969905` generated Ask Therapist screen `9deadaaf358a4a908bd704f580e6a69f`, then edited it into fixed screen `f1a50687ed4d429786f9d84e7e37a5cf`. Local browser QA of `ai-plan-stitch-fixed.html` at `390 x 844` found required copy present, no forbidden engineering/demo terms, no horizontal overflow, all detected controls at least `48px`, bottom nav buttons at `64 x 48`, and a `21px` composer/nav gap; screenshot: `screenshots/stitch-ai-plan-fix-candidate-v2-20260707-390x844.png`. This is not deployable yet because it covers only `ai-plan.html` and is not applied to the real App branch, API integration, Android WebView mirror, final five-screenshot browser evidence, cloud deployment, or APK packaging |
+| Stitch MCP generation attempt | PASS LOCAL FOUR-PAGE CANDIDATE, NOT DEPLOYED | Stitch project `projects/323711356322969905` now has a full local four-page candidate: Home `767c6e263ec646f7b27664c385e3ba4c`, Profile `b1c634dd4d6640beac7fc7a9a3515cb7`, Device `aadf5ed620314ac1b0a33a27089e2cd4`, Ask Therapist `5a10e02454c044f38e60a7292064566b`. Local source gate `docs/qa/rehab-mobile-20260706/frontend-l1-source-gate-stitch-full-candidate-v3-20260707.json` returned `overall = PASS`, including auth, `/me`, `patient_view`, phone verification cooldown with `retry_after`, device bind, Agent messages, unsafe refusal, and `model_status`. In-app browser QA at `390 x 844` saved `screenshots/stitch-full-candidate-v3-home/profile/device/ai-plan-20260707-390x844.png`; `docs/qa/rehab-mobile-20260706/browser-metrics-stitch-full-candidate-v3-20260707.json` returned `overall = PASS` with no fake copy, undersized touch targets, input overlap, overflow, or vertical text. This is still not deployed because generated HTML has not been applied through the real `app/rehab-arm-mobile-stitch` App branch, mirrored into Android WebView assets, cloud-deployed, or APK-packaged |
 | Frontend release packaging | PASS | `tools/qa_rehab_mobile_l1_frontend.py --source-dir --output` preflights Stitch output locally and preserves JSON evidence; `tools/prepare_rehab_mobile_frontend_release.py` refuses failing frontend sources, writes a deployable zip, and records manifest deploy/verification commands before cloud copy, including the `browser-metrics-l1-390x844.json` browser metrics gate; release manifests no longer write raw staging email/password values |
 | Frontend release package verification | PASS | `tools/verify_rehab_mobile_frontend_release.py` validates the generated manifest schema, zip sha256, preflight report, required page artifacts, guarded deploy executor command, exact browser QA screenshot checklist, and a real `browser-metrics-gate.json` with `L1-BROWSER-METRICS-001 = PASS` plus full `home/profile/device/ai-plan` coverage before cloud deployment |
 | APK WebView mirror verification | PASS | `tools/verify_rehab_mobile_webview_mirror.py` checks that `apps/mobile/rehab-arm-android/www/` is byte-identical to `apps/web/public/rehab-arm-mobile/`, including required pages and no stale extra files; release manifests now require this command before APK packaging |
@@ -112,32 +112,30 @@ Current result: `NOT READY`.
 
 ## Next Work Order
 
-1. Run the Stitch prompt in `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` with `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`.
-2. Follow the Stitch runbook in `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`.
-3. Use the detailed execution plan in `docs/superpowers/plans/2026-07-06-rehab-mobile-stitch-l1-closure.md`.
-4. Run `tools/qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile --output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json`.
-5. Mirror accepted web assets into `apps/mobile/rehab-arm-android/www/` before APK packaging.
-6. Run `tools/verify_rehab_mobile_webview_mirror.py --web-dir apps/web/public/rehab-arm-mobile --android-www-dir apps/mobile/rehab-arm-android/www --output artifacts/rehab-mobile-frontend-release/webview-mirror-verification.json`; it must return exit code `0` and `summary.overall = PASS`.
-7. Package updated frontend web assets with `tools/prepare_rehab_mobile_frontend_release.py`.
-8. Verify the generated release manifest with `tools/verify_rehab_mobile_frontend_release.py` before any cloud copy.
-9. Dry-run `tools/deploy_rehab_mobile_frontend_release.py` and review the planned `scp`, `ssh`, and post-deploy verification commands.
-10. Deploy the reviewed frontend bundle with `tools/deploy_rehab_mobile_frontend_release.py --execute --run-post-verify`.
-11. Rebuild or refresh APK if the APK bundles frontend assets.
-12. Re-run Agent model smoke only when rotating the model provider/key; current staging cloud model is live.
-13. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
-14. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
-15. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
-16. Export the L1 evidence bundle with `tools/export_rehab_mobile_l1_evidence.py`; use `--fail-on-l1-fail` in CI/release jobs.
-17. Browser QA at exactly `390 x 844`:
+1. Apply the Stitch full-candidate v3 design through the real App branch `app/rehab-arm-mobile-stitch`; do not manually hand-edit frontend source outside the approved Stitch/app-branch path.
+2. Mirror accepted web assets into `apps/mobile/rehab-arm-android/www/` before APK packaging.
+3. Run `tools/qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile --output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json`.
+4. Run `tools/verify_rehab_mobile_webview_mirror.py --web-dir apps/web/public/rehab-arm-mobile --android-www-dir apps/mobile/rehab-arm-android/www --output artifacts/rehab-mobile-frontend-release/webview-mirror-verification.json`; it must return exit code `0` and `summary.overall = PASS`.
+5. Package updated frontend web assets with `tools/prepare_rehab_mobile_frontend_release.py`.
+6. Verify the generated release manifest with `tools/verify_rehab_mobile_frontend_release.py` before any cloud copy.
+7. Dry-run `tools/deploy_rehab_mobile_frontend_release.py` and review the planned `scp`, `ssh`, and post-deploy verification commands.
+8. Deploy the reviewed frontend bundle with `tools/deploy_rehab_mobile_frontend_release.py --execute --run-post-verify`.
+9. Rebuild or refresh APK if the APK bundles frontend assets.
+10. Re-run Agent model smoke only when rotating the model provider/key; current staging cloud model is live.
+11. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
+12. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
+13. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
+14. Export the L1 evidence bundle with `tools/export_rehab_mobile_l1_evidence.py`; use `--fail-on-l1-fail` in CI/release jobs.
+15. Browser QA at exactly `390 x 844`:
    - Home first screen.
    - `问康复师` chat open.
    - Unsafe Agent refusal.
    - Device binding wizard.
    - Profile account/phone/medical empty state.
-18. Run `tools/qa_rehab_mobile_browser_metrics.py` against the saved browser
+16. Run `tools/qa_rehab_mobile_browser_metrics.py` against the saved browser
     metrics JSON; it must return exit code `0` with `overall = PASS`, and pass that
     output to `tools/qa_rehab_mobile_l1_objective_audit.py --browser-metrics-json`.
-19. Update this scorecard after every large task.
+17. Update this scorecard after every large task.
 
 ## Git Discipline
 

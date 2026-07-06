@@ -1919,3 +1919,52 @@ Fresh verification:
 
 No cloud frontend deployment or APK rebuild was made for this tooling-only
 follow-up; the APK URL was still verified separately before commit.
+
+## 2026-07-07 Stitch Full Four-Page Candidate V3
+
+Codex used Stitch MCP project `projects/323711356322969905` to produce a full
+four-page local candidate after the earlier single-page Ask Therapist fix.
+
+Generated/final Stitch screens:
+
+- Home: `767c6e263ec646f7b27664c385e3ba4c`.
+- Profile: `b1c634dd4d6640beac7fc7a9a3515cb7`.
+- Device: `aadf5ed620314ac1b0a33a27089e2cd4`.
+- Ask Therapist: `5a10e02454c044f38e60a7292064566b`.
+
+Local source gate:
+
+- Command:
+  `tools/qa_rehab_mobile_l1_frontend.py --source-dir artifacts/stitch/l1-full-browser-qa-candidate-20260707 --output artifacts/stitch/l1-full-browser-qa-candidate-20260707/frontend-l1-source-gate-v3.json`.
+- Committed report:
+  `docs/qa/rehab-mobile-20260706/frontend-l1-source-gate-stitch-full-candidate-v3-20260707.json`.
+- Result: `overall = PASS`, `failed = 0`, `total = 5`.
+- The integration gate now includes phone resend cooldown source tokens
+  `PHONE_CODE_RESEND_TOO_SOON` plus `retry_after`, and Agent model-status source
+  token `model_status`.
+
+In-app browser QA:
+
+- Viewport: `390 x 844`.
+- Local preview: `http://127.0.0.1:4194/`.
+- Screenshots:
+  - `screenshots/stitch-full-candidate-v3-home-20260707-390x844.png`.
+  - `screenshots/stitch-full-candidate-v3-profile-20260707-390x844.png`.
+  - `screenshots/stitch-full-candidate-v3-device-20260707-390x844.png`.
+  - `screenshots/stitch-full-candidate-v3-ai-plan-20260707-390x844.png`.
+- Browser metrics report:
+  `docs/qa/rehab-mobile-20260706/browser-metrics-stitch-full-candidate-v3-20260707.json`.
+- Result: `overall = PASS`; checked pages were `home`, `profile`, `device`, and
+  `ai-plan`.
+- No fake/demo copy hits, undersized touch targets, input/nav overlap,
+  horizontal overflow, or vertical text issues were found.
+
+Acceptance boundary:
+
+- This is the first local Stitch candidate in this project that passes both the
+  L1 source gate and the strict browser metrics gate across all four required
+  pages.
+- It is **not** counted as deployed L1 success yet. The generated HTML has not
+  been applied to the real `app/rehab-arm-mobile-stitch` branch, mirrored into
+  the Android WebView asset bundle, deployed to the cloud URL, packaged into a
+  new APK, or verified by the combined cloud L1 release gate.
