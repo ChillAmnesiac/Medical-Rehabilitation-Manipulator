@@ -1755,6 +1755,32 @@ Fresh verification:
 No cloud frontend deployment or APK rebuild was made for this tooling-only
 follow-up; the APK URL was still verified separately before commit.
 
+## 2026-07-07 Browser Screenshot Evidence Hardening Follow-Up
+
+Codex tightened the final browser screenshot evidence gate so an L1 audit cannot
+be satisfied by image-header placeholders with the right dimensions.
+
+Tooling changes:
+
+- `tools/qa_rehab_mobile_l1_objective_audit.py` now records
+  `minimum_screenshot_bytes = 1024` and rejects exact-name browser evidence
+  files that are smaller than that threshold.
+- Rejected small files are reported under
+  `browser_qa_evidence.evidence.invalid_files`, next to existing
+  `missing` and `invalid_dimensions` details.
+- `tools/export_rehab_mobile_l1_evidence.py` preserves those fields in the L1
+  evidence bundle, so final handoff JSON shows whether the screenshots are
+  real captures or placeholders.
+
+Fresh verification:
+
+- Red objective-audit test first failed because header-only `390 x 844` PNG
+  files still counted as L1 browser evidence.
+- Focused objective/evidence exporter tests: `12 passed`.
+
+No cloud frontend deployment or APK rebuild was made for this tooling-only
+follow-up; the APK URL was still verified separately before commit.
+
 ## 2026-07-07 Browser Metrics Deploy Verification Follow-Up
 
 Codex tightened the deployment-preflight chain so a prepared frontend release

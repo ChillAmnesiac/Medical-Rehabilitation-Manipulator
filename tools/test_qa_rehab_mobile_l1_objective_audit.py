@@ -18,6 +18,12 @@ def _write_png_header(path, width, height):
     )
 
 
+def _write_png_screenshot(path, width=390, height=844):
+    _write_png_header(path, width, height)
+    with path.open("ab") as handle:
+        handle.write(b"\x00" * 4096)
+
+
 def _write_jpeg_header(path, width, height):
     path.write_bytes(
         b"\xff\xd8"
@@ -31,6 +37,12 @@ def _write_jpeg_header(path, width, height):
         + width.to_bytes(2, "big")
         + b"\x03\x01\x11\x00\x02\x11\x00\x03\x11\x00"
     )
+
+
+def _write_jpeg_screenshot(path, width=390, height=844):
+    _write_jpeg_header(path, width, height)
+    with path.open("ab") as handle:
+        handle.write(b"\x00" * 4096)
 
 
 def _write_browser_metrics_gate(path, status="PASS"):
@@ -102,7 +114,7 @@ def test_objective_audit_passes_when_release_and_browser_evidence_are_ready(tmp_
         "l1-device-binding-wizard-390.png",
         "l1-profile-phone-medical-390.png",
     ):
-        _write_png_header(tmp_path / name, 390, 844)
+        _write_png_screenshot(tmp_path / name, 390, 844)
     metrics_path = tmp_path / "browser-metrics-gate.json"
     _write_browser_metrics_gate(metrics_path, "PASS")
 
@@ -143,7 +155,7 @@ def test_objective_audit_requires_browser_metrics_gate_evidence(tmp_path):
         "l1-device-binding-wizard-390.png",
         "l1-profile-phone-medical-390.png",
     ):
-        _write_png_header(tmp_path / name, 390, 844)
+        _write_png_screenshot(tmp_path / name, 390, 844)
 
     payload = module.audit_objective(_release_payload(), tmp_path, tmp_path / "missing-browser-metrics.json")
 
@@ -164,7 +176,7 @@ def test_objective_audit_fails_when_browser_metrics_gate_fails(tmp_path):
         "l1-device-binding-wizard-390.png",
         "l1-profile-phone-medical-390.png",
     ):
-        _write_png_header(tmp_path / name, 390, 844)
+        _write_png_screenshot(tmp_path / name, 390, 844)
     metrics_path = tmp_path / "browser-metrics-gate.json"
     _write_browser_metrics_gate(metrics_path, "FAIL")
 
@@ -219,7 +231,7 @@ def test_browser_evidence_requires_mobile_viewport_png_dimensions(tmp_path):
         "l1-device-binding-wizard-390.png",
         "l1-profile-phone-medical-390.png",
     ):
-        _write_png_header(tmp_path / name, 430, 932)
+        _write_png_screenshot(tmp_path / name, 430, 932)
 
     ok, detail = module.browser_evidence_status(tmp_path)
 
@@ -235,6 +247,32 @@ def test_browser_evidence_requires_mobile_viewport_png_dimensions(tmp_path):
     assert detail["expected_dimensions"] == {"width": 390, "height": 844}
 
 
+def test_browser_evidence_rejects_header_only_placeholder_screenshots(tmp_path):
+    module = _load_module()
+    for name in (
+        "l1-home-390.png",
+        "l1-ask-therapist-chat-390.png",
+        "l1-unsafe-agent-refusal-390.png",
+        "l1-device-binding-wizard-390.png",
+        "l1-profile-phone-medical-390.png",
+    ):
+        _write_png_header(tmp_path / name, 390, 844)
+    metrics_path = tmp_path / "browser-metrics-gate.json"
+    _write_browser_metrics_gate(metrics_path, "PASS")
+
+    ok, detail = module.browser_evidence_status(tmp_path, metrics_path)
+
+    assert not ok
+    assert sorted(detail["invalid_files"]) == [
+        "ask_therapist_chat",
+        "device_binding_wizard",
+        "home_first_screen",
+        "profile_phone_medical",
+        "unsafe_agent_refusal",
+    ]
+    assert detail["minimum_screenshot_bytes"] == 1024
+
+
 def test_browser_evidence_accepts_browser_jpeg_screenshots_with_png_extension(tmp_path):
     module = _load_module()
     for name in (
@@ -244,7 +282,7 @@ def test_browser_evidence_accepts_browser_jpeg_screenshots_with_png_extension(tm
         "l1-device-binding-wizard-390.png",
         "l1-profile-phone-medical-390.png",
     ):
-        _write_jpeg_header(tmp_path / name, 390, 844)
+        _write_jpeg_screenshot(tmp_path / name, 390, 844)
     metrics_path = tmp_path / "browser-metrics-gate.json"
     _write_browser_metrics_gate(metrics_path, "PASS")
 

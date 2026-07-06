@@ -33,6 +33,7 @@ BROWSER_EVIDENCE_FILES = {
 }
 
 EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS = {"width": 390, "height": 844}
+MIN_BROWSER_SCREENSHOT_BYTES = 1024
 DEFAULT_BROWSER_METRICS_JSON = Path(
     "docs/qa/rehab-mobile-20260706/browser-metrics-clean-candidate-live-strict-20260707.json"
 )
@@ -147,11 +148,20 @@ def browser_evidence_status(screenshot_dir: Path, browser_metrics_json: Path | N
     missing = []
     matched: dict[str, str] = {}
     invalid_dimensions: dict[str, dict[str, Any]] = {}
+    invalid_files: dict[str, dict[str, Any]] = {}
     for key, expected_name in BROWSER_EVIDENCE_FILES.items():
         match_name = expected_name.lower() if expected_name.lower() in lower_files else None
         if match_name:
             matched[key] = match_name
-            dimensions = _image_dimensions(lower_files[match_name])
+            path = lower_files[match_name]
+            size = path.stat().st_size if path.exists() else 0
+            if size < MIN_BROWSER_SCREENSHOT_BYTES:
+                invalid_files[key] = {
+                    "file": match_name,
+                    "actual_bytes": size,
+                    "minimum_bytes": MIN_BROWSER_SCREENSHOT_BYTES,
+                }
+            dimensions = _image_dimensions(path)
             if dimensions != EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS:
                 invalid_dimensions[key] = {
                     "file": match_name,
@@ -162,12 +172,14 @@ def browser_evidence_status(screenshot_dir: Path, browser_metrics_json: Path | N
             missing.append(key)
     metrics_path = browser_metrics_json or DEFAULT_BROWSER_METRICS_JSON
     metrics_ok, metrics_detail = browser_metrics_status(metrics_path)
-    return not missing and not invalid_dimensions and metrics_ok, {
+    return not missing and not invalid_dimensions and not invalid_files and metrics_ok, {
         "screenshot_dir": str(screenshot_dir),
         "matched": matched,
         "missing": missing,
         "invalid_dimensions": invalid_dimensions,
+        "invalid_files": invalid_files,
         "expected_dimensions": EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS,
+        "minimum_screenshot_bytes": MIN_BROWSER_SCREENSHOT_BYTES,
         "browser_metrics": metrics_detail,
     }
 

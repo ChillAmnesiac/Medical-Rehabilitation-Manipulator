@@ -50,7 +50,9 @@ def _objective_payload():
                     "matched": {},
                     "missing": ["home_first_screen", "ask_therapist_chat"],
                     "invalid_dimensions": {},
+                    "invalid_files": {"home_first_screen": {"actual_bytes": 24, "minimum_bytes": 1024}},
                     "expected_dimensions": {"width": 390, "height": 844},
+                    "minimum_screenshot_bytes": 1024,
                     "browser_metrics": {
                         "path": "docs/qa/rehab-mobile-20260706/browser-metrics-clean-candidate-live-strict-20260707.json",
                         "status": "FAIL",
@@ -104,6 +106,8 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
     assert evidence["release"]["exit_code"] == 1
     assert evidence["objective"]["summary"]["failed"] == 8
     assert evidence["browser_evidence"]["missing"] == ["home_first_screen", "ask_therapist_chat"]
+    assert evidence["browser_evidence"]["invalid_files"]["home_first_screen"]["minimum_bytes"] == 1024
+    assert evidence["browser_evidence"]["minimum_screenshot_bytes"] == 1024
     assert evidence["browser_evidence"]["browser_metrics"]["status"] == "FAIL"
     assert evidence["apk_head"]["status"] == 200
     assert evidence["apk_head"]["content_length"] == 4198462
