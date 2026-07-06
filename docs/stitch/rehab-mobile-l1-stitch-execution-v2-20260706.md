@@ -1,0 +1,224 @@
+# Stitch Execution Prompt V2 - Rehab Mobile L1 User-Ready Fixes
+
+Use this prompt in Google Stitch. Edit only the frontend app.
+
+```text
+Repository: https://github.com/wenjunyong666/ai-
+Branch: app/rehab-arm-mobile-stitch
+Frontend path: apps/web/public/rehab-arm-mobile/
+
+Production targets:
+- Web: http://106.55.62.122:3001/rehab-arm-mobile/
+- API: http://106.55.62.122:8011
+- APK URL: http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk
+
+Non-negotiable boundary:
+- Do not edit backend code.
+- Do not add any direct motor-control UI.
+- The app and cloud provide account setup, rehab education, training suggestions, device-binding evidence, and safe workflow guidance only.
+- Hide transport/debug/hardware internals from normal users.
+- Keep bluetooth-debug.html only as a developer/debug page.
+
+Goal:
+Move the rehab mobile frontend from engineering dashboard to L1 patient-ready staging. A real patient should be able to log in, understand today's next step, bind phone/device, ask "问康复师", and leave without seeing raw workflow/debug terms.
+
+Current backend status:
+- API smoke is PASS.
+- APK delivery is PASS.
+- Backend acceptance total is 16 checks with 0 P0 failures.
+- The remaining blocker is frontend rendering and interaction.
+
+Use this API base by default:
+http://106.55.62.122:8011
+
+Keep any existing local developer override if present, but production/staging must not show a false "网络未连接，请检查后端服务" while this API is reachable.
+
+Authentication:
+- Login: POST /api/auth/session
+- Body: { "email": "...", "password": "..." }
+- Store response.data.access_token for the browser session.
+- Send Authorization: Bearer <token> on all authenticated rehab app APIs.
+- If token is missing or expired, show a calm login-needed state, not a network failure.
+
+Primary data source:
+GET /api/rehab-arm/app/v1/me
+Authorization: Bearer <token>
+
+Use these returned fields for normal screens:
+- response.data.profile
+- response.data.patient_view.home
+- response.data.patient_view.profile
+- response.data.patient_view.device
+- response.data.patient_view.agent
+
+Current patient_view structure:
+- home: greeting, summary, primary_action, facts, ask_therapist
+- profile: title, display_name, phone, rehab_stage, affected_side, medical_constraints
+- device: title, status, primary_action, readiness_rows, binding_steps, debug_entry_label
+- agent: title, entry_label, placeholder, quick_questions, endpoint, unsafe_copy, boundary
+
+Do not render raw workflow/debug fields to normal users:
+- phase.status
+- action_queue
+- blockers
+- forbidden_actions
+- control_boundary
+- payload_hint
+- setup_required
+- early_active
+- direct_motor_command
+- can_frame
+- any backend-approved/raw transport frame wording
+
+Forbidden normal-screen terms:
+- M33
+- M55
+- SPP
+- CAN
+- UUID
+- Gatekeeper
+- RoboRehab Controller
+- 患者 A
+- ID: 8829
+- 避免过度伸展 > 120°
+- setup_required
+- early_active
+- direct_motor_command
+- can_frame
+
+Use patient language instead:
+- M33 or safety authority -> 设备安全系统
+- M55/EMG internals -> 肌肉状态记录
+- SPP/BLE/UUID -> 蓝牙连接
+- Gatekeeper/preflight -> 训练前安全确认
+- AI draft -> 康复师建议
+- backend/cloud -> 云端记录
+- direct motor/CAN command -> 底层设备指令
+
+Fix 1 - Global cloud state:
+- Remove the false first-screen "网络未连接，请检查后端服务" when API health/auth/profile are reachable.
+- Loading state: "正在同步康复档案..."
+- Auth-required state: "请先登录以同步康复档案"
+- Real network failure state: "暂时连不上云端，可稍后重试"
+- Keep previous known content visible during a small refresh instead of replacing the screen with an error banner.
+
+Fix 2 - Home:
+- Render from data.patient_view.home.
+- First screen must include:
+  - friendly greeting/account state,
+  - one dominant primary action from home.primary_action,
+  - a short today summary from home.summary/facts,
+  - a clear "问康复师" entry from home.ask_therapist or patient_view.agent.entry_label.
+- No raw workflow cards above the patient home content.
+- No "动作队列", "阻塞", "禁止", setup_required, early_active, M33, or M55 on normal home.
+- The screen should answer: "我今天该做什么？哪里可以问人？现在是否适合继续？"
+
+Fix 3 - Rehab therapist Agent:
+- Required visible label: 问康复师
+- Required aria-label: 问康复师
+- Minimum touch target: 44px.
+- Replace the current non-working assistant/settings icon and floating button with real entries.
+- Top entry and floating entry must open the same chat sheet/page.
+- Use data.patient_view.agent for title, entry_label, placeholder, quick_questions, endpoint, unsafe_copy, and boundary.
+- Message endpoint:
+  POST /api/rehab-arm/app/v1/agent/messages
+  Headers:
+    Authorization: Bearer <token>
+    Content-Type: application/json
+  Body:
+    { "message": "...", "context_snapshot": { "page": currentPage, "source": "rehab-mobile" } }
+- Render response.data.answer, response.data.boundary, and response.data.model_status in patient-friendly form.
+- If model_status.mode is fallback_rule_based, show a subtle helper such as "当前由安全规则建议辅助回答"; do not make it sound like fake AI.
+- For 400 error code UNSAFE_MOTION_REQUEST, show the backend unsafe_copy or:
+  "为了保护你，我不能绕过设备安全系统或发送直接运动指令。可以帮你调整训练建议或解释报告。"
+- Include quick chips:
+  - 今天还能训练吗？
+  - 手臂酸痛怎么办？
+  - 帮我解释报告
+  - 生成轻量训练建议
+
+Fix 4 - Device binding:
+- Device tab must render from data.patient_view.device.
+- Normal flow is a patient binding wizard, not bluetooth-debug.html.
+- Show readiness_rows as plain patient checklist rows.
+- Wizard steps should come from binding_steps, with fallback:
+  1. 打开康复设备电源
+  2. 手机靠近设备
+  3. 选择蓝牙设备或扫码绑定
+  4. 等待设备安全系统确认
+- Bind endpoint:
+  POST /api/rehab-arm/app/v1/devices/bind
+  Body: { "m33_device_id": "...", "ble_name": "...", "trust_status": "trusted" }
+- Success copy:
+  "设备已绑定，训练前仍会进行安全确认。"
+- If response is 409 DEVICE_ALREADY_BOUND, show:
+  "这台设备已绑定到其他账号。如需更换账号，请联系康复师或管理员处理。"
+- Do not route normal "绑定/配对新设备" actions directly to bluetooth-debug.html.
+- If a debug entry is kept, label it "开发者调试" and keep it visually secondary below the normal wizard.
+
+Fix 5 - Profile:
+- Profile title must be: 我的康复档案
+- Render from data.patient_view.profile and response.data.profile.
+- Show signed-in cloud account.
+- If profile.phone_verified is true, show masked phone and "手机号已验证".
+- If not verified, show "绑定手机号".
+- Missing medical constraints must be amber/calm "待完善", not red danger.
+- Empty medical copy:
+  "还没有填写禁忌备注，训练前请按医生或康复师建议补充。"
+- CTA:
+  "添加禁忌备注"
+- Do not show demo patient, fake ID, fake medical warning, fake stage, or M33/M55 device names as real user data.
+
+Fix 6 - Phone verification:
+- Start:
+  POST /api/rehab-arm/app/v1/account/phone-verifications
+  Body: { "phone": "...", "purpose": "bind_account" }
+- Confirm:
+  POST /api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm
+  Body: { "code": "..." }
+- In staging only, if delivery_channel = debug_sms and debug_code exists, show a small test-helper line:
+  "测试验证码：{debug_code}"
+- Do not show debug_code in normal production mode.
+- Wrong code copy:
+  "验证码不正确或已过期，请重新输入。"
+- Attempt limit copy:
+  "尝试次数过多，请稍后重新获取验证码。"
+
+Fix 7 - Navigation and accessibility:
+- Bottom nav active state must match the current page.
+- Normal tabs:
+  - 首页
+  - 训练
+  - 肌电 or 记录
+  - 设备
+  - 我的
+- Do not leave href="#" dead controls.
+- Every icon-only button has a meaningful aria-label.
+- Text must not overlap at 390px width.
+- Primary actions must be reachable and 44px+ high.
+- Cards and controls should feel like a calm health app, not a sci-fi control panel.
+
+Required acceptance after Stitch changes:
+1. Home first screen at 390px: no raw terms, no false network error, one clear next action, visible 问康复师.
+2. "问康复师" chat open at 390px.
+3. Unsafe Agent refusal at 390px.
+4. Device binding wizard at 390px, including already-bound 409 copy path if possible.
+5. Profile at 390px with cloud account, phone state, and 待完善 medical empty state.
+
+Automated release gate Codex will run after deployment:
+$env:REHAB_QA_EMAIL='<staging email>'
+$env:REHAB_QA_PASSWORD='<staging password>'
+cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_release.py
+
+The build is not L1 user-ready until:
+- summary.overall = PASS
+- summary.api_overall = PASS
+- summary.frontend_overall = PASS
+- summary.blocking_gates = []
+
+Current failure evidence:
+- docs/qa/rehab-mobile-20260706/screenshots/device-binding-home-390.png
+- docs/qa/rehab-mobile-20260706/screenshots/device-binding-profile-390.png
+- docs/qa/rehab-mobile-20260706/screenshots/device-binding-device-390.png
+- docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png
+```

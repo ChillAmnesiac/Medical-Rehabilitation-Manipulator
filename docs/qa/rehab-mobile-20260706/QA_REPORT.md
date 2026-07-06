@@ -362,3 +362,4 @@ Do not call this build user-ready. Backend is ready for Stitch to consume, but t
 Stitch execution runbook:
 
 - `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`
+- Primary Stitch prompt: `docs/stitch/rehab-mobile-l1-stitch-execution-v2-20260706.md`

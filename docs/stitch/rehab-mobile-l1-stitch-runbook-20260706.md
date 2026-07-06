@@ -14,6 +14,10 @@ Codex owns backend, QA, deployment verification, APK verification, and git commi
 - Latest browser evidence:
   - `docs/qa/rehab-mobile-20260706/06-profile-resmoke-390.png`
   - `docs/qa/rehab-mobile-20260706/07-home-resmoke-390.png`
+  - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-home-390.png`
+  - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-profile-390.png`
+  - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-device-390.png`
+  - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png`
 
 Latest visible frontend blockers:
 
@@ -26,6 +30,10 @@ Latest visible frontend blockers:
 ## Stitch Input
 
 Use this prompt as the primary frontend task:
+
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v2-20260706.md`
+
+Historical prompt kept for reference:
 
 - `docs/stitch/rehab-mobile-stitch-execution-20260706.md`
 
@@ -42,6 +50,10 @@ Use these screenshots as current failure evidence:
 - `docs/qa/rehab-mobile-20260706/05-profile-nav-390.png`
 - `docs/qa/rehab-mobile-20260706/06-profile-resmoke-390.png`
 - `docs/qa/rehab-mobile-20260706/07-home-resmoke-390.png`
+- `docs/qa/rehab-mobile-20260706/screenshots/device-binding-home-390.png`
+- `docs/qa/rehab-mobile-20260706/screenshots/device-binding-profile-390.png`
+- `docs/qa/rehab-mobile-20260706/screenshots/device-binding-device-390.png`
+- `docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png`
 
 ## Required Frontend Output
 
@@ -128,4 +140,4 @@ Then Codex must:
 
 ## Current Next Action
 
-Run Stitch with `docs/stitch/rehab-mobile-stitch-execution-20260706.md`, deploy the generated frontend assets, then hand control back to Codex for browser QA and git-managed closeout.
+Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v2-20260706.md`, deploy the generated frontend assets, then hand control back to Codex for browser QA and git-managed closeout.

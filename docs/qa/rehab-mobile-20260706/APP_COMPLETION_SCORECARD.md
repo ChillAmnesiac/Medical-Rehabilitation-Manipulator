@@ -88,7 +88,7 @@ Current result: `NOT READY`.
 
 ## Next Work Order
 
-1. Run the Stitch prompt in `docs/stitch/rehab-mobile-stitch-execution-20260706.md`.
+1. Run the Stitch prompt in `docs/stitch/rehab-mobile-l1-stitch-execution-v2-20260706.md`.
 2. Follow the Stitch runbook in `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`.
 3. Deploy updated frontend web assets to `http://106.55.62.122:3001/rehab-arm-mobile/`.
 4. Rebuild or refresh APK if the APK bundles frontend assets.
