@@ -83,8 +83,10 @@ def test_build_release_bundle_validates_pages_and_manifest(tmp_path):
 
     artifact_path = Path(manifest["artifact"]["zip_path"])
     manifest_path = Path(manifest["artifact"]["manifest_path"])
+    preflight_path = Path(manifest["frontend_l1_preflight"]["report_path"])
     assert artifact_path.exists()
     assert manifest_path.exists()
+    assert preflight_path.exists()
     assert manifest["schema"] == "rehab-mobile-frontend-release/v1"
     assert manifest["source"]["required_pages_present"] is True
     assert manifest["source"]["missing_required_pages"] == []
@@ -93,6 +95,7 @@ def test_build_release_bundle_validates_pages_and_manifest(tmp_path):
     assert manifest["artifact"]["zip_sha256"] == hashlib.sha256(artifact_path.read_bytes()).hexdigest()
     assert manifest["frontend_l1_preflight"]["overall"] == "PASS"
     assert manifest["frontend_l1_preflight"]["failed"] == 0
+    assert json.loads(preflight_path.read_text(encoding="utf-8"))["summary"]["overall"] == "PASS"
     assert manifest["deploy"]["remote_web_root"].endswith("/rehab-arm-mobile")
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(manifest["verification"]["powershell"])
     assert "scp" in "\n".join(manifest["deploy"]["commands"])
@@ -140,10 +143,11 @@ def test_build_release_bundle_rejects_frontend_that_fails_l1_preflight(tmp_path)
     for page in ("home.html", "profile.html", "device.html", "ai-plan.html"):
         (source_dir / page).write_text(f"<html><body>{page} M33 setup_required</body></html>", encoding="utf-8")
 
+    output_dir = tmp_path / "release"
     try:
         module.build_release_bundle(
             source_dir=source_dir,
-            output_dir=tmp_path / "release",
+            output_dir=output_dir,
             generated_at="2026-07-06T14:00:00Z",
         )
     except ValueError as exc:
@@ -152,6 +156,10 @@ def test_build_release_bundle_rejects_frontend_that_fails_l1_preflight(tmp_path)
         raise AssertionError("expected failing L1 preflight to raise ValueError")
 
     assert "frontend L1 local preflight failed" in message
+    failure_report = output_dir / "frontend-l1-preflight.json"
+    assert failure_report.exists()
+    payload = json.loads(failure_report.read_text(encoding="utf-8"))
+    assert payload["summary"]["overall"] == "FAIL"
 
 
 def test_cli_writes_release_manifest(tmp_path):

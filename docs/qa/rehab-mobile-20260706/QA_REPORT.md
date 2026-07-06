@@ -876,12 +876,20 @@ Fresh verification:
 
 The local source-dir gate reuses the same page text and integration-contract rules as the deployed frontend gate. The release bundle tool now refuses to write a deployable bundle when this local preflight fails.
 
+2026-07-06 continuation work also made this evidence persistent:
+
+- `tools/qa_rehab_mobile_l1_frontend.py` now accepts `--output`.
+- The release bundle tool writes `artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json` before creating the zip.
+- The release manifest records `frontend_l1_preflight.report_path`.
+- If local preflight fails, the failure report is still written so it can be fed back into Stitch.
+
 Fresh verification after adding source-dir preflight:
 
 - Red test first: `--source-dir` was not accepted by `tools/qa_rehab_mobile_l1_frontend.py`.
 - Follow-up red test first: the release bundle tool still wrote bundles for frontend sources that failed L1.
-- Focused local-source/preflight/release-bundle/prompt tests: `8 passed`.
-- Full local backend plus QA suite: `89 passed, 1 warning`.
+- Follow-up red test first: `--output` was not accepted and release bundle failures did not leave a JSON report.
+- Focused local-source/preflight-report/release-bundle/prompt tests: `9 passed`.
+- Full local backend plus QA suite after preserving preflight evidence: `90 passed, 1 warning`.
 - Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
 - Live objective audit remains `FAIL`: `8 / 11` failing, including all five exact L1 success screenshots missing.
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.

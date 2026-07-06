@@ -321,13 +321,19 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--web-base", default=os.getenv("REHAB_QA_WEB_BASE", "http://106.55.62.122:3001/rehab-arm-mobile"))
     parser.add_argument("--source-dir", type=Path)
+    parser.add_argument("--output", type=Path)
     parser.add_argument("--timeout", type=int, default=int(os.getenv("REHAB_QA_TIMEOUT", "20")))
     return parser.parse_args(argv)
 
 
 def main(argv: list[str]) -> int:
-    exit_code, payload = run(parse_args(argv))
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    args = parse_args(argv)
+    exit_code, payload = run(args)
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2)
+    if args.output:
+        args.output.parent.mkdir(parents=True, exist_ok=True)
+        args.output.write_text(rendered + "\n", encoding="utf-8")
+    print(rendered)
     return exit_code
 
 

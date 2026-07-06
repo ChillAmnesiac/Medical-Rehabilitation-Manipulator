@@ -94,6 +94,7 @@ def test_render_prompt_includes_repair_packet_evidence_and_acceptance_commands()
     assert "prepare_rehab_mobile_frontend_release.py" in prompt
     assert "--source-dir apps/web/public/rehab-arm-mobile" in prompt
     assert "qa_rehab_mobile_l1_frontend.py --source-dir" in prompt
+    assert "--output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json" in prompt
 
 
 def test_cli_writes_prompt_from_repair_packet(tmp_path):
@@ -119,3 +120,4 @@ def test_cli_writes_prompt_from_repair_packet(tmp_path):
     assert "docs/qa/current-fail-home-clip-390x844.png" in prompt
     assert "prepare_rehab_mobile_frontend_release.py" in prompt
     assert "qa_rehab_mobile_l1_frontend.py --source-dir" in prompt
+    assert "frontend-l1-preflight.json" in prompt

@@ -98,12 +98,16 @@ def _verification_commands(api_base: str, web_base: str, apk_url: str) -> list[s
     ]
 
 
-def run_frontend_l1_preflight(source_dir: Path, timeout: int = 20) -> dict[str, Any]:
+def run_frontend_l1_preflight(source_dir: Path, report_path: Path, timeout: int = 20) -> dict[str, Any]:
     args = qa_rehab_mobile_l1_frontend.parse_args(
         ["--source-dir", str(source_dir), "--timeout", str(timeout)]
     )
     _, payload = qa_rehab_mobile_l1_frontend.run(args)
-    return payload.get("summary") or {}
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    summary = dict(payload.get("summary") or {})
+    summary["report_path"] = str(report_path)
+    return summary
 
 
 def build_release_bundle(
@@ -120,11 +124,12 @@ def build_release_bundle(
     source_dir = Path(source_dir)
     output_dir = Path(output_dir)
     _validate_source(source_dir)
-    preflight_summary = run_frontend_l1_preflight(source_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    preflight_report_path = output_dir / "frontend-l1-preflight.json"
+    preflight_summary = run_frontend_l1_preflight(source_dir, preflight_report_path)
     if preflight_summary.get("overall") != "PASS":
         failed = preflight_summary.get("failed")
         raise ValueError(f"frontend L1 local preflight failed: {failed} failing gates")
-    output_dir.mkdir(parents=True, exist_ok=True)
 
     zip_path = output_dir / "rehab-mobile-frontend-release.zip"
     manifest_path = output_dir / "rehab-mobile-frontend-release-manifest.json"

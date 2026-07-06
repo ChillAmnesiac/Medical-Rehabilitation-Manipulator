@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -80,3 +81,18 @@ def test_run_local_source_dir_reports_missing_required_page(tmp_path):
         str(source_dir / "device.html"),
         str(source_dir / "ai-plan.html"),
     }
+
+
+def test_cli_writes_frontend_gate_payload_to_output_file(tmp_path):
+    module = _load_module()
+    source_dir = tmp_path / "rehab-arm-mobile"
+    output_path = tmp_path / "frontend-l1-preflight.json"
+    _write_local_frontend(source_dir, module)
+
+    exit_code = module.main(["--source-dir", str(source_dir), "--output", str(output_path)])
+
+    assert exit_code == 0
+    payload = json.loads(output_path.read_text(encoding="utf-8"))
+    assert payload["summary"]["overall"] == "PASS"
+    assert payload["summary"]["source_dir"] == str(source_dir)
+    assert payload["results"][-1]["gate"] == "L1-FRONTEND-INTEGRATION-001"

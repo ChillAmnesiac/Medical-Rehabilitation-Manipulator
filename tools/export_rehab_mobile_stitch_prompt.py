@@ -102,7 +102,11 @@ def _post_stitch_bundle_section(packet: dict[str, Any]) -> list[str]:
         "## After Stitch Hands Back Frontend Files",
         "Codex will run the local frontend L1 preflight and package the generated assets before cloud deployment:",
         "```powershell",
-        f".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_frontend.py --source-dir {source_arg}",
+        (
+            ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
+            f"tools\\qa_rehab_mobile_l1_frontend.py --source-dir {source_arg} "
+            "--output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json"
+        ),
         (
             ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
             f"{tool} --source-dir {source_arg} --output-dir artifacts/rehab-mobile-frontend-release"
