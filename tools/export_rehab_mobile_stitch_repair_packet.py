@@ -27,6 +27,7 @@ DEFAULT_REQUIRED_ARTIFACTS = {
     "frontend_release_tool": "tools/prepare_rehab_mobile_frontend_release.py",
     "frontend_release_verifier": "tools/verify_rehab_mobile_frontend_release.py",
     "webview_mirror_verifier": "tools/verify_rehab_mobile_webview_mirror.py",
+    "browser_metrics_gate": "tools/qa_rehab_mobile_browser_metrics.py",
     "frontend_release_deployer": "tools/deploy_rehab_mobile_frontend_release.py",
     "scorecard": "docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md",
     "qa_report": "docs/qa/rehab-mobile-20260706/QA_REPORT.md",
@@ -325,6 +326,7 @@ def build_repair_packet(
                 "$env:REHAB_QA_PASSWORD='<staging password>'",
                 ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_release.py",
                 ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py",
+                ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_browser_metrics.py --input artifacts\\rehab-mobile-frontend-release\\browser-metrics-l1-390x844.json --output artifacts\\rehab-mobile-frontend-release\\browser-metrics-gate.json",
                 ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\export_rehab_mobile_l1_evidence.py --output artifacts\\rehab-mobile-l1-evidence\\rehab-mobile-l1-evidence.json",
                 "curl.exe -I -sS http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk",
             ]

@@ -1674,3 +1674,32 @@ Prompt/tooling hardening:
 - The V4 Stitch prompt now requires every interactive element to render at least
   `48 x 48`, every back button at least `48 x 48`, and every bottom navigation
   item at least `64 x 48`.
+
+## 2026-07-07 Browser Metrics Release Gate Follow-Up
+
+Codex promoted the strict browser metrics check from a one-off QA tool into the
+frontend release packaging and verification chain.
+
+Tooling changes:
+
+- `tools/prepare_rehab_mobile_frontend_release.py` now records
+  `required_browser_metrics_report = browser-metrics-l1-390x844.json` and the
+  `qa_rehab_mobile_browser_metrics.py` command in the release manifest.
+- `tools/verify_rehab_mobile_frontend_release.py` now includes
+  `FRONTEND-RELEASE-BROWSER-METRICS` and rejects a release manifest that omits
+  the browser metrics input/output contract or command.
+- `tools/prepare_rehab_mobile_frontend_release.py` no longer writes raw staging
+  email/password values into release manifest post-deploy commands; runtime
+  credentials must come from the execution environment.
+- `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json` and
+  `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` were refreshed
+  so Stitch handoff, packaging, and deployment review all require the rendered
+  browser metrics gate.
+
+Fresh verification:
+
+- Focused release/stitch tooling suite:
+- `19 passed`.
+
+No cloud frontend deployment or APK rebuild was made for this tooling-only
+follow-up.

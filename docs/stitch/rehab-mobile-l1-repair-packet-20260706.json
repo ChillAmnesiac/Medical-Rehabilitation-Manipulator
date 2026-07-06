@@ -1,6 +1,6 @@
 {
   "schema": "rehab-mobile-stitch-repair-packet/v1",
-  "generated_at": "2026-07-06T16:44:12Z",
+  "generated_at": "2026-07-06T19:18:30Z",
   "target": {
     "api_base": "http://106.55.62.122:8011",
     "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
@@ -45,6 +45,7 @@
     "frontend_release_tool": "tools/prepare_rehab_mobile_frontend_release.py",
     "frontend_release_verifier": "tools/verify_rehab_mobile_frontend_release.py",
     "webview_mirror_verifier": "tools/verify_rehab_mobile_webview_mirror.py",
+    "browser_metrics_gate": "tools/qa_rehab_mobile_browser_metrics.py",
     "frontend_release_deployer": "tools/deploy_rehab_mobile_frontend_release.py",
     "scorecard": "docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md",
     "qa_report": "docs/qa/rehab-mobile-20260706/QA_REPORT.md",
@@ -68,6 +69,7 @@
       "summary": "Home static page is patient-facing and free of raw workflow/debug terms.",
       "page_url": "http://106.55.62.122:3001/rehab-arm-mobile/home.html",
       "must_add": [
+        "查看康复师建议",
         "问康复师"
       ],
       "must_remove": [
@@ -317,6 +319,7 @@
       "$env:REHAB_QA_PASSWORD='<staging password>'",
       ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_release.py",
       ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py",
+      ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_browser_metrics.py --input artifacts\\rehab-mobile-frontend-release\\browser-metrics-l1-390x844.json --output artifacts\\rehab-mobile-frontend-release\\browser-metrics-gate.json",
       ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\export_rehab_mobile_l1_evidence.py --output artifacts\\rehab-mobile-l1-evidence\\rehab-mobile-l1-evidence.json",
       "curl.exe -I -sS http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"
     ]

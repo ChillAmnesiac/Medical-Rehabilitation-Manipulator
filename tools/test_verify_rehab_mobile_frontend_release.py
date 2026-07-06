@@ -83,6 +83,7 @@ def test_verify_release_manifest_accepts_intact_stitch_bundle(tmp_path):
         "FRONTEND-RELEASE-PAGES",
         "FRONTEND-RELEASE-DEPLOYMENT",
         "FRONTEND-RELEASE-BROWSER-EVIDENCE",
+        "FRONTEND-RELEASE-BROWSER-METRICS",
     }
     deployment = next(result for result in payload["results"] if result["gate"] == "FRONTEND-RELEASE-DEPLOYMENT")
     assert "tools\\deploy_rehab_mobile_frontend_release.py --manifest" in deployment["detail"]["executor_command"]
@@ -137,6 +138,25 @@ def test_verify_release_manifest_rejects_missing_webview_mirror_command(tmp_path
     assert payload["summary"]["overall"] == "FAIL"
     failed_gates = {result["gate"] for result in payload["results"] if result["status"] == "FAIL"}
     assert failed_gates == {"FRONTEND-RELEASE-DEPLOYMENT"}
+
+
+def test_verify_release_manifest_rejects_missing_browser_metrics_gate(tmp_path):
+    verify = _load_module(VERIFY_MODULE_PATH, "verify_rehab_mobile_frontend_release")
+    manifest_path = _build_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["verification"]["powershell"] = [
+        command
+        for command in manifest["verification"]["powershell"]
+        if "qa_rehab_mobile_browser_metrics.py" not in command
+    ]
+    manifest["verification"].pop("required_browser_metrics_report", None)
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    payload = verify.verify_release_manifest(manifest_path)
+
+    assert payload["summary"]["overall"] == "FAIL"
+    failed_gates = {result["gate"] for result in payload["results"] if result["status"] == "FAIL"}
+    assert failed_gates == {"FRONTEND-RELEASE-BROWSER-METRICS"}
 
 
 def test_cli_writes_verification_report_and_returns_nonzero_on_failure(tmp_path):

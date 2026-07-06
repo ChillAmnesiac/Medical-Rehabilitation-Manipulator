@@ -102,8 +102,19 @@ def test_build_release_bundle_validates_pages_and_manifest(tmp_path):
     assert "verify_rehab_mobile_frontend_release.py" in "\n".join(manifest["verification"]["powershell"])
     assert "verify_rehab_mobile_webview_mirror.py" in "\n".join(manifest["verification"]["powershell"])
     assert "webview-mirror-verification.json" in "\n".join(manifest["verification"]["powershell"])
+    assert manifest["verification"]["required_browser_metrics_report"] == "browser-metrics-l1-390x844.json"
+    assert "qa_rehab_mobile_browser_metrics.py" in "\n".join(manifest["verification"]["powershell"])
+    assert "browser-metrics-l1-390x844.json" in "\n".join(manifest["verification"]["powershell"])
+    assert "browser-metrics-gate.json" in "\n".join(manifest["verification"]["powershell"])
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(manifest["verification"]["powershell"])
     assert "scp" in "\n".join(manifest["deploy"]["commands"])
+    verification_script = "\n".join(manifest["verification"]["powershell"])
+    forbidden_email = "".join(["3245056131", "@", "qq.com"])
+    forbidden_password = "REHAB_QA_PASSWORD='" + "".join(["12", "34"]) + "'"
+    assert forbidden_email not in verification_script
+    assert forbidden_password not in verification_script
+    assert "$env:REHAB_QA_EMAIL" not in verification_script
+    assert "$env:REHAB_QA_PASSWORD" not in verification_script
 
     with zipfile.ZipFile(artifact_path) as bundle:
         assert sorted(bundle.namelist()) == [

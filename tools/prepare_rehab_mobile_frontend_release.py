@@ -34,6 +34,8 @@ FINAL_BROWSER_SCREENSHOTS = (
     "l1-device-binding-wizard-390.png",
     "l1-profile-phone-medical-390.png",
 )
+FINAL_BROWSER_METRICS_REPORT = "browser-metrics-l1-390x844.json"
+FINAL_BROWSER_METRICS_GATE = "browser-metrics-gate.json"
 
 
 def _utc_now() -> str:
@@ -87,14 +89,17 @@ def _deploy_commands(zip_path: Path, remote_web_root: str) -> list[str]:
 
 def _verification_commands(api_base: str, web_base: str, apk_url: str) -> list[str]:
     return [
-        "$env:REHAB_QA_EMAIL='3245056131@qq.com'",
-        "$env:REHAB_QA_PASSWORD='1234'",
         f"$env:REHAB_QA_API_BASE='{api_base}'",
         f"$env:REHAB_QA_WEB_BASE='{web_base}'",
         f"$env:REHAB_QA_APK_URL='{apk_url}'",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\verify_rehab_mobile_webview_mirror.py --web-dir apps/web/public/rehab-arm-mobile --android-www-dir apps/mobile/rehab-arm-android/www --output artifacts/rehab-mobile-frontend-release/webview-mirror-verification.json",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\verify_rehab_mobile_frontend_release.py --manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json --output artifacts/rehab-mobile-frontend-release/frontend-release-verification.json",
+        (
+            ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_browser_metrics.py "
+            f"--input artifacts/rehab-mobile-frontend-release/{FINAL_BROWSER_METRICS_REPORT} "
+            f"--output artifacts/rehab-mobile-frontend-release/{FINAL_BROWSER_METRICS_GATE}"
+        ),
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_release.py",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py",
         f"curl.exe -I -sS {apk_url}",
@@ -180,6 +185,8 @@ def build_release_bundle(
         "verification": {
             "powershell": _verification_commands(api_base, web_base, apk_url),
             "required_browser_screenshots": list(FINAL_BROWSER_SCREENSHOTS),
+            "required_browser_metrics_report": FINAL_BROWSER_METRICS_REPORT,
+            "browser_metrics_gate_output": FINAL_BROWSER_METRICS_GATE,
         },
     }
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

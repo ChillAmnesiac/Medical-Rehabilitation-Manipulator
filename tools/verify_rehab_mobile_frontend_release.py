@@ -21,6 +21,8 @@ REQUIRED_BROWSER_SCREENSHOTS = (
     "l1-device-binding-wizard-390.png",
     "l1-profile-phone-medical-390.png",
 )
+REQUIRED_BROWSER_METRICS_REPORT = "browser-metrics-l1-390x844.json"
+REQUIRED_BROWSER_METRICS_GATE_OUTPUT = "browser-metrics-gate.json"
 
 
 @dataclass
@@ -235,6 +237,33 @@ def _check_browser_evidence(manifest: dict[str, Any]) -> Result:
     )
 
 
+def _check_browser_metrics(manifest: dict[str, Any]) -> Result:
+    verification = manifest.get("verification") if isinstance(manifest.get("verification"), dict) else {}
+    commands = verification.get("powershell") if isinstance(verification.get("powershell"), list) else []
+    joined_commands = "\n".join(str(command) for command in commands)
+    report = verification.get("required_browser_metrics_report")
+    output = verification.get("browser_metrics_gate_output")
+    ok = (
+        report == REQUIRED_BROWSER_METRICS_REPORT
+        and output == REQUIRED_BROWSER_METRICS_GATE_OUTPUT
+        and "qa_rehab_mobile_browser_metrics.py" in joined_commands
+        and f"--input artifacts/rehab-mobile-frontend-release/{REQUIRED_BROWSER_METRICS_REPORT}" in joined_commands
+        and f"--output artifacts/rehab-mobile-frontend-release/{REQUIRED_BROWSER_METRICS_GATE_OUTPUT}" in joined_commands
+    )
+    return _result(
+        "FRONTEND-RELEASE-BROWSER-METRICS",
+        ok,
+        "Release manifest requires the rendered browser metrics gate before L1 acceptance.",
+        {
+            "required_report": REQUIRED_BROWSER_METRICS_REPORT,
+            "actual_report": report,
+            "required_output": REQUIRED_BROWSER_METRICS_GATE_OUTPUT,
+            "actual_output": output,
+            "has_command": "qa_rehab_mobile_browser_metrics.py" in joined_commands,
+        },
+    )
+
+
 def verify_release_manifest(manifest_path: Path) -> dict[str, Any]:
     manifest_path = Path(manifest_path)
     manifest = _load_json(manifest_path)
@@ -245,6 +274,7 @@ def verify_release_manifest(manifest_path: Path) -> dict[str, Any]:
         _check_pages(manifest),
         _check_deployment(manifest),
         _check_browser_evidence(manifest),
+        _check_browser_metrics(manifest),
     ]
     failed = [result for result in results if result.status == "FAIL"]
     return {
