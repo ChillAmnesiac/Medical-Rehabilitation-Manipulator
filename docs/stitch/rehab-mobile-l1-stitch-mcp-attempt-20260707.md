@@ -276,3 +276,31 @@ robocopy apps\web\public\rehab-arm-mobile apps\mobile\rehab-arm-android\www /MIR
 if ($LASTEXITCODE -le 7) { $global:LASTEXITCODE = 0 }
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\verify_rehab_mobile_webview_mirror.py --web-dir apps/web/public/rehab-arm-mobile --android-www-dir apps/mobile/rehab-arm-android/www --output artifacts/rehab-mobile-frontend-release/webview-mirror-verification.json
 ```
+
+## 2026-07-07 Post-Handoff Stitch Auth Resmoke
+
+Codex rechecked the real Stitch project after the V4 handoff was regenerated
+with current deployed browser QA blockers.
+
+Call attempted:
+
+```text
+mcp__stitch.list_screens(projectId = "323711356322969905")
+```
+
+Result: `401 invalid authentication credentials`.
+
+The service response says the request needs a valid OAuth 2 access token, login
+cookie, or other valid authentication credential. This means the current MCP
+connection can expose the Stitch tool schema but cannot read or generate
+screens for the project in this session.
+
+Impact:
+
+- No new Stitch frontend candidate was generated in this pass.
+- No Stitch HTML was copied into `apps/web/public/rehab-arm-mobile/`.
+- No Android WebView mirror was changed.
+- No cloud deployment or APK rebuild was performed.
+- The next unblock is to restore Stitch MCP authentication for the project or
+  provide an exported clean Stitch frontend package that can pass the local
+  promotion gate.

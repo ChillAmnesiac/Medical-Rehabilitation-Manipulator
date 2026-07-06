@@ -2527,3 +2527,42 @@ Acceptance boundary:
 
 - No cloud deployment or APK rebuild was performed in this pass because this
   work updates the Stitch handoff and QA tooling only.
+
+## 2026-07-07 Stitch MCP Auth Resmoke After Deployed QA Handoff
+
+Codex retried the real Stitch project after the V4 handoff prompt was updated
+to include current deployed browser QA blockers.
+
+Stitch call:
+
+```text
+mcp__stitch.list_screens(projectId = "323711356322969905")
+```
+
+Result: `401 invalid authentication credentials`.
+
+Interpretation:
+
+- The Stitch tool schema is reachable in this Codex session.
+- The configured Stitch connection still cannot authenticate project reads or
+  generation actions.
+- The service requires a valid OAuth 2 access token, login cookie, or equivalent
+  credential for the project.
+
+L1 impact:
+
+- No new frontend candidate was generated.
+- No frontend files were copied into the real App branch
+  `app/rehab-arm-mobile-stitch`.
+- No Android WebView assets were mirrored.
+- No cloud deployment or APK rebuild was performed.
+- The current L1 blocker remains the frontend/App package path, not the backend
+  API or cloud Agent model.
+
+Next unblock:
+
+- Restore Stitch MCP authentication for project `323711356322969905`, or
+  provide a clean exported Stitch package containing only the four L1 web pages
+  and their assets.
+- The package must pass `tools/promote_rehab_mobile_stitch_frontend.py` dry-run
+  before any real App files, cloud deployment, or APK package are touched.
