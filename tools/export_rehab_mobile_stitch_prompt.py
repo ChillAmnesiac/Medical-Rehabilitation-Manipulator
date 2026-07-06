@@ -93,6 +93,32 @@ def _verification_section(packet: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _ops_readiness_section(packet: dict[str, Any]) -> list[str]:
+    lines = ["## Non-Stitch Ops Readiness"]
+    warnings = packet.get("ops_readiness_warnings") or []
+    actions = packet.get("non_stitch_actions") or []
+    if not warnings and not actions:
+        lines.append("- No backend/provider ops warnings are recorded in this packet.")
+        return lines
+    if warnings:
+        lines.append("These items cannot be fixed by frontend UI alone, but the UI must render their states honestly:")
+        for item in warnings:
+            lines.append(f"- {item.get('warning')}: {item.get('gate')} {item.get('status')} - {item.get('summary')}")
+    if actions:
+        lines.append("")
+        lines.append("Backend/Ops follow-up commands:")
+        for action in actions:
+            lines.extend(
+                [
+                    f"- {action.get('blocker')}",
+                    f"  Runbook: {action.get('runbook')}",
+                    f"  Preflight: `{action.get('preflight_command')}`",
+                    f"  Configure: `{action.get('configure_command')}`",
+                ]
+            )
+    return lines
+
+
 def _post_stitch_bundle_section(packet: dict[str, Any]) -> list[str]:
     artifacts = packet.get("required_artifacts") or {}
     tool = artifacts.get("frontend_release_tool") or "tools/prepare_rehab_mobile_frontend_release.py"
@@ -152,8 +178,9 @@ def render_prompt(packet: dict[str, Any], *, generated_at: str | None = None) ->
         "## Current Status",
         f"- Stitch blockers: {', '.join(summary.get('stitch_blockers') or [])}",
         f"- Non-Stitch blockers: {', '.join(summary.get('non_stitch_blockers') or [])}",
+        f"- Ops warnings: {', '.join(summary.get('ops_warnings') or [])}",
         "",
-        "Important: Stitch cannot clear agent_cloud_model by UI work alone. The frontend must still render model readiness honestly.",
+        "Important: Stitch cannot clear agent_cloud_model or provider-readiness warnings by UI work alone. The frontend must still render model/SMS readiness honestly.",
         "",
     ]
     lines.extend(_current_fail_section(packet))
@@ -162,6 +189,8 @@ def render_prompt(packet: dict[str, Any], *, generated_at: str | None = None) ->
     lines.append("")
     lines.append("## Integration Gaps")
     lines.extend(_bullet(packet.get("integration_gaps") or []))
+    lines.append("")
+    lines.extend(_ops_readiness_section(packet))
     lines.append("")
     lines.extend(_required_browser_qa_section(packet))
     lines.append("")

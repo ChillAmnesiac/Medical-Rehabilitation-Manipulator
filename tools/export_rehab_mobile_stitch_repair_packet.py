@@ -30,6 +30,10 @@ DEFAULT_REQUIRED_ARTIFACTS = {
     "scorecard": "docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md",
     "qa_report": "docs/qa/rehab-mobile-20260706/QA_REPORT.md",
     "model_relay_runbook": "docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md",
+    "sms_delivery_runbook": "docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md",
+    "sms_provider_smoke_tool": "tools/smoke_rehab_sms_provider.py",
+    "sms_delivery_config_tool": "tools/configure_rehab_sms_delivery.py",
+    "l1_evidence_exporter": "tools/export_rehab_mobile_l1_evidence.py",
 }
 
 NON_STITCH_REQUIREMENTS = {"agent_cloud_model"}
@@ -133,6 +137,29 @@ def _release_blockers(release_payload: dict[str, Any]) -> list[str]:
     return [item for item in blockers if isinstance(item, str)] if isinstance(blockers, list) else []
 
 
+def _api_result(release_payload: dict[str, Any], gate: str) -> dict[str, Any] | None:
+    for result in (release_payload.get("api") or {}).get("results") or []:
+        if isinstance(result, dict) and result.get("gate") == gate:
+            return result
+    return None
+
+
+def _ops_readiness_warnings(release_payload: dict[str, Any]) -> list[dict[str, Any]]:
+    warnings: list[dict[str, Any]] = []
+    phone_sms = _api_result(release_payload, "P1-PHONE-SMS-001")
+    if phone_sms and phone_sms.get("status") != "PASS":
+        warnings.append(
+            {
+                "warning": "phone_sms_delivery",
+                "gate": phone_sms.get("gate"),
+                "status": phone_sms.get("status"),
+                "summary": phone_sms.get("summary"),
+                "detail": phone_sms.get("detail"),
+            }
+        )
+    return warnings
+
+
 def _requirement_evidence(objective_payload: dict[str, Any], requirement: str) -> dict[str, Any]:
     for item in objective_payload.get("requirements") or []:
         if isinstance(item, dict) and item.get("requirement") == requirement:
@@ -186,6 +213,48 @@ def _split_blockers(
     return _dedupe(stitch), _dedupe(non_stitch), _dedupe(meta)
 
 
+def _non_stitch_actions(non_stitch_blockers: list[str], ops_warnings: list[dict[str, Any]], artifacts: dict[str, str]) -> list[dict[str, Any]]:
+    actions: list[dict[str, Any]] = []
+    if "agent_cloud_model" in non_stitch_blockers:
+        actions.append(
+            {
+                "blocker": "agent_cloud_model",
+                "owner": "Codex/backend ops once a real model endpoint and key are available",
+                "runbook": artifacts["model_relay_runbook"],
+                "preflight_command": (
+                    "python tools/smoke_rehab_model_provider.py "
+                    "--provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY> "
+                    "--message <SAFE_REHAB_SMOKE_MESSAGE>"
+                ),
+                "configure_command": (
+                    "python tools/configure_rehab_model_relay.py "
+                    "--provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY>"
+                ),
+            }
+        )
+    if any(item.get("warning") == "phone_sms_delivery" for item in ops_warnings):
+        actions.append(
+            {
+                "blocker": "phone_sms_delivery",
+                "owner": "Codex/backend ops once a real SMS webhook endpoint and token are available",
+                "runbook": artifacts["sms_delivery_runbook"],
+                "preflight_command": (
+                    "python tools/smoke_rehab_sms_provider.py "
+                    "--provider webhook --webhook-url <SMS_WEBHOOK_URL> --webhook-token <SMS_WEBHOOK_TOKEN> "
+                    "--phone <REAL_TEST_PHONE> --code 123456 --purpose bind_account "
+                    "--verification-id sms-provider-smoke --expires-in 300"
+                ),
+                "configure_command": (
+                    "python tools/configure_rehab_sms_delivery.py "
+                    "--provider webhook --webhook-url <SMS_WEBHOOK_URL> --webhook-token <SMS_WEBHOOK_TOKEN> "
+                    "--preflight-json artifacts/rehab-mobile-sms/sms-provider-preflight.json "
+                    "--env-file cloud/rehab-platform/.env --execute"
+                ),
+            }
+        )
+    return actions
+
+
 def build_repair_packet(
     release_payload: dict[str, Any],
     objective_payload: dict[str, Any],
@@ -199,6 +268,7 @@ def build_repair_packet(
 ) -> dict[str, Any]:
     frontend_failures = _frontend_failures(release_payload)
     stitch_blockers, non_stitch_blockers, meta_blockers = _split_blockers(objective_payload, release_payload)
+    ops_warnings = _ops_readiness_warnings(release_payload)
     artifacts = dict(DEFAULT_REQUIRED_ARTIFACTS)
     if required_artifacts:
         artifacts.update(required_artifacts)
@@ -219,6 +289,7 @@ def build_repair_packet(
             "stitch_blockers": stitch_blockers,
             "non_stitch_blockers": non_stitch_blockers,
             "meta_blockers": meta_blockers,
+            "ops_warnings": [item["warning"] for item in ops_warnings],
         },
         "required_artifacts": artifacts,
         "stitch_rules": [
@@ -231,31 +302,16 @@ def build_repair_packet(
         "integration_gaps": _integration_gaps(frontend_failures),
         "browser_evidence_current": _requirement_evidence(objective_payload, "browser_qa_evidence"),
         "current_fail_evidence": _current_fail_evidence(current_fail_dir),
-        "non_stitch_actions": [
-            {
-                "blocker": "agent_cloud_model",
-                "owner": "Codex/backend ops once a real model endpoint and key are available",
-                "runbook": artifacts["model_relay_runbook"],
-                "preflight_command": (
-                    "python tools/smoke_rehab_model_provider.py "
-                    "--provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY> "
-                    "--message <SAFE_REHAB_SMOKE_MESSAGE>"
-                ),
-                "configure_command": (
-                    "python tools/configure_rehab_model_relay.py "
-                    "--provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY>"
-                ),
-            }
-        ]
-        if "agent_cloud_model" in non_stitch_blockers
-        else [],
+        "ops_readiness_warnings": ops_warnings,
+        "non_stitch_actions": _non_stitch_actions(non_stitch_blockers, ops_warnings, artifacts),
         "browser_qa_required": BROWSER_QA_REQUIRED,
         "verification_commands": {
             "powershell": [
-                "$env:REHAB_QA_EMAIL='3245056131@qq.com'",
-                "$env:REHAB_QA_PASSWORD='1234'",
+                "$env:REHAB_QA_EMAIL='<staging email>'",
+                "$env:REHAB_QA_PASSWORD='<staging password>'",
                 ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_release.py",
                 ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py",
+                ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\export_rehab_mobile_l1_evidence.py --output artifacts\\rehab-mobile-l1-evidence\\rehab-mobile-l1-evidence.json",
                 "curl.exe -I -sS http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk",
             ]
         },

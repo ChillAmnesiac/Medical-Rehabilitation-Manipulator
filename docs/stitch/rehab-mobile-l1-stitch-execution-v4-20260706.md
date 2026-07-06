@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-06T15:05:00Z
+Generated: 2026-07-06T15:17:31Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -18,8 +18,9 @@ Do not hard-code fixture values. Use the fixture only to understand response sha
 ## Current Status
 - Stitch blockers: home_next_step, phone_binding, device_binding, ask_therapist_safety, profile_no_fake_debug, browser_qa_evidence, frontend_l1_gate
 - Non-Stitch blockers: agent_cloud_model
+- Ops warnings: phone_sms_delivery
 
-Important: Stitch cannot clear agent_cloud_model by UI work alone. The frontend must still render model readiness honestly.
+Important: Stitch cannot clear agent_cloud_model or provider-readiness warnings by UI work alone. The frontend must still render model/SMS readiness honestly.
 
 ## Current In-App Browser Failure Evidence
 Use these screenshots as visual references for what must change. They are not L1 success evidence.
@@ -110,6 +111,20 @@ Missing source/API requirements:
 - agent_unsafe_refusal
 - agent_model_status
 
+## Non-Stitch Ops Readiness
+These items cannot be fixed by frontend UI alone, but the UI must render their states honestly:
+- phone_sms_delivery: P1-PHONE-SMS-001 WARN - Phone verification is not configured for production SMS delivery; staging may rely on debug codes.
+
+Backend/Ops follow-up commands:
+- agent_cloud_model
+  Runbook: docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md
+  Preflight: `python tools/smoke_rehab_model_provider.py --provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY> --message <SAFE_REHAB_SMOKE_MESSAGE>`
+  Configure: `python tools/configure_rehab_model_relay.py --provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY>`
+- phone_sms_delivery
+  Runbook: docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md
+  Preflight: `python tools/smoke_rehab_sms_provider.py --provider webhook --webhook-url <SMS_WEBHOOK_URL> --webhook-token <SMS_WEBHOOK_TOKEN> --phone <REAL_TEST_PHONE> --code 123456 --purpose bind_account --verification-id sms-provider-smoke --expires-in 300`
+  Configure: `python tools/configure_rehab_sms_delivery.py --provider webhook --webhook-url <SMS_WEBHOOK_URL> --webhook-token <SMS_WEBHOOK_TOKEN> --preflight-json artifacts/rehab-mobile-sms/sms-provider-preflight.json --env-file cloud/rehab-platform/.env --execute`
+
 ## Required Final Browser QA Evidence
 Currently missing exact L1 success screenshots:
 - home_first_screen
@@ -136,10 +151,11 @@ Codex will run the local frontend L1 preflight and package the generated assets 
 ## Codex Verification Commands
 Codex will reject the frontend until these pass:
 ```powershell
-$env:REHAB_QA_EMAIL='3245056131@qq.com'
-$env:REHAB_QA_PASSWORD='1234'
+$env:REHAB_QA_EMAIL='<staging email>'
+$env:REHAB_QA_PASSWORD='<staging password>'
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_release.py
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_objective_audit.py
+.\cloud\rehab-platform\.venv\Scripts\python.exe tools\export_rehab_mobile_l1_evidence.py --output artifacts\rehab-mobile-l1-evidence\rehab-mobile-l1-evidence.json
 curl.exe -I -sS http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk
 ```
 

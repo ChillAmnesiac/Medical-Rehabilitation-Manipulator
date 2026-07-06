@@ -203,6 +203,8 @@ If the objective audit fails, inspect the `requirements` section. Do not call th
 
 The L1 evidence bundle is the handoff artifact after every large task. It records cloud health and deployment metadata, current git branch/HEAD, APK HEAD status, the combined release payload, objective audit payload, browser evidence status, and the Stitch/backend artifacts needed for the next fix cycle. Use `--fail-on-l1-fail` for CI or a release job that must stop when L1 is not ready.
 
+The repair packet may also list `ops_warnings` such as `phone_sms_delivery`. Stitch cannot clear these provider-readiness warnings, but the frontend must handle and render the related states honestly, including `PHONE_SMS_NOT_CONFIGURED`, `PHONE_SMS_DELIVERY_FAILED`, `PHONE_CODE_RESEND_TOO_SOON`, and Agent model fallback/readiness.
+
 Then Codex must capture browser screenshots at exactly `390 x 844`:
 
 1. Home first screen.

@@ -70,6 +70,17 @@ def _release_payload():
         "api": {
             "results": [
                 {
+                    "gate": "P1-PHONE-SMS-001",
+                    "status": "WARN",
+                    "summary": "Phone verification is using debug_sms.",
+                    "detail": {
+                        "mode": "debug_sms",
+                        "configured": False,
+                        "exposes_debug_code": True,
+                        "reason": "debug_code_enabled",
+                    },
+                },
+                {
                     "gate": "P1-AGENT-MODEL-001",
                     "status": "WARN",
                     "summary": "Agent is using safe fallback rules.",
@@ -146,6 +157,7 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
     ]
     assert packet["summary"]["non_stitch_blockers"] == ["agent_cloud_model"]
     assert packet["summary"]["meta_blockers"] == ["combined_l1_release"]
+    assert packet["summary"]["ops_warnings"] == ["phone_sms_delivery"]
     assert packet["frontend_failures"][0]["gate"] == "L1-HOME-STATIC-001"
     assert packet["frontend_failures"][0]["must_remove"] == ["M33", "RoboRehab Controller"]
     assert packet["integration_gaps"] == [
@@ -171,9 +183,22 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
         "deploy_rehab_mobile_frontend_release.py"
     )
     assert packet["required_artifacts"]["api_fixture"].endswith("rehab-mobile-l1-api-fixture-20260706.json")
+    assert packet["required_artifacts"]["sms_delivery_runbook"].endswith(
+        "rehab-mobile-sms-delivery-runbook-20260706.md"
+    )
+    assert packet["required_artifacts"]["sms_provider_smoke_tool"].endswith("smoke_rehab_sms_provider.py")
+    assert packet["required_artifacts"]["sms_delivery_config_tool"].endswith("configure_rehab_sms_delivery.py")
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(packet["verification_commands"]["powershell"])
     assert "smoke_rehab_model_provider.py" in packet["non_stitch_actions"][0]["preflight_command"]
     assert "configure_rehab_model_relay.py" in packet["non_stitch_actions"][0]["configure_command"]
+    sms_actions = [action for action in packet["non_stitch_actions"] if action["blocker"] == "phone_sms_delivery"]
+    assert len(sms_actions) == 1
+    assert "smoke_rehab_sms_provider.py" in sms_actions[0]["preflight_command"]
+    assert "configure_rehab_sms_delivery.py" in sms_actions[0]["configure_command"]
+    assert packet["ops_readiness_warnings"][0]["gate"] == "P1-PHONE-SMS-001"
+    rendered = json.dumps(packet, ensure_ascii=False)
+    assert "3245056131@qq.com" not in rendered
+    assert "REHAB_QA_PASSWORD='1234'" not in rendered
 
 
 def test_repair_packet_includes_current_fail_browser_evidence(tmp_path):

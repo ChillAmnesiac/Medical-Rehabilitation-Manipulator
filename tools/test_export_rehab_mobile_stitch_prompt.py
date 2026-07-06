@@ -28,12 +28,14 @@ def _packet():
         "summary": {
             "stitch_blockers": ["home_next_step", "phone_binding"],
             "non_stitch_blockers": ["agent_cloud_model"],
+            "ops_warnings": ["phone_sms_delivery"],
         },
         "required_artifacts": {
             "api_fixture": "docs/stitch/rehab-mobile-l1-api-fixture-20260706.json",
             "stitch_runbook": "docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md",
             "frontend_release_tool": "tools/prepare_rehab_mobile_frontend_release.py",
             "frontend_release_deployer": "tools/deploy_rehab_mobile_frontend_release.py",
+            "sms_delivery_runbook": "docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md",
         },
         "frontend_failures": [
             {
@@ -45,6 +47,24 @@ def _packet():
             }
         ],
         "integration_gaps": ["patient_view_home", "agent_messages"],
+        "ops_readiness_warnings": [
+            {
+                "warning": "phone_sms_delivery",
+                "gate": "P1-PHONE-SMS-001",
+                "status": "WARN",
+                "summary": "Phone verification is using debug_sms.",
+                "detail": {"mode": "debug_sms", "reason": "debug_code_enabled"},
+            }
+        ],
+        "non_stitch_actions": [
+            {
+                "blocker": "phone_sms_delivery",
+                "owner": "Codex/backend ops once a real SMS webhook endpoint and token are available",
+                "runbook": "docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md",
+                "preflight_command": "python tools/smoke_rehab_sms_provider.py --provider webhook --webhook-url <SMS_WEBHOOK_URL> --webhook-token <SMS_WEBHOOK_TOKEN> --phone <REAL_TEST_PHONE> --code 123456",
+                "configure_command": "python tools/configure_rehab_sms_delivery.py --provider webhook --webhook-url <SMS_WEBHOOK_URL> --webhook-token <SMS_WEBHOOK_TOKEN> --preflight-json artifacts/rehab-mobile-sms/sms-provider-preflight.json --execute",
+            }
+        ],
         "browser_evidence_current": {
             "missing": ["home_first_screen", "ask_therapist_chat"],
             "expected_dimensions": {"width": 390, "height": 844},
@@ -90,6 +110,11 @@ def test_render_prompt_includes_repair_packet_evidence_and_acceptance_commands()
     assert "patient_view_home" in prompt
     assert "agent_messages" in prompt
     assert "agent_cloud_model" in prompt
+    assert "phone_sms_delivery" in prompt
+    assert "P1-PHONE-SMS-001" in prompt
+    assert "rehab-mobile-sms-delivery-runbook-20260706.md" in prompt
+    assert "smoke_rehab_sms_provider.py" in prompt
+    assert "configure_rehab_sms_delivery.py" in prompt
     assert "qa_rehab_mobile_l1_release.py" in prompt
     assert "qa_rehab_mobile_l1_objective_audit.py" in prompt
     assert "prepare_rehab_mobile_frontend_release.py" in prompt

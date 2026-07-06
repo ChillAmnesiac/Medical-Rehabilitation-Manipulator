@@ -1,6 +1,6 @@
 {
   "schema": "rehab-mobile-stitch-repair-packet/v1",
-  "generated_at": "2026-07-06T15:05:00Z",
+  "generated_at": "2026-07-06T15:17:31Z",
   "target": {
     "api_base": "http://106.55.62.122:8011",
     "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
@@ -25,6 +25,9 @@
     ],
     "meta_blockers": [
       "combined_l1_release"
+    ],
+    "ops_warnings": [
+      "phone_sms_delivery"
     ]
   },
   "required_artifacts": {
@@ -36,7 +39,11 @@
     "frontend_release_deployer": "tools/deploy_rehab_mobile_frontend_release.py",
     "scorecard": "docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md",
     "qa_report": "docs/qa/rehab-mobile-20260706/QA_REPORT.md",
-    "model_relay_runbook": "docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md"
+    "model_relay_runbook": "docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md",
+    "sms_delivery_runbook": "docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md",
+    "sms_provider_smoke_tool": "tools/smoke_rehab_sms_provider.py",
+    "sms_delivery_config_tool": "tools/configure_rehab_sms_delivery.py",
+    "l1_evidence_exporter": "tools/export_rehab_mobile_l1_evidence.py"
   },
   "stitch_rules": [
     "Use the live API contract and sanitized fixture; do not hard-code fixture values.",
@@ -221,6 +228,22 @@
       "counts_for_l1_success": false
     }
   ],
+  "ops_readiness_warnings": [
+    {
+      "warning": "phone_sms_delivery",
+      "gate": "P1-PHONE-SMS-001",
+      "status": "WARN",
+      "summary": "Phone verification is not configured for production SMS delivery; staging may rely on debug codes.",
+      "detail": {
+        "status_code": 200,
+        "mode": "debug_sms",
+        "configured": false,
+        "provider": null,
+        "exposes_debug_code": true,
+        "reason": "debug_code_enabled"
+      }
+    }
+  ],
   "non_stitch_actions": [
     {
       "blocker": "agent_cloud_model",
@@ -228,6 +251,13 @@
       "runbook": "docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md",
       "preflight_command": "python tools/smoke_rehab_model_provider.py --provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY> --message <SAFE_REHAB_SMOKE_MESSAGE>",
       "configure_command": "python tools/configure_rehab_model_relay.py --provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY>"
+    },
+    {
+      "blocker": "phone_sms_delivery",
+      "owner": "Codex/backend ops once a real SMS webhook endpoint and token are available",
+      "runbook": "docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md",
+      "preflight_command": "python tools/smoke_rehab_sms_provider.py --provider webhook --webhook-url <SMS_WEBHOOK_URL> --webhook-token <SMS_WEBHOOK_TOKEN> --phone <REAL_TEST_PHONE> --code 123456 --purpose bind_account --verification-id sms-provider-smoke --expires-in 300",
+      "configure_command": "python tools/configure_rehab_sms_delivery.py --provider webhook --webhook-url <SMS_WEBHOOK_URL> --webhook-token <SMS_WEBHOOK_TOKEN> --preflight-json artifacts/rehab-mobile-sms/sms-provider-preflight.json --env-file cloud/rehab-platform/.env --execute"
     }
   ],
   "browser_qa_required": [
@@ -280,10 +310,11 @@
   ],
   "verification_commands": {
     "powershell": [
-      "$env:REHAB_QA_EMAIL='3245056131@qq.com'",
-      "$env:REHAB_QA_PASSWORD='1234'",
+      "$env:REHAB_QA_EMAIL='<staging email>'",
+      "$env:REHAB_QA_PASSWORD='<staging password>'",
       ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_release.py",
       ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py",
+      ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\export_rehab_mobile_l1_evidence.py --output artifacts\\rehab-mobile-l1-evidence\\rehab-mobile-l1-evidence.json",
       "curl.exe -I -sS http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"
     ]
   },

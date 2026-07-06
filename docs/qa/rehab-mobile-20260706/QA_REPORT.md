@@ -1216,3 +1216,36 @@ Fresh verification:
 - L1 evidence export wrote `artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence-20260706-sms-ops.json`; summary `health_ok = true`, `apk_ok = true`, and no staging password in the JSON.
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - Current staging remains `debug_sms` because no real SMS provider endpoint/token has been supplied.
+
+## Stitch Packet SMS/Evidence Refresh Follow-Up
+
+2026-07-06 continuation work refreshed the machine-readable Stitch handoff so frontend generation receives the latest backend ops constraints:
+
+- Updated `tools/export_rehab_mobile_stitch_repair_packet.py`.
+- Updated `tools/export_rehab_mobile_stitch_prompt.py`.
+- Refreshed `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`.
+- Refreshed `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`.
+
+New packet/prompt coverage:
+
+- `summary.ops_warnings` now includes `phone_sms_delivery` when `P1-PHONE-SMS-001` is not `PASS`.
+- `non_stitch_actions` now includes the SMS provider preflight/config flow and the existing Agent cloud-model flow.
+- `required_artifacts` now includes the SMS delivery runbook, SMS smoke tool, SMS config tool, and L1 evidence exporter.
+- `verification_commands` now includes `tools/export_rehab_mobile_l1_evidence.py`.
+- The repair packet and Stitch prompt no longer include the raw staging email or staging password; they use placeholders instead.
+
+Fresh verification:
+
+- Red repair-packet test first failed because `ops_warnings` was missing.
+- Red prompt test first failed because `phone_sms_delivery` and SMS ops commands were not rendered.
+- Follow-up red test first caught raw staging credentials in the generated packet/prompt.
+- Focused repair-packet/prompt tests: `5 passed`.
+- Live refreshed packet summary remains `overall = FAIL`; `ops_warnings = phone_sms_delivery`; `non_stitch_actions = agent_cloud_model, phone_sms_delivery`.
+- Live refreshed packet/prompt parse confirmed SMS tools and L1 evidence export are present, with no raw staging email/password.
+- Full related backend/QA suite: `116 passed, 1 warning`.
+- Cloud API/APK acceptance remained `overall = PASS`, `p0_failed = 0`, `total = 22`; `P1-PHONE-SMS-001 = WARN` and `P0-APK-001 = PASS`.
+- Live L1 release remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remains `FAIL`: `8 / 11` failing, including home next step, phone/device binding UI, Ask Therapist safety UI, profile cleanup, browser success evidence, and cloud model readiness.
+- L1 evidence export wrote `artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence-20260706-stitch-refresh.json`; summary `health_ok = true`, `apk_ok = true`, and no raw staging email/password in the JSON.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime or frontend deployment was made for this tooling/handoff-only change.
