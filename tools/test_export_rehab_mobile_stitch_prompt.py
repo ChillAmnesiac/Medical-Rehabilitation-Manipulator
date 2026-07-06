@@ -116,6 +116,8 @@ def test_render_prompt_includes_repair_packet_evidence_and_acceptance_commands()
     assert "APK WebView mirror" in prompt
     assert "Do not change backend code" in prompt
     assert "docs/stitch/rehab-mobile-l1-api-fixture-20260706.json" in prompt
+    assert "docs/stitch/rehab-mobile-l1-ui-contract-20260707.json" in prompt
+    assert "Use the L1 UI contract for visible copy" in prompt
     assert "Do not hard-code fixture values" in prompt
     assert "Exact Release-Gated Visible Copy" in prompt
     assert "home.html: 查看康复师建议, 问康复师" in prompt

@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-07T05:05:00Z
+Generated: 2026-07-07T06:25:00Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -11,9 +11,11 @@ Edit only frontend files. Do not change backend code.
 Live API base: http://106.55.62.122:8011
 Deployed web base: http://106.55.62.122:3001/rehab-arm-mobile
 Sanitized API fixture: docs/stitch/rehab-mobile-l1-api-fixture-20260706.json
+L1 UI contract: docs/stitch/rehab-mobile-l1-ui-contract-20260707.json
 Runbook: docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md
 
-Do not hard-code fixture values. Use the fixture only to understand response shape and required field names.
+Use the L1 UI contract for visible copy, page fields, and action API wiring. Use the full fixture only to understand raw response shape and required field names.
+Do not hard-code fixture values.
 
 ## Exact Release-Gated Visible Copy
 Do not paraphrase, translate, rename, or replace these strings with synonyms.

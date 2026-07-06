@@ -24,6 +24,7 @@ DEFAULT_REQUIRED_ARTIFACTS = {
     "stitch_prompt": "docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md",
     "stitch_runbook": "docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md",
     "api_fixture": "docs/stitch/rehab-mobile-l1-api-fixture-20260706.json",
+    "ui_contract": "docs/stitch/rehab-mobile-l1-ui-contract-20260707.json",
     "frontend_release_tool": "tools/prepare_rehab_mobile_frontend_release.py",
     "frontend_release_verifier": "tools/verify_rehab_mobile_frontend_release.py",
     "webview_mirror_verifier": "tools/verify_rehab_mobile_webview_mirror.py",

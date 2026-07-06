@@ -12,6 +12,7 @@ from typing import Any
 
 
 DEFAULT_REPAIR_PACKET = Path("docs/stitch/rehab-mobile-l1-repair-packet-20260706.json")
+DEFAULT_UI_CONTRACT = "docs/stitch/rehab-mobile-l1-ui-contract-20260707.json"
 
 EXACT_VISIBLE_COPY = {
     "home.html": ("查看康复师建议", "问康复师"),
@@ -295,9 +296,11 @@ def render_prompt(packet: dict[str, Any], *, generated_at: str | None = None) ->
         f"Live API base: {target.get('api_base')}",
         f"Deployed web base: {target.get('web_base')}",
         f"Sanitized API fixture: {artifacts.get('api_fixture')}",
+        f"L1 UI contract: {artifacts.get('ui_contract') or DEFAULT_UI_CONTRACT}",
         f"Runbook: {artifacts.get('stitch_runbook')}",
         "",
-        "Do not hard-code fixture values. Use the fixture only to understand response shape and required field names.",
+        "Use the L1 UI contract for visible copy, page fields, and action API wiring. Use the full fixture only to understand raw response shape and required field names.",
+        "Do not hard-code fixture values.",
         "",
     ]
     lines.extend(_exact_visible_copy_section())

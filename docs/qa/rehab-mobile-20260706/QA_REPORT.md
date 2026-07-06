@@ -2088,3 +2088,47 @@ Stitch status:
   `401 invalid authentication credentials`.
 - Because no accepted Stitch output exists, Codex did not deploy frontend
   assets or rebuild the APK in this pass.
+
+## 2026-07-07 L1 UI Contract Handoff Tightening
+
+Codex found that the full sanitized API fixture is still too broad for direct
+Stitch UI generation. It is useful for raw response shape, but it also carries
+legacy/public-config material such as device protocol and debug readiness
+fields that should not influence normal patient screens.
+
+New handoff artifact:
+
+- Added `tools/export_rehab_mobile_stitch_ui_contract.py`.
+- Added `docs/stitch/rehab-mobile-l1-ui-contract-20260707.json`, generated from
+  `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` at
+  `2026-07-07T06:20:00Z`.
+- The UI contract is `6679` bytes and contains only the L1 page contract,
+  action API calls, phone verification states, device conflict code, Agent safe
+  answer/unsafe refusal contract, and cloud model status.
+- The UI contract verifies the required action methods:
+  `login = POST`, `bootstrap = GET`, `phone_verification_start = POST`,
+  `phone_verification_confirm = POST`, `device_bind = POST`,
+  `agent_message = POST`.
+- The UI contract omits `m33_legacy_spp_profile`, `debug_code`, raw staging
+  email, and access-token values.
+
+Prompt/packet updates:
+
+- `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json` now lists the UI
+  contract as a required artifact.
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` now tells
+  Stitch to use the L1 UI contract for visible copy, page fields, and action
+  API wiring, and to use the full fixture only for raw response shape.
+
+Fresh verification:
+
+- Red tests first failed because the UI-contract exporter did not exist and the
+  Stitch prompt did not reference the contract.
+- `tools/test_export_rehab_mobile_stitch_ui_contract.py`: `2 passed`.
+- `tools/test_export_rehab_mobile_stitch_prompt.py` focused prompt test:
+  `1 passed`.
+- `tools/test_export_rehab_mobile_stitch_repair_packet.py` focused repair
+  packet test: `1 passed`.
+- Stitch `list_screens` on project `323711356322969905` still returns
+  `401 invalid authentication credentials`, so no new frontend candidate was
+  generated or deployed in this pass.

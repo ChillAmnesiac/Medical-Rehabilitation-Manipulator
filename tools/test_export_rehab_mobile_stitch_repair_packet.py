@@ -190,6 +190,7 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
         "deploy_rehab_mobile_frontend_release.py"
     )
     assert packet["required_artifacts"]["api_fixture"].endswith("rehab-mobile-l1-api-fixture-20260706.json")
+    assert packet["required_artifacts"]["ui_contract"].endswith("rehab-mobile-l1-ui-contract-20260707.json")
     assert packet["target"]["frontend_branch"] == "app/rehab-arm-mobile-stitch"
     assert packet["target"]["frontend_source_commit"] == "eaa08a40cdd3e1e62827809111f2323e7f92556f"
     assert packet["target"]["frontend_edit_scope"] == "apps/web/public/rehab-arm-mobile/"

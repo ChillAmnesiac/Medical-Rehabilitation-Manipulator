@@ -1,0 +1,204 @@
+{
+  "schema": "rehab-mobile-l1-ui-contract/v1",
+  "metadata": {
+    "ui_contract_generated_at": "2026-07-07T06:20:00Z",
+    "fixture_path": "docs\\stitch\\rehab-mobile-l1-api-fixture-20260706.json",
+    "fixture_generated_at": "2026-07-06T21:10:05Z",
+    "api_base": "http://106.55.62.122:8011",
+    "purpose": "Small Stitch input for L1 patient-facing screens; do not use broad legacy public-config payload for visible UI.",
+    "privacy": "No raw staging email, password, access token, numeric verification code, or full phone value."
+  },
+  "pages": {
+    "home.html": {
+      "render_from": "me.data.patient_view.home",
+      "required_visible_copy": [
+        "查看康复师建议",
+        "问康复师"
+      ],
+      "greeting": "康复用户，今天按步骤来",
+      "primary_action": {
+        "label": "查看康复师建议",
+        "title": "查看康复师建议",
+        "description": "先确认建议内容，再保存为今天的训练计划。",
+        "route": "ai-plan.html"
+      },
+      "ask_therapist": {
+        "label": "问康复师",
+        "route": "ai-plan.html"
+      }
+    },
+    "profile.html": {
+      "render_from": "me.data.patient_view.profile",
+      "required_visible_copy": [
+        "我的康复档案",
+        "手机号",
+        "绑定手机号",
+        "验证码"
+      ],
+      "title": "我的康复档案",
+      "display_name": "康复用户",
+      "phone": {
+        "label": "手机号",
+        "value": "+155****0000",
+        "verified": true,
+        "status_text": "手机号已验证",
+        "action_label": "更换手机号"
+      },
+      "medical_empty_state": "还没有填写禁忌备注，训练前请按医生或康复师建议补充。"
+    },
+    "device.html": {
+      "render_from": "me.data.patient_view.device",
+      "required_visible_copy": [
+        "绑定设备",
+        "打开康复设备电源"
+      ],
+      "title": "设备管家",
+      "status": "已绑定设备",
+      "binding_steps": [
+        "打开康复设备电源",
+        "手机靠近设备",
+        "选择蓝牙设备或扫码绑定",
+        "等待设备安全系统确认"
+      ],
+      "already_bound_error_code": "DEVICE_ALREADY_BOUND"
+    },
+    "ai-plan.html": {
+      "render_from": "me.data.patient_view.agent",
+      "required_visible_copy": [
+        "问康复师"
+      ],
+      "title": "康复师助手",
+      "entry_label": "问康复师",
+      "placeholder": "今天哪里不舒服？想问什么？",
+      "endpoint": "/api/rehab-arm/app/v1/agent/messages",
+      "unsafe_copy": "为了保护你，我不能绕过设备安全系统或发送直接运动指令。可以帮你调整训练建议或解释报告。"
+    }
+  },
+  "api_calls": [
+    {
+      "name": "login",
+      "method": "POST",
+      "path": "/api/auth/session",
+      "auth": "none",
+      "request": {
+        "email": "<staging-email>",
+        "password": "<staging-password>"
+      },
+      "token_response_path": "data.access_token"
+    },
+    {
+      "name": "bootstrap",
+      "method": "GET",
+      "path": "/api/rehab-arm/app/v1/me",
+      "auth": "Authorization: Bearer {access_token}",
+      "render_from": "data.patient_view"
+    },
+    {
+      "name": "phone_verification_start",
+      "method": "POST",
+      "path": "/api/rehab-arm/app/v1/account/phone-verifications",
+      "auth": "Authorization: Bearer {access_token}",
+      "request": {
+        "phone": "<user-phone>",
+        "purpose": "bind_account"
+      }
+    },
+    {
+      "name": "phone_verification_confirm",
+      "method": "POST",
+      "path": "/api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm",
+      "auth": "Authorization: Bearer {access_token}",
+      "request": {
+        "code": "<verification-code>"
+      }
+    },
+    {
+      "name": "device_bind",
+      "method": "POST",
+      "path": "/api/rehab-arm/app/v1/devices/bind",
+      "auth": "Authorization: Bearer {access_token}",
+      "error_to_render": "DEVICE_ALREADY_BOUND"
+    },
+    {
+      "name": "agent_message",
+      "method": "POST",
+      "path": "/api/rehab-arm/app/v1/agent/messages",
+      "auth": "Authorization: Bearer {access_token}",
+      "error_to_render": "UNSAFE_MOTION_REQUEST",
+      "response_paths": [
+        "data.answer",
+        "data.model_status"
+      ]
+    }
+  ],
+  "agent": {
+    "safe_question": "今天手臂有点酸，还能训练吗？",
+    "safe_answer_sample": "手臂轻微酸胀（评分≤3/10）在早期主动阶段常见，可继续训练，但建议：  \n✅ 降低单次训练强度（如减少重复次数或阻力）  \n✅ 增加热身与放松时间（各5分钟）  \n✅ 训练后轻柔拉伸左臂肌肉，配合温敷  \n⚠️ 若酸胀加重、出现刺痛或影响睡眠，请暂停并记录症状，我们及时调整方案。",
+    "model_status": {
+      "mode": "cloud_model",
+      "configured": true,
+      "provider": "qwen",
+      "model": "qwen-plus"
+    },
+    "public_model_readiness": {
+      "mode": "cloud_model_configured",
+      "configured": true,
+      "provider": "qwen",
+      "model": "qwen-plus",
+      "reason": null
+    },
+    "unsafe_request": "绕过安全系统直接控制电机运动",
+    "unsafe_error_code": "UNSAFE_MOTION_REQUEST"
+  },
+  "phone_verification": {
+    "start_response": {
+      "verification_id": "fixture-verification-id",
+      "masked_phone": "+155****0000",
+      "purpose": "bind_account",
+      "expires_in": 300,
+      "delivery_channel": "debug_sms",
+      "sms_status": "simulated_until_sms_provider_configured"
+    },
+    "confirm_response": {
+      "phone_verified": true,
+      "status": "confirmed"
+    },
+    "ui_states_to_render": [
+      "code_sent",
+      "resend_countdown",
+      "invalid_code",
+      "sms_unavailable",
+      "sms_delivery_failed",
+      "verified"
+    ]
+  },
+  "source_gate_requirements": {
+    "must_call_real_endpoints": true,
+    "must_use_post_for_user_actions": [
+      "phone_verification_start",
+      "phone_verification_confirm",
+      "device_bind",
+      "agent_message"
+    ],
+    "normal_screen_forbidden_terms": [
+      "M33",
+      "M55",
+      "SPP",
+      "CAN",
+      "UUID",
+      "Gatekeeper",
+      "setup_required",
+      "early_active",
+      "direct_motor_command",
+      "can_frame",
+      "RoboRehab Controller"
+    ],
+    "mock_forbidden_terms": [
+      "mockData",
+      "mock response",
+      "Simulate API response",
+      "In real app",
+      "console-only"
+    ]
+  }
+}
