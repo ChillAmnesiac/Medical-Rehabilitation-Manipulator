@@ -81,6 +81,12 @@ BROWSER_QA_REQUIRED = [
 ]
 
 CURRENT_FAIL_SCREEN_ORDER = ["home", "ai-plan", "device", "profile"]
+DEFAULT_DEPLOYED_BROWSER_METRICS_JSON = Path(
+    "docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707.json"
+)
+DEFAULT_DEPLOYED_BROWSER_METRICS_RAW_JSON = Path(
+    "docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707-raw.json"
+)
 
 
 def _utc_now() -> str:
@@ -204,6 +210,59 @@ def _current_fail_evidence(current_fail_dir: Path | None) -> list[dict[str, Any]
     return sorted(evidence, key=lambda item: order.get(item["screen"], len(order)))
 
 
+def _deployed_browser_qa(
+    metrics_payload: dict[str, Any] | None,
+    metrics_path: Path | None = None,
+    raw_payload: dict[str, Any] | None = None,
+    raw_path: Path | None = None,
+) -> dict[str, Any]:
+    if not isinstance(metrics_payload, dict):
+        return {}
+    gate_result: dict[str, Any] = {}
+    for result in metrics_payload.get("results") or []:
+        if isinstance(result, dict) and result.get("gate") == "L1-BROWSER-METRICS-001":
+            gate_result = result
+            break
+    detail = gate_result.get("detail") if isinstance(gate_result.get("detail"), dict) else {}
+    summary = metrics_payload.get("summary") if isinstance(metrics_payload.get("summary"), dict) else {}
+    issue_fields = [
+        "fake_hits",
+        "touch_issues",
+        "input_issues",
+        "overflow_issues",
+        "vertical_text_issues",
+    ]
+    screenshots: dict[str, str] = {}
+    viewport: dict[str, Any] = {}
+    if isinstance(raw_payload, dict):
+        raw_viewport = raw_payload.get("viewport")
+        if isinstance(raw_viewport, dict):
+            viewport = raw_viewport
+        for page in raw_payload.get("pages") or []:
+            if not isinstance(page, dict):
+                continue
+            page_name = page.get("page")
+            screenshot = page.get("screenshot")
+            if isinstance(page_name, str) and isinstance(screenshot, str):
+                screenshots[page_name] = screenshot
+    return {
+        "metrics_path": str(metrics_path) if metrics_path else None,
+        "raw_path": str(raw_path) if raw_path else None,
+        "status": gate_result.get("status") or summary.get("overall"),
+        "summary": summary,
+        "checked_pages": detail.get("checked_pages") or [],
+        "missing_pages": detail.get("missing_pages") or [],
+        "fake_hits": detail.get("fake_hits") or [],
+        "touch_issues": detail.get("touch_issues") or [],
+        "input_issues": detail.get("input_issues") or [],
+        "overflow_issues": detail.get("overflow_issues") or [],
+        "vertical_text_issues": detail.get("vertical_text_issues") or [],
+        "issue_counts": {field: len(detail.get(field) or []) for field in issue_fields},
+        "screenshots": screenshots,
+        "viewport": viewport,
+    }
+
+
 def _split_blockers(
     objective_payload: dict[str, Any], release_payload: dict[str, Any]
 ) -> tuple[list[str], list[str], list[str]]:
@@ -275,6 +334,10 @@ def build_repair_packet(
     frontend_source_commit: str | None = None,
     required_artifacts: dict[str, str] | None = None,
     current_fail_dir: Path | None = None,
+    deployed_browser_metrics_payload: dict[str, Any] | None = None,
+    deployed_browser_metrics_path: Path | None = None,
+    deployed_browser_raw_payload: dict[str, Any] | None = None,
+    deployed_browser_raw_path: Path | None = None,
 ) -> dict[str, Any]:
     frontend_failures = _frontend_failures(release_payload)
     stitch_blockers, non_stitch_blockers, meta_blockers = _split_blockers(objective_payload, release_payload)
@@ -318,6 +381,12 @@ def build_repair_packet(
         "integration_gaps": _integration_gaps(frontend_failures),
         "browser_evidence_current": _requirement_evidence(objective_payload, "browser_qa_evidence"),
         "current_fail_evidence": _current_fail_evidence(current_fail_dir),
+        "deployed_browser_qa": _deployed_browser_qa(
+            deployed_browser_metrics_payload,
+            deployed_browser_metrics_path,
+            deployed_browser_raw_payload,
+            deployed_browser_raw_path,
+        ),
         "ops_readiness_warnings": ops_warnings,
         "non_stitch_actions": _non_stitch_actions(non_stitch_blockers, ops_warnings, artifacts),
         "browser_qa_required": BROWSER_QA_REQUIRED,
@@ -353,6 +422,12 @@ def _load_json(path: Path) -> dict[str, Any]:
     return payload
 
 
+def _load_optional_json(path: Path | None) -> dict[str, Any] | None:
+    if not path or not path.exists():
+        return None
+    return _load_json(path)
+
+
 def _run_release_gate(args: argparse.Namespace) -> dict[str, Any]:
     release_args = qa_rehab_mobile_l1_release.parse_args(
         [
@@ -385,6 +460,16 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--browser-metrics-json",
         type=Path,
         default=qa_rehab_mobile_l1_objective_audit.DEFAULT_BROWSER_METRICS_JSON,
+    )
+    parser.add_argument(
+        "--deployed-browser-metrics-json",
+        type=Path,
+        default=DEFAULT_DEPLOYED_BROWSER_METRICS_JSON,
+    )
+    parser.add_argument(
+        "--deployed-browser-metrics-raw-json",
+        type=Path,
+        default=DEFAULT_DEPLOYED_BROWSER_METRICS_RAW_JSON,
     )
     parser.add_argument(
         "--current-fail-dir",
@@ -431,6 +516,10 @@ def main(argv: list[str]) -> int:
         frontend_branch=args.frontend_branch,
         frontend_source_commit=args.frontend_source_commit,
         current_fail_dir=args.current_fail_dir,
+        deployed_browser_metrics_payload=_load_optional_json(args.deployed_browser_metrics_json),
+        deployed_browser_metrics_path=args.deployed_browser_metrics_json,
+        deployed_browser_raw_payload=_load_optional_json(args.deployed_browser_metrics_raw_json),
+        deployed_browser_raw_path=args.deployed_browser_metrics_raw_json,
     )
     rendered = json.dumps(packet, ensure_ascii=False, indent=2)
     if args.output:

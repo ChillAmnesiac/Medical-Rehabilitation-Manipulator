@@ -84,6 +84,40 @@ def _packet():
                 "counts_for_l1_success": False,
             }
         ],
+        "deployed_browser_qa": {
+            "metrics_path": "docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707.json",
+            "raw_path": "docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707-raw.json",
+            "status": "FAIL",
+            "checked_pages": ["home", "profile", "device", "ai-plan"],
+            "missing_pages": [],
+            "fake_hits": [
+                {"page": "home", "term": "M33"},
+                {"page": "device", "term": "Gatekeeper"},
+            ],
+            "touch_issues": [
+                {
+                    "page": "home",
+                    "tag": "BUTTON",
+                    "text": "clinical_notes",
+                    "width": 38,
+                    "height": 38,
+                    "x": 17,
+                    "y": 13,
+                }
+            ],
+            "issue_counts": {
+                "fake_hits": 2,
+                "touch_issues": 1,
+                "input_issues": 0,
+                "overflow_issues": 0,
+                "vertical_text_issues": 0,
+            },
+            "screenshots": {
+                "home": "docs/qa/rehab-mobile-20260706/screenshots/current-deployed-home-20260707-375x812.jpg",
+                "device": "docs/qa/rehab-mobile-20260706/screenshots/current-deployed-device-20260707-375x812.jpg",
+            },
+            "viewport": {"width": 390, "height": 844},
+        },
         "browser_qa_required": [
             {
                 "name": "home_first_screen",
@@ -128,6 +162,14 @@ def test_render_prompt_includes_repair_packet_evidence_and_acceptance_commands()
     assert "&#x7ED1;&#x5B9A;&#x8BBE;&#x5907;" in prompt
     assert "docs/qa/current-fail-home-clip-390x844.png" in prompt
     assert "counts_for_l1_success = false" in prompt
+    assert "Current Deployed Browser QA Blockers" in prompt
+    assert "browser-metrics-current-deployed-20260707.json" in prompt
+    assert "browser-metrics-current-deployed-20260707-raw.json" in prompt
+    assert "checked_pages: home, profile, device, ai-plan" in prompt
+    assert "fake/debug copy: home -> M33" in prompt
+    assert "fake/debug copy: device -> Gatekeeper" in prompt
+    assert "touch target: home BUTTON clinical_notes 38x38" in prompt
+    assert "current-deployed-home-20260707-375x812.jpg" in prompt
     assert "L1-HOME-STATIC-001" in prompt
     assert "patient_view_home" in prompt
     assert "agent_messages" in prompt

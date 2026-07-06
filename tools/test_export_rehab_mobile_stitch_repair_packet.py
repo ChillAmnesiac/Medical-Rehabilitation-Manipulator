@@ -138,6 +138,56 @@ def _objective_payload():
     }
 
 
+def _deployed_browser_metrics_payload():
+    return {
+        "summary": {"overall": "FAIL", "failed": 1, "total": 1},
+        "results": [
+            {
+                "gate": "L1-BROWSER-METRICS-001",
+                "status": "FAIL",
+                "detail": {
+                    "checked_pages": ["home", "profile", "device", "ai-plan"],
+                    "missing_pages": [],
+                    "fake_hits": [
+                        {"page": "home", "term": "M33"},
+                        {"page": "device", "term": "Gatekeeper"},
+                    ],
+                    "touch_issues": [
+                        {
+                            "page": "home",
+                            "tag": "BUTTON",
+                            "text": "clinical_notes",
+                            "width": 38,
+                            "height": 38,
+                            "x": 17,
+                            "y": 13,
+                        }
+                    ],
+                    "input_issues": [],
+                    "overflow_issues": [],
+                    "vertical_text_issues": [],
+                },
+            }
+        ],
+    }
+
+
+def _deployed_browser_raw_payload():
+    return {
+        "viewport": {"width": 390, "height": 844},
+        "pages": [
+            {
+                "page": "home",
+                "screenshot": "docs/qa/rehab-mobile-20260706/screenshots/current-deployed-home-20260707-375x812.jpg",
+            },
+            {
+                "page": "device",
+                "screenshot": "docs/qa/rehab-mobile-20260706/screenshots/current-deployed-device-20260707-375x812.jpg",
+            },
+        ],
+    }
+
+
 def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
     module = _load_module()
 
@@ -225,6 +275,48 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
     forbidden_password_command = "REHAB_QA_PASSWORD='" + "".join(["12", "34"]) + "'"
     assert forbidden_email not in rendered
     assert forbidden_password_command not in rendered
+
+
+def test_repair_packet_includes_current_deployed_browser_qa_blockers():
+    module = _load_module()
+
+    packet = module.build_repair_packet(
+        _release_payload(),
+        _objective_payload(),
+        generated_at="2026-07-07T06:35:00Z",
+        deployed_browser_metrics_payload=_deployed_browser_metrics_payload(),
+        deployed_browser_metrics_path=Path(
+            "docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707.json"
+        ),
+        deployed_browser_raw_payload=_deployed_browser_raw_payload(),
+        deployed_browser_raw_path=Path(
+            "docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707-raw.json"
+        ),
+    )
+
+    deployed = packet["deployed_browser_qa"]
+
+    assert deployed["metrics_path"].endswith("browser-metrics-current-deployed-20260707.json")
+    assert deployed["raw_path"].endswith("browser-metrics-current-deployed-20260707-raw.json")
+    assert deployed["status"] == "FAIL"
+    assert deployed["checked_pages"] == ["home", "profile", "device", "ai-plan"]
+    assert deployed["missing_pages"] == []
+    assert deployed["fake_hits"] == [
+        {"page": "home", "term": "M33"},
+        {"page": "device", "term": "Gatekeeper"},
+    ]
+    assert deployed["touch_issues"][0]["width"] == 38
+    assert deployed["touch_issues"][0]["height"] == 38
+    assert deployed["issue_counts"] == {
+        "fake_hits": 2,
+        "touch_issues": 1,
+        "input_issues": 0,
+        "overflow_issues": 0,
+        "vertical_text_issues": 0,
+    }
+    assert deployed["screenshots"]["home"].endswith("current-deployed-home-20260707-375x812.jpg")
+    assert deployed["screenshots"]["device"].endswith("current-deployed-device-20260707-375x812.jpg")
+    assert deployed["viewport"] == {"width": 390, "height": 844}
 
 
 def test_repair_packet_includes_current_fail_browser_evidence(tmp_path):

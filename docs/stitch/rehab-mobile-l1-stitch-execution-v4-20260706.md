@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-07T06:25:00Z
+Generated: 2026-07-07T06:40:00Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -58,7 +58,7 @@ The 2026-07-07 four-page entity candidate passed source gates but is still rejec
 - Candidate screenshots are QA evidence only. Do not treat them as final L1 screenshots until the files are applied to the real App branch, mirrored into the APK WebView assets, deployed, and re-captured at exactly 390x844.
 
 ## Current Status
-- Stitch blockers: home_next_step, phone_binding, device_binding, ask_therapist_safety, profile_no_fake_debug, browser_qa_evidence, frontend_l1_gate
+- Stitch blockers: home_next_step, phone_binding, device_binding, ask_therapist_safety, profile_no_fake_debug, apk_webview_assets, browser_qa_evidence, frontend_l1_gate
 - Non-Stitch blockers: none
 - Ops warnings: phone_sms_delivery
 
@@ -81,11 +81,44 @@ Use these screenshots as visual references for what must change. They are not L1
 - device: docs\qa\rehab-mobile-20260706\browser-current-fail-20260706\current-fail-device-clip2-390x844.png (390x844), counts_for_l1_success = false
 - profile: docs\qa\rehab-mobile-20260706\browser-current-fail-20260706\current-fail-profile-clip2-390x844.png (390x844), counts_for_l1_success = false
 
+## Current Deployed Browser QA Blockers
+These are the latest in-app browser QA failures from the deployed cloud frontend. Fix these, not just the older candidate screenshots.
+- metrics: docs\qa\rehab-mobile-20260706\browser-metrics-current-deployed-20260707.json
+- raw metrics/screenshots: docs\qa\rehab-mobile-20260706\browser-metrics-current-deployed-20260707-raw.json
+- status: FAIL
+- checked_pages: home, profile, device, ai-plan
+- missing_pages: none
+- deployed screenshots:
+  - home: docs/qa/rehab-mobile-20260706/screenshots/current-deployed-home-20260707-375x812.jpg
+  - profile: docs/qa/rehab-mobile-20260706/screenshots/current-deployed-profile-20260707-375x812.jpg
+  - device: docs/qa/rehab-mobile-20260706/screenshots/current-deployed-device-20260707-375x812.jpg
+  - ai-plan: docs/qa/rehab-mobile-20260706/screenshots/current-deployed-ai-plan-20260707-390x844.jpg
+- remove visible fake/debug copy from normal patient screens:
+  - fake/debug copy: home -> M33
+  - fake/debug copy: home -> M55
+  - fake/debug copy: profile -> M33
+  - fake/debug copy: profile -> M55
+  - fake/debug copy: device -> M33
+  - fake/debug copy: device -> M55
+  - fake/debug copy: device -> Gatekeeper
+- fix undersized touch targets:
+  - touch target: home BUTTON clinical_notes 38x38 at (17,13)
+  - touch target: home BUTTON smart_toy 40x40 at (319,12)
+  - touch target: home BUTTON emergency 急停已就绪 307x37 at (36,794)
+  - touch target: profile BUTTON clinical_notes 40x48 at (16,8)
+  - touch target: profile BUTTON smart_toy 40x48 at (319,8)
+  - touch target: profile BUTTON add 配对新设备 293x41 at (41,714)
+  - touch target: device BUTTON smart_toy 44x44 at (315,10)
+  - touch target: ai-plan INPUT 2 325x4 at (33,438)
+  - touch target: ai-plan SELECT 轻微 中等 明显疲劳 325x44 at (33,486)
+- issue_counts: {"fake_hits": 7, "input_issues": 0, "overflow_issues": 0, "touch_issues": 9, "vertical_text_issues": 0}
+
 ## Frontend Failures To Fix
 
 ### L1-HOME-STATIC-001
 Summary: Home static page is patient-facing and free of raw workflow/debug terms.
 Must add visible/user-facing evidence:
+- 查看康复师建议
 - 问康复师
 Must remove from normal user screens:
 - M33
@@ -147,6 +180,9 @@ Missing source/API requirements:
 - agent_messages
 - agent_unsafe_refusal
 - agent_model_status
+- phone_verification_start_post
+- phone_verification_confirm_post
+- agent_messages_post
 
 ## Integration Gaps
 - patient_view_home
@@ -162,6 +198,9 @@ Missing source/API requirements:
 - agent_messages
 - agent_unsafe_refusal
 - agent_model_status
+- phone_verification_start_post
+- phone_verification_confirm_post
+- agent_messages_post
 
 ## Non-Stitch Ops Readiness
 These items cannot be fixed by frontend UI alone, but the UI must render their states honestly:

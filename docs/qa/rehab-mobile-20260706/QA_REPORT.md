@@ -2475,3 +2475,55 @@ Acceptance boundary:
 
 - No cloud deployment or APK rebuild was performed in this pass because this
   work captures the current deployed failure state only.
+
+## 2026-07-07 Stitch Handoff Uses Deployed Browser QA
+
+Codex updated the Stitch repair packet and V4 execution prompt so the next
+frontend generation receives the current deployed browser QA blockers directly,
+not only the older candidate-source failures.
+
+Tooling changes:
+
+- `tools/export_rehab_mobile_stitch_repair_packet.py` now accepts
+  `--deployed-browser-metrics-json` and
+  `--deployed-browser-metrics-raw-json`.
+- The repair packet now includes `deployed_browser_qa` with:
+  checked pages, status, fake/debug copy hits, undersized touch targets,
+  issue counts, raw metrics path, and deployed screenshot paths.
+- `tools/export_rehab_mobile_stitch_prompt.py` now renders a
+  `Current Deployed Browser QA Blockers` section.
+
+Fresh handoff artifacts:
+
+- Repair packet:
+  `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`.
+- Stitch prompt:
+  `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`.
+
+New Stitch blockers exposed in the prompt:
+
+- Current deployed metrics:
+  `docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707.json`.
+- Current deployed raw metrics/screenshots:
+  `docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707-raw.json`.
+- Fake/debug copy: `M33`, `M55`, and `Gatekeeper` on normal patient screens.
+- Touch target issues: `9` total, including header buttons and AI plan input
+  controls below the 48 px minimum.
+- Current deployed screenshot references for home/profile/device/ai-plan are
+  included, with `375 x 812` failure captures clearly not counted as final L1
+  success evidence.
+
+Fresh verification:
+
+- Red repair-packet test first failed because `build_repair_packet()` had no
+  deployed browser metrics inputs.
+- Red prompt test first failed because the V4 prompt did not include
+  `Current Deployed Browser QA Blockers`.
+- Focused Stitch packet/prompt tests:
+  `tools/test_export_rehab_mobile_stitch_repair_packet.py` and
+  `tools/test_export_rehab_mobile_stitch_prompt.py` -> `9 passed`.
+
+Acceptance boundary:
+
+- No cloud deployment or APK rebuild was performed in this pass because this
+  work updates the Stitch handoff and QA tooling only.

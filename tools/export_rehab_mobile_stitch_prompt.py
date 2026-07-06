@@ -138,6 +138,47 @@ def _current_fail_section(packet: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _deployed_browser_qa_section(packet: dict[str, Any]) -> list[str]:
+    deployed = packet.get("deployed_browser_qa")
+    if not isinstance(deployed, dict) or not deployed:
+        return []
+    lines = [
+        "## Current Deployed Browser QA Blockers",
+        "These are the latest in-app browser QA failures from the deployed cloud frontend. Fix these, not just the older candidate screenshots.",
+        f"- metrics: {deployed.get('metrics_path')}",
+        f"- raw metrics/screenshots: {deployed.get('raw_path')}",
+        f"- status: {deployed.get('status')}",
+        f"- checked_pages: {_inline_list(deployed.get('checked_pages') or [])}",
+        f"- missing_pages: {_inline_list(deployed.get('missing_pages') or [])}",
+    ]
+    screenshots = deployed.get("screenshots") if isinstance(deployed.get("screenshots"), dict) else {}
+    if screenshots:
+        lines.append("- deployed screenshots:")
+        for page, screenshot in screenshots.items():
+            lines.append(f"  - {page}: {screenshot}")
+    fake_hits = deployed.get("fake_hits") if isinstance(deployed.get("fake_hits"), list) else []
+    if fake_hits:
+        lines.append("- remove visible fake/debug copy from normal patient screens:")
+        for item in fake_hits:
+            if isinstance(item, dict):
+                lines.append(f"  - fake/debug copy: {item.get('page')} -> {item.get('term')}")
+    touch_issues = deployed.get("touch_issues") if isinstance(deployed.get("touch_issues"), list) else []
+    if touch_issues:
+        lines.append("- fix undersized touch targets:")
+        for item in touch_issues:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                "  - touch target: "
+                f"{item.get('page')} {item.get('tag')} {item.get('text')} "
+                f"{item.get('width')}x{item.get('height')} at ({item.get('x')},{item.get('y')})"
+            )
+    issue_counts = deployed.get("issue_counts") if isinstance(deployed.get("issue_counts"), dict) else {}
+    if issue_counts:
+        lines.append(f"- issue_counts: {json.dumps(issue_counts, ensure_ascii=False, sort_keys=True)}")
+    return lines
+
+
 def _required_browser_qa_section(packet: dict[str, Any]) -> list[str]:
     lines = ["## Required Final Browser QA Evidence"]
     current = packet.get("browser_evidence_current") or {}
@@ -322,6 +363,10 @@ def render_prompt(packet: dict[str, Any], *, generated_at: str | None = None) ->
     lines.append("")
     lines.extend(_current_fail_section(packet))
     lines.append("")
+    deployed_lines = _deployed_browser_qa_section(packet)
+    if deployed_lines:
+        lines.extend(deployed_lines)
+        lines.append("")
     lines.extend(_front_failures_section(packet))
     lines.append("")
     lines.append("## Integration Gaps")
