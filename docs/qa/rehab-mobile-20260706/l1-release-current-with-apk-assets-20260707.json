@@ -67,7 +67,7 @@
               ]
             },
             "meta": {
-              "request_id": "cf0a90a1030c4dcc89d7d9318244f981"
+              "request_id": "026e6fda4df34901adf8c24e4442857d"
             }
           }
         }
@@ -157,7 +157,7 @@
           "device_first_step": "打开康复设备电源",
           "profile_phone": {
             "label": "手机号",
-            "value": "+155****5593",
+            "value": "+155****7344",
             "verified": true,
             "status_text": "手机号已验证",
             "action_label": "更换手机号"
@@ -182,7 +182,7 @@
         "summary": "Staging account can request and confirm a phone verification code.",
         "detail": {
           "start_status_code": 200,
-          "masked_phone": "+155****7223",
+          "masked_phone": "+155****0686",
           "delivery_channel": "debug_sms",
           "expires_in": 300,
           "confirm_status_code": 200,
@@ -195,11 +195,11 @@
         "status": "PASS",
         "summary": "Phone verification immediate resend is throttled with a retry_after countdown.",
         "detail": {
-          "phone": "+15559207325",
+          "phone": "+15559280781",
           "first_status_code": 200,
           "second_status_code": 429,
           "second_error_code": "PHONE_CODE_RESEND_TOO_SOON",
-          "retry_after": 59,
+          "retry_after": 60,
           "first_delivery_channel": "debug_sms"
         }
       },
@@ -260,7 +260,7 @@
         "detail": {
           "status_code": 200,
           "technical_terms": [],
-          "answer": "手臂轻微酸胀（尤其在早期主动阶段）是常见反应，说明肌肉正在适应训练。  \n✅ 可继续训练，但建议：  \n- 降低单次训练强度或时长（如减少10–20%）；  \n- 重点做轻柔的关节活动和等长收缩（不移动关节的肌肉绷紧练习）；  \n- 训练后温敷+轻柔按摩左前臂/上臂，促进放松。  \n\n如酸胀伴随明显疼痛（＞3分）、肿胀、发红或活动受限，请暂停并记录症状，我们可一起调整方案。",
+          "answer": "手臂轻微酸胀（评分≤3分）在早期主动康复阶段是常见反应，通常可继续训练。  \n建议：  \n✅ 降低单次训练强度（如减少重复次数或阻力）；  \n✅ 训练前充分热身，训练后做轻柔拉伸和放松；  \n✅ 若酸胀持续加重、出现刺痛或夜间痛醒，请暂停并记录症状，我们及时调整方案。  \n\n需要我帮你调整今天的训练内容吗？",
           "model_status": {
             "mode": "cloud_model",
             "configured": true,
@@ -382,7 +382,7 @@
     "summary": {
       "overall": "FAIL",
       "failed": 5,
-      "total": 5,
+      "total": 6,
       "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
       "source_dir": null
     },
@@ -497,6 +497,21 @@
             "agent_messages_post"
           ],
           "forbidden_source_hits": [],
+          "checked_pages": [
+            "ai-plan.html",
+            "device.html",
+            "home.html",
+            "profile.html"
+          ]
+        }
+      },
+      {
+        "gate": "L1-FRONTEND-PRIVACY-001",
+        "level": "L1",
+        "status": "PASS",
+        "summary": "Frontend source does not hardcode staging credentials, tokens, SMS codes, or API keys.",
+        "detail": {
+          "privacy_hits": [],
           "checked_pages": [
             "ai-plan.html",
             "device.html",

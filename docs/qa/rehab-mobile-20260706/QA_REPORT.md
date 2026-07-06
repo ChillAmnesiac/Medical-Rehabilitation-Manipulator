@@ -2606,3 +2606,63 @@ L1 interpretation:
 - The current L1 blocker remains frontend rendering plus APK WebView asset
   parity, not backend API regression.
 - No deployment or APK rebuild was performed because no runtime files changed.
+
+## 2026-07-07 Frontend Privacy Gate For Stitch Promotion
+
+Codex added a new L1 frontend source gate so AI-generated Stitch exports cannot
+be promoted if they hard-code staging credentials or provider secrets.
+
+New gate:
+
+- `L1-FRONTEND-PRIVACY-001`.
+- Rejects hard-coded staging email addresses, `REHAB_QA_EMAIL` /
+  `REHAB_QA_PASSWORD`, literal Bearer tokens, numeric SMS `debug_code`
+  fixtures, Google/Stitch-style API keys, and model-provider `sk-*` keys.
+- The gate reports only hit categories such as `hardcoded_email` or
+  `hardcoded_api_key`; it does not echo the matched secret value into JSON
+  reports.
+- Runtime handling remains allowed: frontend code may read `access_token` from
+  the user session and may render `debug_code` only from a backend staging
+  response.
+
+Stitch handoff update:
+
+- `tools/export_rehab_mobile_stitch_prompt.py` now tells Stitch that
+  `L1-FRONTEND-PRIVACY-001` is release-gated.
+- Regenerated prompt:
+  `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`.
+
+Refreshed current deployed evidence:
+
+- Release gate:
+  `docs/qa/rehab-mobile-20260706/l1-release-current-with-apk-assets-20260707.json`.
+- Objective audit:
+  `docs/qa/rehab-mobile-20260706/objective-audit-current-deployed-browser-20260707.json`.
+- Evidence bundle:
+  `docs/qa/rehab-mobile-20260706/l1-evidence-current-with-apk-assets-20260707.json`.
+
+Current result:
+
+- `L1-FRONTEND-PRIVACY-001 = PASS`, `privacy_hits = []`.
+- Overall L1 remains `FAIL`.
+- Blocking gates remain `frontend_l1_gate` and `apk_webview_assets`.
+
+Fresh verification:
+
+- Red privacy tests first failed because `check_frontend_privacy_contract()` did
+  not exist.
+- Red prompt test first failed because the V4 Stitch prompt did not mention
+  `L1-FRONTEND-PRIVACY-001`.
+- Focused frontend gate tests:
+  `tools/test_qa_rehab_mobile_l1_frontend.py` -> `14 passed`.
+- Focused prompt tests:
+  `tools/test_export_rehab_mobile_stitch_prompt.py` -> `4 passed`.
+- Promotion/release chain regression tests:
+  `tools/test_promote_rehab_mobile_stitch_frontend.py`,
+  `tools/test_prepare_rehab_mobile_frontend_release.py`, and
+  `tools/test_verify_rehab_mobile_frontend_release.py` -> `19 passed`.
+
+Acceptance boundary:
+
+- No cloud deployment or APK rebuild was performed because no runtime frontend
+  files were accepted from Stitch and the current combined L1 gate still fails.

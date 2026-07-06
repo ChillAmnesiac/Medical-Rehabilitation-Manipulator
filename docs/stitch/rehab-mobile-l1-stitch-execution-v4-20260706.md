@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-07T06:40:00Z
+Generated: 2026-07-07T07:10:00Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -55,6 +55,8 @@ The 2026-07-07 four-page entity candidate passed source gates but is still rejec
   Rejected candidate measurements included a 64x24 header action, a 40x40 back button, and 28x48 bottom-nav links.
 - Generated JavaScript must call the real backend endpoints. Do not use mockData, mock response objects, Simulate API response comments, In real app comments, or console-only behavior for phone verification, device binding, or Ask Therapist messages.
   Profile must POST phone verification start/confirm requests with method: 'POST', Device must POST /api/rehab-arm/app/v1/devices/bind with method: 'POST', and Ask Therapist must POST /api/rehab-arm/app/v1/agent/messages with method: 'POST'.
+- L1-FRONTEND-PRIVACY-001: Do not hard-code staging email, staging password, Bearer tokens, SMS debug codes, or API keys in generated HTML, JavaScript, comments, or fixtures.
+  Read runtime credentials from user input/session storage and read debug_code only from backend responses in staging mode.
 - Candidate screenshots are QA evidence only. Do not treat them as final L1 screenshots until the files are applied to the real App branch, mirrored into the APK WebView assets, deployed, and re-captured at exactly 390x844.
 
 ## Current Status

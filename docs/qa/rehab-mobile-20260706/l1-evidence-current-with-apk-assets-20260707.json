@@ -1,6 +1,6 @@
 {
   "schema": "rehab-mobile-l1-evidence/v1",
-  "generated_at": "2026-07-06T22:28:06Z",
+  "generated_at": "2026-07-06T22:53:44Z",
   "target": {
     "api_base": "http://106.55.62.122:8011",
     "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
@@ -40,8 +40,8 @@
     "path": "F:/RT-ThreadStudio/workspace/Edgi_Talk_M33_Blink_LED",
     "available": true,
     "branch": "codex/rehab-mobile-backend-qa-20260706",
-    "head": "6152fc9d15417c0456f6d2c18075dba06db142a3",
-    "head_short": "6152fc9d",
+    "head": "3969bc95f29e55e5c8c253103c91925faccbfb04",
+    "head_short": "3969bc95",
     "dirty": true,
     "status_short": [
       "M .cproject",
@@ -52,7 +52,11 @@
       " M applications/control/control_layer_cfg.h",
       " M applications/m33/m55_model_bridge.c",
       " M applications/main.c",
+      " M docs/qa/rehab-mobile-20260706/l1-release-current-with-apk-assets-20260707.json",
+      " M docs/qa/rehab-mobile-20260706/objective-audit-current-deployed-browser-20260707.json",
       " M \"docs/\\346\\226\\207\\346\\241\\243\\345\\257\\274\\350\\210\\252.md\"",
+      " M tools/qa_rehab_mobile_l1_frontend.py",
+      " M tools/test_qa_rehab_mobile_l1_frontend.py",
       " M tools/test_rehab_mode_static.py",
       "?? docs/EDGE_AI_DEPLOYMENT_LOG.md",
       "?? docs/EDGE_AI_INTERVIEW_BRIEF.md",
@@ -63,12 +67,6 @@
       "?? \"docs/Nanopi\\344\\270\\216F103\\350\\201\\224\\350\\260\\203\\350\\260\\203\\350\\257\\225\\345\\210\\206\\346\\236\\220_20260707.md\"",
       "?? docs/REPORT_SOFTWARE_LAYERED_SECTION_20260705.md",
       "?? docs/embedded_competition_report_software_layered.docx",
-      "?? docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707-raw.json",
-      "?? docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707.json",
-      "?? docs/qa/rehab-mobile-20260706/screenshots/current-deployed-ai-plan-20260707-390x844.jpg",
-      "?? docs/qa/rehab-mobile-20260706/screenshots/current-deployed-device-20260707-375x812.jpg",
-      "?? docs/qa/rehab-mobile-20260706/screenshots/current-deployed-home-20260707-375x812.jpg",
-      "?? docs/qa/rehab-mobile-20260706/screenshots/current-deployed-profile-20260707-375x812.jpg",
       "?? docs/qa/rehab-mobile-20260706/screenshots/stitch-clean-candidate-ai-plan-20260707-390x844.png",
       "?? docs/qa/rehab-mobile-20260706/screenshots/stitch-clean-candidate-device-20260707-390x844.png",
       "?? docs/qa/rehab-mobile-20260706/screenshots/stitch-clean-candidate-home-20260707-390x844.png",
@@ -133,16 +131,16 @@
         ]
       },
       "meta": {
-        "request_id": "6daed2adcc7b4d74886da1e40a356183"
+        "request_id": "58af47a987c7476b8999ecee85ee4630"
       }
     },
     "headers": {
       "Connection": "close",
       "Content-Length": "538",
       "Content-Type": "application/json",
-      "Date": "Mon, 06 Jul 2026 22:28:06 GMT",
+      "Date": "Mon, 06 Jul 2026 22:53:44 GMT",
       "Server": "uvicorn",
-      "X-Request-Id": "6daed2adcc7b4d74886da1e40a356183"
+      "X-Request-Id": "58af47a987c7476b8999ecee85ee4630"
     }
   },
   "apk_head": {
@@ -156,7 +154,7 @@
       "Accept-Ranges": "bytes",
       "Cache-Control": "public, max-age=0",
       "Content-Type": "application/vnd.android.package-archive",
-      "Date": "Mon, 06 Jul 2026 22:28:07 GMT",
+      "Date": "Mon, 06 Jul 2026 22:53:44 GMT",
       "Etag": "W/\"40103e-19f2ec7ac72\"",
       "Last-Modified": "Sat, 04 Jul 2026 20:17:45 GMT"
     }
@@ -245,7 +243,7 @@
                   ]
                 },
                 "meta": {
-                  "request_id": "8304acea93ff40efaa46a1caed59f644"
+                  "request_id": "026e6fda4df34901adf8c24e4442857d"
                 }
               }
             }
@@ -335,7 +333,7 @@
               "device_first_step": "打开康复设备电源",
               "profile_phone": {
                 "label": "手机号",
-                "value": "+155****7936",
+                "value": "+155****7344",
                 "verified": true,
                 "status_text": "手机号已验证",
                 "action_label": "更换手机号"
@@ -360,7 +358,7 @@
             "summary": "Staging account can request and confirm a phone verification code.",
             "detail": {
               "start_status_code": 200,
-              "masked_phone": "+155****4090",
+              "masked_phone": "+155****0686",
               "delivery_channel": "debug_sms",
               "expires_in": 300,
               "confirm_status_code": 200,
@@ -373,7 +371,7 @@
             "status": "PASS",
             "summary": "Phone verification immediate resend is throttled with a retry_after countdown.",
             "detail": {
-              "phone": "+15559794179",
+              "phone": "+15559280781",
               "first_status_code": 200,
               "second_status_code": 429,
               "second_error_code": "PHONE_CODE_RESEND_TOO_SOON",
@@ -438,7 +436,7 @@
             "detail": {
               "status_code": 200,
               "technical_terms": [],
-              "answer": "手臂轻微酸胀（评分≤3/10）在早期主动阶段是常见反应，可继续训练，但建议：  \n✅ 降低单次训练强度（如减少重复次数或阻力）  \n✅ 增加热身和放松时间（各5分钟）  \n✅ 训练后轻柔拉伸左臂肌肉，配合冰敷（10–15分钟）缓解酸胀  \n⚠️ 若酸胀持续加重、出现刺痛或夜间痛醒，请暂停训练并及时反馈。  \n\n需要我帮你调整今天的训练计划吗？",
+              "answer": "手臂轻微酸胀（评分≤3分）在早期主动康复阶段是常见反应，通常可继续训练。  \n建议：  \n✅ 降低单次训练强度（如减少重复次数或阻力）；  \n✅ 训练前充分热身，训练后做轻柔拉伸和放松；  \n✅ 若酸胀持续加重、出现刺痛或夜间痛醒，请暂停并记录症状，我们及时调整方案。  \n\n需要我帮你调整今天的训练内容吗？",
               "model_status": {
                 "mode": "cloud_model",
                 "configured": true,
@@ -560,7 +558,7 @@
         "summary": {
           "overall": "FAIL",
           "failed": 5,
-          "total": 5,
+          "total": 6,
           "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
           "source_dir": null
         },
@@ -675,6 +673,21 @@
                 "agent_messages_post"
               ],
               "forbidden_source_hits": [],
+              "checked_pages": [
+                "ai-plan.html",
+                "device.html",
+                "home.html",
+                "profile.html"
+              ]
+            }
+          },
+          {
+            "gate": "L1-FRONTEND-PRIVACY-001",
+            "level": "L1",
+            "status": "PASS",
+            "summary": "Frontend source does not hardcode staging credentials, tokens, SMS codes, or API keys.",
+            "detail": {
+              "privacy_hits": [],
               "checked_pages": [
                 "ai-plan.html",
                 "device.html",

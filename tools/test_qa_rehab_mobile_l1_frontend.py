@@ -218,6 +218,63 @@ def test_frontend_integration_contract_rejects_action_endpoints_without_post_met
     assert "agent_messages_post" in result.detail["missing_requirements"]
 
 
+def test_frontend_privacy_gate_rejects_hardcoded_credentials_and_tokens():
+    module = _load_module()
+    qa_email = "".join(["3245056131", "@", "qq.com"])
+    qa_password = "REHAB_QA_PASSWORD='" + "".join(["12", "34"]) + "'"
+    bearer_token = "Bearer " + "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9" + ".fixed-token"
+    model_key = "".join(["s", "k", "-"]) + "live-rehab-mobile-hardcoded-key"
+
+    sources = {
+        "home.html": f"""
+          const stagingEmail = '{qa_email}';
+          const token = '{bearer_token}';
+        """,
+        "profile.html": f"""
+          const qaPassword = "{qa_password}";
+          const verification = {{ debug_code: "123456" }};
+        """,
+        "device.html": """
+          const stitchApiKey = 'X-Goog-Api-Key: AQ.Ab8RN6LAEbdSD6c938v6w0';
+        """,
+        "ai-plan.html": f"""
+          const modelKey = '{model_key}';
+        """,
+    }
+
+    result = module.check_frontend_privacy_contract(sources)
+
+    assert result.status == "FAIL"
+    assert "hardcoded_email" in result.detail["privacy_hits"]
+    assert "hardcoded_bearer_token" in result.detail["privacy_hits"]
+    assert "hardcoded_debug_code" in result.detail["privacy_hits"]
+    assert "staging_env_secret" in result.detail["privacy_hits"]
+    assert "hardcoded_api_key" in result.detail["privacy_hits"]
+
+
+def test_frontend_privacy_gate_allows_runtime_token_and_debug_code_handling():
+    module = _load_module()
+
+    sources = {
+        "home.html": """
+          const token = session.access_token;
+          fetch('/api/rehab-arm/app/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+        """,
+        "profile.html": """
+          if (response.delivery_channel === 'debug_sms' && response.debug_code) {
+            renderStagingHelper(response.debug_code);
+          }
+        """,
+        "device.html": "const device = response.data.patient_view.device;",
+        "ai-plan.html": "const screenshotName = 'l1-ask-therapist-chat-390.png'; const modelStatus = response.data.model_status;",
+    }
+
+    result = module.check_frontend_privacy_contract(sources)
+
+    assert result.status == "PASS"
+    assert result.detail["privacy_hits"] == []
+
+
 MODULE_PATH = Path(__file__).with_name("qa_rehab_mobile_l1_frontend.py")
 
 

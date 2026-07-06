@@ -114,6 +114,16 @@ POST_ACTION_REQUIREMENTS = {
     "agent_messages_post": ("/api/rehab-arm/app/v1/agent/messages",),
 }
 
+PRIVACY_SOURCE_PATTERNS = {
+    "hardcoded_email": re.compile(r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"),
+    "hardcoded_bearer_token": re.compile(r"(?i)\bBearer\s+[A-Z0-9._~+/\-=]{20,}\b"),
+    "hardcoded_debug_code": re.compile(r"""(?i)\bdebug[_-]?code\b\s*[:=]\s*["']?\d{4,8}"""),
+    "staging_env_secret": re.compile(r"\bREHAB_QA_(?:EMAIL|PASSWORD)\b"),
+    "hardcoded_api_key": re.compile(
+        r"(?i)(?:X-Goog-Api-Key|\bAIza[0-9A-Z_-]{20,}|\bAQ\.[0-9A-Z_-]{16,}|\bsk-[0-9A-Z_-]{16,})"
+    ),
+}
+
 SCRIPT_SRC_RE = re.compile(r"""(?is)<script\b[^>]*\bsrc=["']([^"']+)["']""")
 
 
@@ -202,6 +212,26 @@ def check_frontend_integration_contract(sources: dict[str, str]) -> Result:
         detail={
             "missing_requirements": missing_requirements,
             "forbidden_source_hits": forbidden_source_hits,
+            "checked_pages": sorted(sources),
+        },
+    )
+
+
+def check_frontend_privacy_contract(sources: dict[str, str]) -> Result:
+    combined_source = "\n".join(sources.get(path, "") for path in sorted(sources))
+    decoded_source = unescape(combined_source)
+    privacy_hits = [
+        name
+        for name, pattern in PRIVACY_SOURCE_PATTERNS.items()
+        if pattern.search(combined_source) or pattern.search(decoded_source)
+    ]
+    return Result(
+        gate="L1-FRONTEND-PRIVACY-001",
+        level="L1",
+        status="PASS" if not privacy_hits else "FAIL",
+        summary="Frontend source does not hardcode staging credentials, tokens, SMS codes, or API keys.",
+        detail={
+            "privacy_hits": privacy_hits,
             "checked_pages": sorted(sources),
         },
     )
@@ -355,6 +385,7 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         )
 
     results.append(check_frontend_integration_contract(sources))
+    results.append(check_frontend_privacy_contract(sources))
 
     failed = [result for result in results if result.status == "FAIL"]
     payload = {
