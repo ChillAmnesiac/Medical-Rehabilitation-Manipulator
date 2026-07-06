@@ -148,21 +148,35 @@ Current missing source/API references:
 - patient_view_profile
 - patient_view_device
 - patient_view_agent
+- ask_therapist_accessibility
 - phone_verification_start
 - phone_verification_confirm
+- phone_resend_cooldown
+- phone_sms_error_states
+- device_already_bound
 - agent_messages
+- agent_unsafe_refusal
+- agent_model_status
 
 Required source wiring:
 - `POST /api/auth/session`
 - `GET /api/rehab-arm/app/v1/me`
+- preserve `access_token` and send `Authorization: Bearer <token>`
 - `data.patient_view.home`
 - `data.patient_view.profile`
 - `data.patient_view.device`
 - `data.patient_view.agent`
+- `aria-label="问康复师"` or equivalent accessible name on icon-only Ask Therapist controls
 - `POST /api/rehab-arm/app/v1/account/phone-verifications`
 - `POST /api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm`
+- `PHONE_CODE_RESEND_TOO_SOON` with `retry_after` / `retryAfter`
+- `PHONE_SMS_NOT_CONFIGURED`
+- `PHONE_SMS_DELIVERY_FAILED`
 - `POST /api/rehab-arm/app/v1/devices/bind`
+- `DEVICE_ALREADY_BOUND`
 - `POST /api/rehab-arm/app/v1/agent/messages`
+- `UNSAFE_MOTION_REQUEST`
+- `response.data.model_status` / `modelStatus`
 
 Current browser failure screenshot:
 docs/qa/rehab-mobile-20260706/screenshots/model-relay-ops-device-390.png

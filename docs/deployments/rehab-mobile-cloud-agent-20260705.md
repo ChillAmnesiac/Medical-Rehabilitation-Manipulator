@@ -459,6 +459,24 @@
   - APK HEAD -> `200`, size `4198462`, content type `application/vnd.android.package-archive`
 - No cloud runtime deployment was made for this frontend-handoff/QA artifact change.
 
+## 2026-07-06 Frontend L1 Integration Gate Hardening
+
+- Tightened `tools/qa_rehab_mobile_l1_frontend.py` so `L1-FRONTEND-INTEGRATION-001` requires evidence for:
+  - Bearer auth token propagation
+  - Ask Therapist accessible label
+  - phone resend cooldown and SMS error states
+  - already-bound device conflict handling
+  - unsafe Agent refusal handling
+  - Agent model-status rendering
+- Added regression coverage in `tools/test_qa_rehab_mobile_l1_frontend.py`.
+- Updated Stitch V3 prompt with the stricter missing-requirement list.
+- Fresh verification:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools/test_qa_rehab_mobile_l1_frontend.py tools/test_qa_rehab_mobile_l1_release.py -q` -> `10 passed`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud/rehab-platform/tests tools/test_qa_rehab_mobile_acceptance.py tools/test_qa_rehab_mobile_l1_frontend.py tools/test_qa_rehab_mobile_l1_release.py tools/test_export_rehab_mobile_stitch_fixture.py tools/test_configure_rehab_model_relay.py -q` -> `72 passed, 1 warning`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`
+  - APK HEAD -> `200`, size `4198462`, content type `application/vnd.android.package-archive`
+- No cloud runtime deployment was made for this QA-gate-only change.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

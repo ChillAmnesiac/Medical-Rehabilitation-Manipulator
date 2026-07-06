@@ -114,7 +114,15 @@ The next frontend build is not accepted until all checks pass:
 8. Profile shows cloud account, verified phone state, rehab profile, and calm `待完善` medical empty state.
 9. No demo patient, fake ID, fake stage, or fake medical warning appears as real data.
 10. Source/included same-origin scripts reference required live API contracts: auth session, `/me`, `patient_view` sections, phone verification start/confirm, device bind, and Agent messages.
-11. 390px mobile screenshots show no overlap or unreachable primary controls.
+11. Source/included same-origin scripts also handle the L1 interaction states Codex now gates:
+    - Bearer token auth propagation
+    - `aria-label` or equivalent accessible name for `问康复师`
+    - `PHONE_CODE_RESEND_TOO_SOON` with retry countdown
+    - `PHONE_SMS_NOT_CONFIGURED` and `PHONE_SMS_DELIVERY_FAILED`
+    - `DEVICE_ALREADY_BOUND`
+    - `UNSAFE_MOTION_REQUEST`
+    - `data.model_status` / `modelStatus`
+12. 390px mobile screenshots show no overlap or unreachable primary controls.
 
 ## Codex Verification After Stitch
 

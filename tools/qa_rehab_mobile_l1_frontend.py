@@ -71,15 +71,23 @@ PAGE_GATES = {
 
 INTEGRATION_REQUIREMENTS = {
     "auth_session": (("/api/auth/session",),),
+    "auth_bearer_header": (("Authorization", "Bearer"),),
+    "auth_token_storage": (("access_token",),),
     "bootstrap_me": (("/api/rehab-arm/app/v1/me",),),
     "patient_view_home": (("patient_view", "home"), ("patientView", "home")),
     "patient_view_profile": (("patient_view", "profile"), ("patientView", "profile")),
     "patient_view_device": (("patient_view", "device"), ("patientView", "device")),
     "patient_view_agent": (("patient_view", "agent"), ("patientView", "agent")),
+    "ask_therapist_accessibility": (("aria-label", "问康复师"), ("ariaLabel", "问康复师")),
     "phone_verification_start": (("/api/rehab-arm/app/v1/account/phone-verifications",),),
     "phone_verification_confirm": (("phone-verifications", "confirm"),),
+    "phone_resend_cooldown": (("PHONE_CODE_RESEND_TOO_SOON", "retry_after"), ("PHONE_CODE_RESEND_TOO_SOON", "retryAfter")),
+    "phone_sms_error_states": (("PHONE_SMS_NOT_CONFIGURED", "PHONE_SMS_DELIVERY_FAILED"),),
     "device_bind": (("/api/rehab-arm/app/v1/devices/bind",),),
+    "device_already_bound": (("DEVICE_ALREADY_BOUND",),),
     "agent_messages": (("/api/rehab-arm/app/v1/agent/messages",),),
+    "agent_unsafe_refusal": (("UNSAFE_MOTION_REQUEST",),),
+    "agent_model_status": (("model_status",), ("modelStatus",)),
 }
 
 SCRIPT_SRC_RE = re.compile(r"""(?is)<script\b[^>]*\bsrc=["']([^"']+)["']""")

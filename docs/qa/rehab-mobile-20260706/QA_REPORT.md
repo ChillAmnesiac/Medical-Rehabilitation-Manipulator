@@ -740,3 +740,37 @@ Stitch execution runbook:
   - Cloud acceptance: API/APK `PASS`, `p0_failed = 0`, `total = 22`.
   - Total L1 release gate remains `FAIL`, with blockers `frontend_l1_gate` and `agent_cloud_model`.
   - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+
+## Frontend L1 Integration Gate Hardening Follow-Up
+
+2026-07-06 continuation work tightened `L1-FRONTEND-INTEGRATION-001` so a frontend build cannot pass by only adding patient-facing copy or endpoint strings:
+
+- Added required integration evidence for:
+  - `auth_bearer_header`
+  - `auth_token_storage`
+  - `ask_therapist_accessibility`
+  - `phone_resend_cooldown`
+  - `phone_sms_error_states`
+  - `device_already_bound`
+  - `agent_unsafe_refusal`
+  - `agent_model_status`
+- Added a failing test first: a page bundle with the basic auth, `/me`, phone, device, and Agent endpoints passed before these interaction-state checks were introduced.
+- Focused frontend/release gate tests after implementation: `10 passed`.
+- Full local backend plus QA suite after this gate hardening: `72 passed, 1 warning`.
+- Total L1 release gate remains `FAIL`, with API `PASS`, frontend `FAIL`, and blockers `frontend_l1_gate` and `agent_cloud_model`.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- Current deployed frontend still fails the stricter integration gate. Missing requirements now include:
+  - `patient_view_home`
+  - `patient_view_profile`
+  - `patient_view_device`
+  - `patient_view_agent`
+  - `ask_therapist_accessibility`
+  - `phone_verification_start`
+  - `phone_verification_confirm`
+  - `phone_resend_cooldown`
+  - `phone_sms_error_states`
+  - `device_already_bound`
+  - `agent_messages`
+  - `agent_unsafe_refusal`
+  - `agent_model_status`
+- Updated Stitch V3 prompt so the frontend generator has the exact stricter gate list.

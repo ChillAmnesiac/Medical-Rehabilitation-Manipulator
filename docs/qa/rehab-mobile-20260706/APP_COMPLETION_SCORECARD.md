@@ -97,7 +97,7 @@ Current result: `NOT READY`.
 | Agent UI | FAIL | Visible assistant entries do not open chat; static gate `L1-AGENT-STATIC-001` missing `问康复师` |
 | Device UI | FAIL | Device page still looks like debug/engineering state; latest browser evidence `screenshots/model-relay-ops-device-390.png`; static gate `L1-DEVICE-STATIC-001` requires `绑定设备` and `打开康复设备电源`, and the page still exposes `M33`, `M55`, and `Gatekeeper` |
 | Profile UI | FAIL | Browser screenshots plus static gate `L1-PROFILE-STATIC-001` now also require `绑定手机号` and `验证码` |
-| Frontend API integration | FAIL | `L1-FRONTEND-INTEGRATION-001` is missing `patient_view` section wiring plus phone verification and Agent message endpoints |
+| Frontend API integration | FAIL | `L1-FRONTEND-INTEGRATION-001` is missing `patient_view` wiring, Ask Therapist accessibility, phone verification start/confirm/cooldown/SMS error handling, device already-bound handling, Agent messages, unsafe refusal, and model-status rendering |
 
 ## Next Work Order
 

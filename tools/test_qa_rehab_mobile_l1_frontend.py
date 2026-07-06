@@ -8,23 +8,31 @@ def test_frontend_integration_contract_passes_when_stitch_uses_required_api_cont
 
     sources = {
         "home.html": """
+          localStorage.setItem('access_token', token);
           fetch('/api/auth/session');
-          fetch('/api/rehab-arm/app/v1/me');
+          fetch('/api/rehab-arm/app/v1/me', { headers: { Authorization: `Bearer ${token}` } });
           const home = response.data.patient_view.home;
           const agent = response.data.patient_view.agent;
+          <button aria-label="问康复师">问康复师</button>
         """,
         "profile.html": """
           const profile = response.data.patient_view.profile;
           fetch('/api/rehab-arm/app/v1/account/phone-verifications');
           fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`);
+          if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
+          if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
+          if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
         """,
         "device.html": """
           const device = response.data.patient_view.device;
           fetch('/api/rehab-arm/app/v1/devices/bind');
+          if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
         """,
         "ai-plan.html": """
           const agent = response.data.patient_view.agent;
           fetch('/api/rehab-arm/app/v1/agent/messages');
+          if (error.code === 'UNSAFE_MOTION_REQUEST') showSafeRefusal();
+          renderModelStatus(response.data.model_status);
         """,
     }
 
@@ -50,6 +58,42 @@ def test_frontend_integration_contract_fails_when_pages_only_change_copy():
     assert "auth_session" in result.detail["missing_requirements"]
     assert "patient_view_profile" in result.detail["missing_requirements"]
     assert "agent_messages" in result.detail["missing_requirements"]
+
+
+def test_frontend_integration_contract_requires_l1_interaction_states():
+    module = _load_module()
+
+    sources = {
+        "home.html": """
+          localStorage.setItem('access_token', token);
+          fetch('/api/auth/session');
+          fetch('/api/rehab-arm/app/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+          const home = response.data.patient_view.home;
+          const agent = response.data.patient_view.agent;
+        """,
+        "profile.html": """
+          const profile = response.data.patient_view.profile;
+          fetch('/api/rehab-arm/app/v1/account/phone-verifications', { method: 'POST' });
+          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`, { method: 'POST' });
+        """,
+        "device.html": """
+          const device = response.data.patient_view.device;
+          fetch('/api/rehab-arm/app/v1/devices/bind', { method: 'POST' });
+        """,
+        "ai-plan.html": """
+          const agent = response.data.patient_view.agent;
+          fetch('/api/rehab-arm/app/v1/agent/messages', { method: 'POST' });
+        """,
+    }
+
+    result = module.check_frontend_integration_contract(sources)
+
+    assert result.status == "FAIL"
+    assert "agent_unsafe_refusal" in result.detail["missing_requirements"]
+    assert "agent_model_status" in result.detail["missing_requirements"]
+    assert "device_already_bound" in result.detail["missing_requirements"]
+    assert "phone_resend_cooldown" in result.detail["missing_requirements"]
+    assert "ask_therapist_accessibility" in result.detail["missing_requirements"]
 
 
 MODULE_PATH = Path(__file__).with_name("qa_rehab_mobile_l1_frontend.py")
