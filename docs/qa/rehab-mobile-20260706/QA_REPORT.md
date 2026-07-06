@@ -1755,6 +1755,86 @@ Fresh verification:
 No cloud frontend deployment or APK rebuild was made for this tooling-only
 follow-up; the APK URL was still verified separately before commit.
 
+## 2026-07-07 Current Cloud Browser QA Resmoke
+
+Codex reconnected the in-app browser, made it visible for QA, and fixed the
+viewport to `390 x 844` before opening the current deployed cloud pages.
+
+Fresh screenshots:
+
+The browser runtime saved JPEG payloads under the existing `.png` screenshot
+naming convention; each file below was decoded and verified at `390 x 844`.
+
+- `screenshots/current-fail-home-20260707-390x844.png`: `390 x 844`,
+  `55540` bytes.
+- `screenshots/current-fail-profile-20260707-390x844.png`: `390 x 844`,
+  `48959` bytes.
+- `screenshots/current-fail-device-20260707-390x844.png`: `390 x 844`,
+  `53156` bytes.
+- `screenshots/current-fail-ai-plan-20260707-390x844.png`: `390 x 844`,
+  `54552` bytes.
+
+Fresh live release result with staging credentials supplied from the local
+environment:
+
+- `tools/qa_rehab_mobile_l1_release.py --timeout 60`: `overall = FAIL`.
+- API: `PASS`, `p0_failed = 0`, `total = 22`.
+- Frontend: `FAIL`, `failed = 5`.
+- Blocking gate: `frontend_l1_gate`.
+
+Fresh objective audit:
+
+- `tools/qa_rehab_mobile_l1_objective_audit.py --timeout 60`: `overall = FAIL`.
+- Blocking requirements: `home_next_step`, `phone_binding`,
+  `device_binding`, `ask_therapist_safety`, `profile_no_fake_debug`,
+  `browser_qa_evidence`, and `combined_l1_release`.
+- `agent_cloud_model` is now `PASS`.
+
+Browser findings:
+
+- Home still shows `网络未连接`, `setup_required`, `M33`, and `M55`, and still
+  lacks the exact L1 actions `查看康复师建议` and `问康复师`.
+- Profile still exposes workflow/debug copy plus unsafe fake-medical style
+  content such as `避免过度伸展`, and does not expose the profile phone
+  verification path required by L1.
+- Device still exposes `Gatekeeper`, `M33`, `M55`, and debug pairing affordances
+  instead of a patient binding wizard led by `绑定设备` and
+  `打开康复设备电源`.
+- `ai-plan.html` remains an AI draft/planning page rather than a working
+  `问康复师` chat surface.
+
+## 2026-07-07 Stitch Ask Therapist Single-Page Fix
+
+Codex used the Stitch MCP again after browser QA confirmed the current deployed
+frontend was still blocked.
+
+Stitch evidence:
+
+- New project: `projects/323711356322969905`.
+- Initial Ask Therapist screen: `9deadaaf358a4a908bd704f580e6a69f`.
+- Edited/fixed Ask Therapist screen: `f1a50687ed4d429786f9d84e7e37a5cf`.
+- Downloaded HTML artifact:
+  `artifacts/stitch/l1-browser-qa-fix-20260707/ai-plan-stitch-fixed.html`.
+- Browser screenshot:
+  `screenshots/stitch-ai-plan-fix-candidate-v2-20260707-390x844.png`.
+
+Local browser QA result for the fixed single-page candidate:
+
+- Required copy present: `问康复师`, `云端康复师已连接`, and the unsafe-control
+  refusal text.
+- Forbidden engineering/demo hits: none.
+- Horizontal overflow: none (`bodyWidth = 388`, viewport `390`).
+- Back, add, input, send, and bottom nav controls all measured at least
+  `48px` high.
+- Bottom nav controls measured `64 x 48`.
+- Composer bottom: `768`; nav top: `789`; visible gap: `21px`.
+
+Result: useful partial frontend progress, but **not deployable**. It covers
+only `ai-plan.html`; it has not been applied to the real
+`app/rehab-arm-mobile-stitch` branch, wired to live API integration, mirrored
+into Android WebView assets, verified as part of all four pages, deployed to
+cloud, or packaged into a new APK.
+
 ## 2026-07-07 Browser Metrics Consumer Coverage Follow-Up
 
 Codex tightened the consumers of browser metrics evidence, not only the metrics
