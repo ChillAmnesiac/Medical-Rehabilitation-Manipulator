@@ -8,7 +8,7 @@ chat completions and Google `gemini` generateContent.
 
 - Cloud API: `http://106.55.62.122:8011`
 - Web app: `http://106.55.62.122:3001/rehab-arm-mobile`
-- Latest verified backend build: `8e17a51d`
+- Latest verified backend build: `d2f81c92`
 - Current Agent mode: `fallback_rule_based`
 - Current reason: `external_model_not_configured`
 - Current model relay config on the server:

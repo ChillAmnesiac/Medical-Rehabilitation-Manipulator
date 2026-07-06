@@ -687,4 +687,23 @@
   - `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md`
 - Focused verification:
   - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud/rehab-platform/tests/test_agent.py tools/test_configure_rehab_model_relay.py -q` -> `16 passed, 1 warning`
+- Full local backend plus QA suite:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud/rehab-platform/tests tools/test_qa_rehab_mobile_acceptance.py tools/test_qa_rehab_mobile_l1_frontend.py tools/test_qa_rehab_mobile_l1_frontend_local_source.py tools/test_qa_rehab_mobile_l1_release.py tools/test_export_rehab_mobile_stitch_fixture.py tools/test_configure_rehab_model_relay.py tools/test_qa_rehab_mobile_l1_objective_audit.py tools/test_export_rehab_mobile_stitch_repair_packet.py tools/test_export_rehab_mobile_stitch_prompt.py tools/test_prepare_rehab_mobile_frontend_release.py tools/test_verify_rehab_mobile_frontend_release.py -q` -> `97 passed, 1 warning`
+- Cloud patch deployed to:
+  - `app/modules/rehab_arm/app_router.py`
+- Cloud backup created:
+  - `app/modules/rehab_arm/app_router.py.bak-gemini-provider-20260706`
+- Remote compile check:
+  - `.venv/bin/python -m py_compile app/modules/rehab_arm/app_router.py` -> passed
+- Cloud restart:
+  - PID: `2052592`
+  - Explicit database URL: `sqlite:///./ai_collab_server.db`
+  - Build SHA: `d2f81c92`
+  - Build ref: `codex/rehab-mobile-backend-qa-20260706`
+  - Build time: `2026-07-06T14:19:13Z`
+- Fresh cloud verification:
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 22`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`
+  - `tools\qa_rehab_mobile_l1_objective_audit.py` -> `FAIL`, `8 / 11` failing
+  - APK HEAD -> `200`, size `4198462`, content type `application/vnd.android.package-archive`
 - Staging still needs a real provider key configured and smoke-tested before `agent_cloud_model` can pass.

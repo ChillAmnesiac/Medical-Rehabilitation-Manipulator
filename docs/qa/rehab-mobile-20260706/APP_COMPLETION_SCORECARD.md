@@ -80,7 +80,7 @@ Current result: `NOT READY`.
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Backend API | PASS | `tools/qa_rehab_mobile_acceptance.py`, `overall = PASS`, `p0_failed = 0` |
-| Deployment metadata | PASS | `P1-DEPLOY-META-001`: health exposes build SHA `8e17a51d`, ref `codex/rehab-mobile-backend-qa-20260706`, build time, and `app_env=staging` |
+| Deployment metadata | PASS | `P1-DEPLOY-META-001`: health exposes build SHA `d2f81c92`, ref `codex/rehab-mobile-backend-qa-20260706`, build time `2026-07-06T14:19:13Z`, and `app_env=staging` |
 | Stitch API fixture | PASS | `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` exported from live cloud API with tokens, codes, ids, email, and phone masked; now includes phone verification start/confirm response examples |
 | Stitch repair packet and V4 prompt | PASS | `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json` generated from the live cloud L1 release gate and objective audit; `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` is generated from the packet and is now the primary Stitch handoff |
 | Frontend release packaging | PASS | `tools/qa_rehab_mobile_l1_frontend.py --source-dir --output` preflights Stitch output locally and preserves JSON evidence; `tools/prepare_rehab_mobile_frontend_release.py` refuses failing frontend sources, writes a deployable zip, and records manifest deploy/verification commands before cloud copy |

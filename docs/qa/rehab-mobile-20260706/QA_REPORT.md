@@ -868,6 +868,18 @@ Fresh verification:
 - Red test first: `call_gemini_model` did not exist.
 - Follow-up red test first: config payload still required `base_url` for `provider=gemini`.
 - Focused Agent/config tests: `16 passed, 1 warning`.
+- Full local backend plus QA suite: `97 passed, 1 warning`.
+- Cloud runtime patched `app/modules/rehab_arm/app_router.py` on `106.55.62.122`; backup: `app_router.py.bak-gemini-provider-20260706`.
+- Remote compile check passed: `.venv/bin/python -m py_compile app/modules/rehab_arm/app_router.py`.
+- Cloud restart:
+  - PID: `2052592`
+  - Build SHA: `d2f81c92`
+  - Build ref: `codex/rehab-mobile-backend-qa-20260706`
+  - Build time: `2026-07-06T14:19:13Z`
+- Cloud acceptance after deploy: `overall = PASS`, `p0_failed = 0`, `total = 22`.
+- Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remains `FAIL`: `8 / 11` failing, including all five exact L1 success screenshots missing.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 
 Current product decision remains unchanged until staging is configured with a real model key and smoke-tested:
 
