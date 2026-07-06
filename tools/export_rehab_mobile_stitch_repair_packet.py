@@ -235,7 +235,15 @@ def build_repair_packet(
                 "blocker": "agent_cloud_model",
                 "owner": "Codex/backend ops once a real model endpoint and key are available",
                 "runbook": artifacts["model_relay_runbook"],
-                "command": "python tools/configure_rehab_model_relay.py --base-url <OPENAI_COMPATIBLE_BASE_URL> --model <MODEL> --api-key <API_KEY>",
+                "preflight_command": (
+                    "python tools/smoke_rehab_model_provider.py "
+                    "--provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY> "
+                    "--message <SAFE_REHAB_SMOKE_MESSAGE>"
+                ),
+                "configure_command": (
+                    "python tools/configure_rehab_model_relay.py "
+                    "--provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY>"
+                ),
             }
         ]
         if "agent_cloud_model" in non_stitch_blockers

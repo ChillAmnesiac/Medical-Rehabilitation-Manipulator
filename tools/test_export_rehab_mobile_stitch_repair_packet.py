@@ -169,7 +169,8 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
     )
     assert packet["required_artifacts"]["api_fixture"].endswith("rehab-mobile-l1-api-fixture-20260706.json")
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(packet["verification_commands"]["powershell"])
-    assert "configure_rehab_model_relay.py" in packet["non_stitch_actions"][0]["command"]
+    assert "smoke_rehab_model_provider.py" in packet["non_stitch_actions"][0]["preflight_command"]
+    assert "configure_rehab_model_relay.py" in packet["non_stitch_actions"][0]["configure_command"]
 
 
 def test_repair_packet_includes_current_fail_browser_evidence(tmp_path):

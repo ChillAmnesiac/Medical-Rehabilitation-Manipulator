@@ -888,6 +888,41 @@ Current product decision remains unchanged until staging is configured with a re
 - Agent safe answer must report `data.model_status.mode = cloud_model`.
 - Do not commit, paste, screenshot, or log real model API keys.
 
+## Agent Provider Preflight Follow-Up
+
+2026-07-06 continuation work added a provider-direct smoke test before cloud
+model relay configuration:
+
+- New script: `tools/smoke_rehab_model_provider.py`
+- New tests: `tools/test_smoke_rehab_model_provider.py`
+- Updated repair packet action: `non_stitch_actions[0].preflight_command`
+  now points at the smoke tool before `configure_command`.
+
+Behavior:
+
+- Supports `openai_compatible` chat completions and Gemini `generateContent`.
+- Defaults Gemini base URL to `https://generativelanguage.googleapis.com/v1beta`.
+- Sends the API key only in the provider-specific auth header.
+- Redacts the API key from stdout and JSON summaries.
+- Exits successfully only when the provider returns a usable answer.
+
+Fresh evidence:
+
+- Red test first: `tools/smoke_rehab_model_provider.py` did not exist.
+- Focused smoke-tool tests after implementation: `4 passed`.
+- Red repair-packet test first: non-Stitch actions did not include a preflight command.
+- Focused repair-packet tests after implementation: `3 passed`.
+- User-provided Google/Stitch key preflight result:
+  - `gemini-3.5-flash`: `403 provider_http_error`, `answer_present = false`.
+  - `gemini-2.5-flash`: `403 provider_http_error`, `answer_present = false`.
+- No model relay config was written to staging because provider preflight failed.
+
+Current product decision remains unchanged:
+
+- `agent_cloud_model` remains blocked.
+- `P1-AGENT-CONFIG-001` and `P1-AGENT-MODEL-001` must still become `PASS`
+  before L1 user-ready staging can pass.
+
 ## Frontend Release Bundle Tool Follow-Up
 
 2026-07-06 continuation work added a backend-owned packaging step for the moment Stitch returns updated frontend assets:

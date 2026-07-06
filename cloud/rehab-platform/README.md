@@ -72,6 +72,11 @@ The backend exposes the routes already used by `apps/web/public/rehab-arm-mobile
 
 If no external model is configured or the provider is unavailable, the endpoint safely falls back to a rule-based patient answer and always returns `data.model_status`.
 
+Before writing a provider key into staging, run `tools/smoke_rehab_model_provider.py`
+against the provider directly. Only run `tools/configure_rehab_model_relay.py`
+after the provider smoke exits with `status = ok` and `answer_present = true`.
+Both tools redact the API key from output.
+
 Required response status contract:
 
 - `model_status.mode = cloud_model` when the external model answered.

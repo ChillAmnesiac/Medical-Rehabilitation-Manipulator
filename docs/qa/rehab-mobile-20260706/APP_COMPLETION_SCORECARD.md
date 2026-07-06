@@ -93,7 +93,7 @@ Current result: `NOT READY`.
 | Agent draft patient copy | PASS | AI training draft risk notes now use patient-facing Chinese and cloud smoke found no `M33`, `preflight`, `m33_accepted`, `CAN`, or `Stop` in `risk_notes` |
 | Agent public config readiness | WARN | `P1-AGENT-CONFIG-001`: public-config exposes `data.agent.model_readiness`; current staging mode is `fallback_rule_based`, reason `external_model_not_configured` |
 | Agent cloud model readiness | FAIL | L1 release now blocks on `agent_cloud_model` until `P1-AGENT-CONFIG-001` and `P1-AGENT-MODEL-001` are `PASS`; current staging is `fallback_rule_based`, reason `external_model_not_configured` |
-| Agent model relay ops | READY TO CONFIGURE | Backend Agent now supports `openai_compatible` and `gemini`; `tools/configure_rehab_model_relay.py` performs privileged relay config plus Agent smoke and defaults Gemini base URL; runbook: `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md` |
+| Agent model relay ops | READY, KEY BLOCKED | Backend Agent now supports `openai_compatible` and `gemini`; `tools/smoke_rehab_model_provider.py` must pass before `tools/configure_rehab_model_relay.py` writes staging config. The user-provided Google/Stitch key returned `403 provider_http_error` for Gemini preflights and was not saved. Runbook: `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |
 | Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, 5 failed frontend gates, blockers `frontend_l1_gate` and `agent_cloud_model` |
 | Objective-level L1 audit | FAIL | `tools/qa_rehab_mobile_l1_objective_audit.py`: 8/11 objective requirements failing: home next step, phone UI, device UI, Ask Therapist UI, cloud model, profile no-fake-data, browser evidence, combined release; browser evidence now validates decoded PNG/JPEG dimensions against `390 x 844` |
@@ -113,7 +113,7 @@ Current result: `NOT READY`.
 5. Verify the generated release manifest with `tools/verify_rehab_mobile_frontend_release.py` before any cloud copy.
 6. Deploy the reviewed frontend bundle to `http://106.55.62.122:3001/rehab-arm-mobile/`.
 7. Rebuild or refresh APK if the APK bundles frontend assets.
-8. Configure the real Agent cloud model relay with `tools/configure_rehab_model_relay.py` after a real model endpoint/key is available.
+8. Preflight the real Agent model key with `tools/smoke_rehab_model_provider.py`; only configure staging with `tools/configure_rehab_model_relay.py` when the preflight returns `status = ok` and `answer_present = true`.
 9. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
 10. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
 11. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.

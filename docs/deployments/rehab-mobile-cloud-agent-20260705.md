@@ -707,3 +707,21 @@
   - `tools\qa_rehab_mobile_l1_objective_audit.py` -> `FAIL`, `8 / 11` failing
   - APK HEAD -> `200`, size `4198462`, content type `application/vnd.android.package-archive`
 - Staging still needs a real provider key configured and smoke-tested before `agent_cloud_model` can pass.
+
+## 2026-07-06 Agent Provider Preflight
+
+- Added a direct provider smoke tool before staging relay config:
+  - `tools/smoke_rehab_model_provider.py`
+  - `tools/test_smoke_rehab_model_provider.py`
+- Updated the Stitch repair packet non-Stitch action so Agent model ops now run
+  `preflight_command` before `configure_command`.
+- The tool supports:
+  - `openai_compatible` chat completions
+  - `gemini` Google `generateContent`
+  - redacted JSON output with no API key leakage
+- User-provided Google/Stitch key evidence:
+  - `gemini-3.5-flash` preflight -> `403 provider_http_error`
+  - `gemini-2.5-flash` preflight -> `403 provider_http_error`
+- No cloud model relay config was written because provider preflight failed.
+- No cloud runtime deployment was made for this tooling/docs-only change; current
+  runtime remains build SHA `d2f81c92`, PID `2052592`.

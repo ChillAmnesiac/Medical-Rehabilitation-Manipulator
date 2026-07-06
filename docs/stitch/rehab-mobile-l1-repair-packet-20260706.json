@@ -1,6 +1,6 @@
 {
   "schema": "rehab-mobile-stitch-repair-packet/v1",
-  "generated_at": "2026-07-06T14:03:13Z",
+  "generated_at": "2026-07-06T14:45:00Z",
   "target": {
     "api_base": "http://106.55.62.122:8011",
     "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
@@ -225,7 +225,8 @@
       "blocker": "agent_cloud_model",
       "owner": "Codex/backend ops once a real model endpoint and key are available",
       "runbook": "docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md",
-      "command": "python tools/configure_rehab_model_relay.py --base-url <OPENAI_COMPATIBLE_BASE_URL> --model <MODEL> --api-key <API_KEY>"
+      "preflight_command": "python tools/smoke_rehab_model_provider.py --provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY> --message <SAFE_REHAB_SMOKE_MESSAGE>",
+      "configure_command": "python tools/configure_rehab_model_relay.py --provider <PROVIDER> --base-url <BASE_URL> --model <MODEL> --api-key <API_KEY>"
     }
   ],
   "browser_qa_required": [
