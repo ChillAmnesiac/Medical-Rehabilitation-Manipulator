@@ -65,6 +65,26 @@ def test_browser_metrics_pass_when_all_visual_issue_lists_are_empty():
                 "verticalTextIssues": [],
             },
         },
+        {
+            "page": "device",
+            "metrics": {
+                "fakeHits": [],
+                "touchIssues": [],
+                "inputIssues": [],
+                "overflows": [],
+                "verticalTextIssues": [],
+            },
+        },
+        {
+            "page": "ai-plan",
+            "metrics": {
+                "fakeHits": [],
+                "touchIssues": [],
+                "inputIssues": [],
+                "overflows": [],
+                "verticalTextIssues": [],
+            },
+        },
     ]
 
     result = module.evaluate_browser_metrics(payload)
@@ -72,6 +92,29 @@ def test_browser_metrics_pass_when_all_visual_issue_lists_are_empty():
     assert result["summary"]["overall"] == "PASS"
     assert result["summary"]["failed"] == 0
     assert result["results"][0]["status"] == "PASS"
+
+
+def test_browser_metrics_fail_when_required_pages_are_missing():
+    module = _load_module()
+
+    payload = [
+        {
+            "page": "home",
+            "metrics": {
+                "fakeHits": [],
+                "touchIssues": [],
+                "inputIssues": [],
+                "overflows": [],
+                "verticalTextIssues": [],
+            },
+        }
+    ]
+
+    result = module.evaluate_browser_metrics(payload)
+
+    assert result["summary"]["overall"] == "FAIL"
+    assert result["summary"]["failed"] == 1
+    assert result["results"][0]["detail"]["missing_pages"] == ["ai-plan", "device", "profile"]
 
 
 def test_browser_metrics_preserves_existing_failed_gate_report():

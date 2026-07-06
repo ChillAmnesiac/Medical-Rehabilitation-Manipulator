@@ -22,6 +22,16 @@ ISSUE_FIELDS = {
     "overflows": "overflow_issues",
     "verticalTextIssues": "vertical_text_issues",
 }
+REQUIRED_PAGES = ["ai-plan", "device", "home", "profile"]
+
+
+def _normalize_page(page: Any) -> str:
+    return str(page).replace(".html", "").strip().lower()
+
+
+def _missing_required_pages(checked_pages: list[str]) -> list[str]:
+    checked = {_normalize_page(page) for page in checked_pages}
+    return [page for page in REQUIRED_PAGES if page not in checked]
 
 
 def _existing_gate_report(payload: Any) -> dict[str, Any] | None:
@@ -36,12 +46,23 @@ def _existing_gate_report(payload: Any) -> dict[str, Any] | None:
         if not isinstance(failed, int):
             failed = 0 if status == "PASS" else 1
         normalized = dict(result)
+        detail = normalized.get("detail")
+        if not isinstance(detail, dict):
+            detail = {}
+        checked_pages = detail.get("checked_pages")
+        if not isinstance(checked_pages, list):
+            checked_pages = []
+        missing_pages = _missing_required_pages([str(page) for page in checked_pages])
+        if missing_pages:
+            failed = max(failed, 1)
+            detail["missing_pages"] = missing_pages
+            normalized["detail"] = detail
         normalized.setdefault("level", "L1")
         normalized.setdefault(
             "summary",
-            "Rendered mobile browser QA has no fake copy, small touch targets, input overlap, overflow, or vertical text.",
+            "Rendered mobile browser QA covers all L1 pages and has no fake copy, small touch targets, input overlap, overflow, or vertical text.",
         )
-        normalized["status"] = status or ("FAIL" if failed else "PASS")
+        normalized["status"] = "FAIL" if failed else (status or "PASS")
         return {
             "summary": {
                 "overall": normalized["status"],
@@ -87,14 +108,16 @@ def evaluate_browser_metrics(payload: Any) -> dict[str, Any]:
             if isinstance(issues, list):
                 detail[output_name].extend(_with_page(page, issue) for issue in issues)
 
-    failures = sum(len(items) for items in detail.values())
+    missing_pages = _missing_required_pages(checked_pages)
+    failures = sum(len(items) for items in detail.values()) + (1 if missing_pages else 0)
     result = {
         "gate": "L1-BROWSER-METRICS-001",
         "level": "L1",
         "status": "FAIL" if failures else "PASS",
-        "summary": "Rendered mobile browser QA has no fake copy, small touch targets, input overlap, overflow, or vertical text.",
+        "summary": "Rendered mobile browser QA covers all L1 pages and has no fake copy, small touch targets, input overlap, overflow, or vertical text.",
         "detail": {
             "checked_pages": checked_pages,
+            "missing_pages": missing_pages,
             **detail,
         },
     }

@@ -37,7 +37,7 @@ Required P0 gates:
 - Profile shows cloud account, verified phone, `绑定手机号`/`验证码` path, rehab profile, and safe `待完善` medical empty state.
 - Frontend source is wired to auth, `/me`, `patient_view`, phone verification, device binding, and Agent message APIs.
 - Bottom navigation routes correctly.
-- Browser QA screenshots are real image files at exactly `390 x 844`; the saved browser metrics gate must also pass with no fake copy, undersized touch targets, input overlap, overflow, vertical text, or unreachable primary controls.
+- Browser QA screenshots are real image files at exactly `390 x 844`; the saved browser metrics gate must cover `home`, `profile`, `device`, and `ai-plan`, and pass with no fake copy, undersized touch targets, input overlap, overflow, vertical text, or unreachable primary controls.
 
 Current result: `FAIL`, blocked by Stitch/frontend rendering.
 

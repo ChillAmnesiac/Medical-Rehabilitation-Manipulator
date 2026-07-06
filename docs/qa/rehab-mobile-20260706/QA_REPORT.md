@@ -1740,7 +1740,9 @@ Fresh verification:
   `FF FE` BOM could not be read by the exporters.
 - Red browser metrics regression first failed because re-reading an existing
   failed `L1-BROWSER-METRICS-001` gate output incorrectly returned `PASS`.
-- Focused related QA/tooling suite: `32 passed`.
+- Red browser metrics coverage test first failed because a raw metrics report
+  covering only `home` could still pass.
+- Focused related QA/tooling suite: `33 passed`.
 - Re-running `tools/qa_rehab_mobile_browser_metrics.py` against the committed
   clean-candidate gate output now preserves `overall = FAIL` and returns exit
   code `1`.
