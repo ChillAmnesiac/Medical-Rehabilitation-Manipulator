@@ -177,6 +177,8 @@ Then Codex must capture browser screenshots at exactly `390 x 844`:
 
 The objective audit validates image headers for PNG and JPEG screenshots. Files with a `.png` extension are acceptable if the browser saved JPEG content, but decoded dimensions must still be `390 x 844`.
 
+Current-fail screenshots may be stored under `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/` for debugging, but they do not count as L1 success evidence. The objective audit only accepts the exact final filenames listed in the repair packet's `browser_qa_required` section.
+
 Then Codex must:
 
 1. Update `docs/qa/rehab-mobile-20260706/QA_REPORT.md`.

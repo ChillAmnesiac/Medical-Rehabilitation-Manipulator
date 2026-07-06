@@ -545,14 +545,31 @@
 - Fresh verification:
   - Red objective-audit test first showed wrong-size screenshots were accepted.
   - Red repair-packet test first showed current browser evidence details were not exported.
-  - Focused objective-audit and repair-packet tests: `7 passed`.
-  - Full local backend plus QA suite: `79 passed, 1 warning`.
+  - Follow-up red objective-audit test first showed `current-fail-*` screenshots could be counted as L1 success evidence before exact filename matching was added.
+  - Focused objective-audit and repair-packet tests: `8 passed`.
+  - Full local backend plus QA suite: `80 passed, 1 warning`.
   - Live L1 release gate remained `FAIL` with API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
-  - Live objective audit remained `FAIL` and now reports:
-    - missing `ask_therapist_chat`, `unsafe_agent_refusal`, and `device_binding_wizard`;
-    - wrong dimensions for `device-binding-home-390.png` (`375 x 812`) and `phone-cooldown-profile-390.png` (`520 x 2547`).
+  - Live objective audit remained `FAIL` and now reports all five exact L1 success screenshots missing.
   - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
+
+## 2026-07-06 In-App Browser Current-Fail Screenshots
+
+- Captured current deployed frontend failure evidence from the in-app browser at explicit `390 x 844` viewport:
+  - `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-home-clip-390x844.png`
+  - `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-ai-plan-clip-390x844.png`
+  - `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-device-clip2-390x844.png`
+  - `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-profile-clip2-390x844.png`
+- All four accepted current-fail screenshots decode to `390 x 844`.
+- Fresh final verification after browser QA capture:
+  - Focused objective-audit and repair-packet tests: `8 passed`.
+  - Full local backend plus QA suite: `80 passed, 1 warning`.
+  - Live L1 release gate remained `FAIL` with API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+  - Live objective audit remained `FAIL` with all five exact L1 success screenshots missing.
+  - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- They are intentionally stored outside the L1 success screenshot directory and named `current-fail-*`, so they cannot satisfy objective-audit success evidence.
+- The refreshed repair packet now reports `browser_evidence_current.matched = {}` and all five required L1 success screenshots missing.
+- No cloud runtime deployment was made for this browser-QA evidence-only change.
 
 ## Browser QA
 

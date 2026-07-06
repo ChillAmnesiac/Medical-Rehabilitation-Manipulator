@@ -131,6 +131,29 @@ def test_browser_evidence_does_not_count_agent_page_as_device_wizard(tmp_path):
     assert "device_binding_wizard" in detail["missing"]
 
 
+def test_browser_evidence_does_not_count_current_failure_screenshots_as_l1_evidence(tmp_path):
+    module = _load_module()
+    for name in (
+        "current-fail-home-390x844.png",
+        "current-fail-profile-phone-390x844.png",
+        "current-fail-device-wizard-390x844.png",
+        "current-fail-ask-therapist-chat-390x844.png",
+        "current-fail-unsafe-refusal-390x844.png",
+    ):
+        _write_png_header(tmp_path / name, 390, 844)
+
+    ok, detail = module.browser_evidence_status(tmp_path)
+
+    assert not ok
+    assert sorted(detail["missing"]) == [
+        "ask_therapist_chat",
+        "device_binding_wizard",
+        "home_first_screen",
+        "profile_phone_medical",
+        "unsafe_agent_refusal",
+    ]
+
+
 def test_browser_evidence_requires_mobile_viewport_png_dimensions(tmp_path):
     module = _load_module()
     for name in (

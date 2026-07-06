@@ -863,21 +863,51 @@ Behavior:
 
 Fresh live evidence state:
 
-- Missing screenshots:
+- Missing exact L1 success screenshots:
+  - `home_first_screen`
   - `ask_therapist_chat`
   - `unsafe_agent_refusal`
   - `device_binding_wizard`
-- Matched but wrong dimensions:
-  - `device-binding-home-390.png`: `375 x 812`, expected `390 x 844`
-  - `phone-cooldown-profile-390.png`: `520 x 2547`, expected `390 x 844`
+  - `profile_phone_medical`
+- Matched L1 screenshots: none.
+- Invalid dimensions: none, because no exact L1 success screenshot filenames are present.
 
 Fresh verification:
 
 - Red test first: wrong-size screenshot evidence was accepted before the dimension check.
 - Follow-up red test first: browser JPEG screenshots with `.png` filenames were rejected before JPEG parsing was added.
-- Focused objective-audit and repair-packet tests: `7 passed`.
-- Full local backend plus QA suite after adding the dimension gate: `79 passed, 1 warning`.
-- Live objective audit remains `FAIL`; the browser evidence failure now reports both missing scenes and invalid dimensions.
+- Follow-up red test first: `current-fail-*` screenshots could be counted as L1 success evidence before exact filename matching was added.
+- Focused objective-audit and repair-packet tests: `8 passed`.
+- Full local backend plus QA suite after adding the dimension gate: `80 passed, 1 warning`.
+- Live objective audit remains `FAIL`; the browser evidence failure now reports missing exact L1 success screenshots.
 - Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
+
+## In-App Browser Current-Fail Evidence Follow-Up
+
+2026-07-06 continuation work captured current deployed frontend failure evidence directly from the in-app browser with an explicit `390 x 844` viewport:
+
+- `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-home-clip-390x844.png`
+- `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-ai-plan-clip-390x844.png`
+- `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-device-clip2-390x844.png`
+- `docs/qa/rehab-mobile-20260706/browser-current-fail-20260706/current-fail-profile-clip2-390x844.png`
+
+All four accepted current-fail screenshots decode to `390 x 844`.
+
+Fresh final verification after browser QA capture:
+
+- Focused objective-audit and repair-packet tests: `8 passed`.
+- Full local backend plus QA suite: `80 passed, 1 warning`.
+- Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remains `FAIL`; all five exact L1 success screenshots are still missing.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+
+These screenshots are intentionally kept outside `docs/qa/rehab-mobile-20260706/screenshots/` and use `current-fail-*` filenames, so they cannot satisfy the objective audit's required L1 success evidence. They document the current blockers only:
+
+- Home still shows a false network warning, `setup_required`, `M33`, `M55`, and raw workflow text.
+- AI page is still an AI training plan workflow rather than a normal `问康复师` chat.
+- Device page still exposes `M33`, `M55`, `Gatekeeper`, and debug entry points instead of a patient binding wizard.
+- Profile still shows raw stage/debug/medical constraint content instead of the final cloud account, phone, and safe medical empty-state layout.
+
+The refreshed repair packet now reports `browser_evidence_current.matched = {}` and missing all five exact L1 success screenshot names.

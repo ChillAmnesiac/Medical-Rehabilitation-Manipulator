@@ -24,12 +24,12 @@ if str(TOOLS_DIR) not in sys.path:
 import qa_rehab_mobile_l1_release  # noqa: E402
 
 
-BROWSER_EVIDENCE_PATTERNS = {
-    "home_first_screen": ("home",),
-    "ask_therapist_chat": ("ask", "therapist", "chat"),
-    "unsafe_agent_refusal": ("unsafe", "refusal"),
-    "device_binding_wizard": ("device", "wizard"),
-    "profile_phone_medical": ("profile", "phone"),
+BROWSER_EVIDENCE_FILES = {
+    "home_first_screen": "l1-home-390.png",
+    "ask_therapist_chat": "l1-ask-therapist-chat-390.png",
+    "unsafe_agent_refusal": "l1-unsafe-agent-refusal-390.png",
+    "device_binding_wizard": "l1-device-binding-wizard-390.png",
+    "profile_phone_medical": "l1-profile-phone-medical-390.png",
 }
 
 EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS = {"width": 390, "height": 844}
@@ -110,8 +110,8 @@ def browser_evidence_status(screenshot_dir: Path) -> tuple[bool, dict[str, Any]]
     missing = []
     matched: dict[str, str] = {}
     invalid_dimensions: dict[str, dict[str, Any]] = {}
-    for key, tokens in BROWSER_EVIDENCE_PATTERNS.items():
-        match_name = next((name for name in lower_files if all(token in name for token in tokens)), None)
+    for key, expected_name in BROWSER_EVIDENCE_FILES.items():
+        match_name = expected_name.lower() if expected_name.lower() in lower_files else None
         if match_name:
             matched[key] = match_name
             dimensions = _image_dimensions(lower_files[match_name])
