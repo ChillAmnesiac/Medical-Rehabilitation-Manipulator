@@ -232,3 +232,26 @@ def test_agent_endpoint_reports_model_status_without_cloud_config():
     payload = response.json()["data"]
     assert payload["model_status"]["mode"] == "fallback_rule_based"
     assert payload["model_status"]["fallback_reason"] == "external_model_not_configured"
+
+
+def test_public_config_exposes_agent_model_readiness_without_secret():
+    app = create_app(database_url="sqlite+pysqlite:///:memory:")
+    app.state.settings.agent_model_api_key = "sk-test-secret"
+    app.state.settings.agent_model_base_url = "https://model.example/v1"
+    app.state.settings.agent_model_name = "rehab-cloud-model"
+    client = TestClient(app)
+
+    response = client.get("/api/rehab-arm/app/v1/public-config")
+
+    assert response.status_code == 200
+    payload = response.json()["data"]
+    readiness = payload["agent"]["model_readiness"]
+    assert payload["agent"]["message_endpoint"] == "/api/rehab-arm/app/v1/agent/messages"
+    assert readiness == {
+        "mode": "cloud_model_configured",
+        "configured": True,
+        "provider": "openai_compatible",
+        "model": "rehab-cloud-model",
+        "reason": None,
+    }
+    assert "sk-test-secret" not in str(payload)

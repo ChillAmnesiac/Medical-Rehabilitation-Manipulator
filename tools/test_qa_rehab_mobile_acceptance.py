@@ -94,6 +94,55 @@ def test_agent_cloud_model_readiness_warns_on_rule_based_fallback():
     assert detail["reason"] == "external_model_not_configured"
 
 
+def test_agent_public_config_readiness_reports_cloud_model_ready():
+    module = _load_module()
+
+    ok, detail = module.agent_public_config_readiness(
+        {
+            "data": {
+                "agent": {
+                    "message_endpoint": "/api/rehab-arm/app/v1/agent/messages",
+                    "model_readiness": {
+                        "mode": "cloud_model_configured",
+                        "configured": True,
+                        "provider": "openai_compatible",
+                        "model": "rehab-cloud-model",
+                    },
+                }
+            }
+        }
+    )
+
+    assert ok is True
+    assert detail["mode"] == "cloud_model_configured"
+    assert detail["message_endpoint"] == "/api/rehab-arm/app/v1/agent/messages"
+
+
+def test_agent_public_config_readiness_warns_on_fallback_config():
+    module = _load_module()
+
+    ok, detail = module.agent_public_config_readiness(
+        {
+            "data": {
+                "agent": {
+                    "message_endpoint": "/api/rehab-arm/app/v1/agent/messages",
+                    "model_readiness": {
+                        "mode": "fallback_rule_based",
+                        "configured": False,
+                        "provider": "openai_compatible",
+                        "model": None,
+                        "reason": "external_model_not_configured",
+                    },
+                }
+            }
+        }
+    )
+
+    assert ok is False
+    assert detail["mode"] == "fallback_rule_based"
+    assert detail["reason"] == "external_model_not_configured"
+
+
 def test_phone_verification_flow_uses_debug_code_to_confirm_staging_phone():
     module = _load_module()
 

@@ -319,6 +319,40 @@
   - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/phone-cooldown-profile-390.png`.
   - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
 
+## 2026-07-06 Agent Public Config Readiness
+
+- Added public Agent readiness to the unauthenticated boot contract:
+  - `GET /api/rehab-arm/app/v1/public-config`
+  - `data.agent.message_endpoint`
+  - `data.agent.model_readiness`
+- Local behavior:
+  - `cloud_model_configured` only when backend model base URL, API key, and model name are configured.
+  - `fallback_rule_based` when the cloud model is not configured.
+  - API keys are never returned in public config.
+- Acceptance gate added:
+  - `P1-AGENT-CONFIG-001`
+- Cloud patch deployed to:
+  - `app/modules/rehab_arm/app_router.py`
+- Cloud backup created:
+  - `app/modules/rehab_arm/app_router.py.bak-agent-readiness-20260706`
+- Cloud restart:
+  - PID: `1666259`
+  - API: `http://106.55.62.122:8011`
+  - Database URL: `sqlite:///./ai_collab_server.db`
+- Fresh verification:
+  - Red backend test first failed with missing `data.agent`.
+  - Red acceptance helper tests first failed because `agent_public_config_readiness` was missing.
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests\test_agent.py::test_public_config_exposes_agent_model_readiness_without_secret -q` -> `1 passed, 1 warning`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools\test_qa_rehab_mobile_acceptance.py::test_agent_public_config_readiness_reports_cloud_model_ready tools\test_qa_rehab_mobile_acceptance.py::test_agent_public_config_readiness_warns_on_fallback_config -q` -> `2 passed`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud/rehab-platform/tests tools/test_qa_rehab_mobile_acceptance.py tools/test_qa_rehab_mobile_l1_frontend.py -q` -> `54 passed, 1 warning`
+  - Remote `.venv/bin/python -m py_compile app/modules/rehab_arm/app_router.py app/settings.py` passed.
+  - Cloud public-config returned `data.agent.model_readiness.mode = fallback_rule_based`, reason `external_model_not_configured`.
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 21`
+  - `P1-AGENT-CONFIG-001` -> `WARN`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
+  - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/agent-readiness-ai-plan-390.png`.
+  - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

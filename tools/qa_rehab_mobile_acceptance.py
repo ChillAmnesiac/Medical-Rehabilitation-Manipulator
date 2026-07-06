@@ -143,6 +143,30 @@ def agent_cloud_model_readiness(value: Any) -> tuple[bool, dict[str, Any]]:
     return mode == "cloud_model" and bool(model_status.get("model")), detail
 
 
+def agent_public_config_readiness(value: Any) -> tuple[bool, dict[str, Any]]:
+    agent = data(value).get("agent")
+    if not isinstance(agent, dict):
+        return False, {"mode": None, "reason": "agent_config_missing"}
+    model_readiness = agent.get("model_readiness")
+    if not isinstance(model_readiness, dict):
+        return False, {"mode": None, "reason": "agent_model_readiness_missing"}
+    mode = model_readiness.get("mode")
+    detail = {
+        "mode": mode,
+        "configured": model_readiness.get("configured"),
+        "provider": model_readiness.get("provider"),
+        "model": model_readiness.get("model"),
+        "reason": model_readiness.get("reason"),
+        "message_endpoint": agent.get("message_endpoint"),
+    }
+    return (
+        mode == "cloud_model_configured"
+        and model_readiness.get("configured") is True
+        and bool(model_readiness.get("model"))
+        and agent.get("message_endpoint") == "/api/rehab-arm/app/v1/agent/messages"
+    ), detail
+
+
 def phone_delivery_readiness(value: Any) -> tuple[bool, dict[str, Any]]:
     phone_verification = data(value).get("phone_verification")
     delivery_status = phone_verification.get("delivery_status") if isinstance(phone_verification, dict) else None
@@ -420,6 +444,7 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
 
     public_config_status, public_config_body, _ = client.request("GET", "/api/rehab-arm/app/v1/public-config")
     phone_sms_ready, phone_sms_detail = phone_delivery_readiness(public_config_body)
+    agent_config_ready, agent_config_detail = agent_public_config_readiness(public_config_body)
     if phone_sms_ready:
         add(
             results,
@@ -435,6 +460,22 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             "P1-PHONE-SMS-001",
             "Phone verification is not configured for production SMS delivery; staging may rely on debug codes.",
             {"status_code": public_config_status, **phone_sms_detail},
+        )
+    if agent_config_ready:
+        add(
+            results,
+            "P1-AGENT-CONFIG-001",
+            "P1",
+            True,
+            "Public config exposes a cloud-model-ready Agent contract for the frontend.",
+            agent_config_detail,
+        )
+    else:
+        warn(
+            results,
+            "P1-AGENT-CONFIG-001",
+            "Public config exposes the Agent contract but the cloud model is not configured for production.",
+            {"status_code": public_config_status, **agent_config_detail},
         )
 
     token = None

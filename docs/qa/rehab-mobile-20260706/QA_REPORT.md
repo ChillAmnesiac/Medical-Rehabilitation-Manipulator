@@ -30,6 +30,7 @@ The current deployed frontend does not consume the backend `data.patient_view` c
 12. `screenshots/sms-readiness-device-390.png` - Device page browser QA after SMS readiness deployment.
 13. `screenshots/sms-webhook-device-390.png` - Device page browser QA after SMS webhook deployment.
 14. `screenshots/phone-cooldown-profile-390.png` - Profile page browser QA after phone resend cooldown deployment.
+15. `screenshots/agent-readiness-ai-plan-390.png` - Agent page browser QA after public Agent readiness deployment.
 
 All screenshots were opened and inspected before being used as evidence. They show the deployed cloud app, not a blank page or wrong window.
 
@@ -47,6 +48,7 @@ All screenshots were opened and inspected before being used as evidence. They sh
 | 8 | Device page after SMS readiness deployment | FAIL | `screenshots/sms-readiness-device-390.png` |
 | 9 | Device page after SMS webhook deployment | FAIL | `screenshots/sms-webhook-device-390.png` |
 | 10 | Profile page after phone resend cooldown deployment | FAIL | `screenshots/phone-cooldown-profile-390.png` |
+| 11 | Agent page after public Agent readiness deployment | FAIL | `screenshots/agent-readiness-ai-plan-390.png` |
 
 ## 2026-07-06 L1 Resmoke
 
@@ -253,12 +255,12 @@ Expected:
 
 ## Backend/API Evidence
 
-Latest API/package acceptance smoke passed after the SMS webhook deployment:
+Latest API/package acceptance smoke passed after the Agent public-config readiness deployment:
 
 - Overall: `PASS`
 - P0 failed: `0`
-- Total checks: `20`
-- Cloud PID: `1639678`
+- Total checks: `21`
+- Cloud PID: `1666259`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
 - Build SHA: `unknown`
 - Build time: `unknown`
@@ -267,6 +269,7 @@ Latest API/package acceptance smoke passed after the SMS webhook deployment:
 - `P1-PHONE-RESEND-001`: `PASS`
 - `P0-DEVICE-FLOW-001`: `PASS`
 - `P0-DEVICE-CONFLICT-001`: `PASS`
+- `P1-AGENT-CONFIG-001`: `WARN`, public-config exposes `data.agent.model_readiness` and current staging is `fallback_rule_based`.
 - Agent safe answer with `data.model_status`: `PASS`
 - Current Agent model mode: `fallback_rule_based`, reason `external_model_not_configured`
 - `P1-AGENT-MODEL-001`: `WARN`, configure external cloud model credentials before claiming production-grade model-backed Agent.
@@ -276,6 +279,42 @@ Latest API/package acceptance smoke passed after the SMS webhook deployment:
 - APK HEAD: `PASS`, size over 1 MB
 
 The remaining blocker is frontend rendering and interaction.
+
+## Backend Agent Public Config Readiness Follow-Up
+
+2026-07-06 continuation work exposed Agent readiness before the user sends a chat message:
+
+- `GET /api/rehab-arm/app/v1/public-config` now returns `data.agent.message_endpoint`.
+- `GET /api/rehab-arm/app/v1/public-config` now returns `data.agent.model_readiness`.
+- Local readiness shape:
+  - `mode = cloud_model_configured` when the backend has a base URL, API key, and model name.
+  - `mode = fallback_rule_based` when the cloud model is not configured.
+  - API keys are never returned in public config.
+- Acceptance smoke now includes `P1-AGENT-CONFIG-001`.
+- Cloud deployment patched `app/modules/rehab_arm/app_router.py` on `106.55.62.122`.
+- Cloud backup: `app/modules/rehab_arm/app_router.py.bak-agent-readiness-20260706`.
+- Cloud restart:
+  - PID: `1666259`
+  - API: `http://106.55.62.122:8011`
+
+Fresh verification:
+
+- Red tests first:
+  - backend test failed with `KeyError: 'agent'`;
+  - acceptance helper tests failed because `agent_public_config_readiness` did not exist.
+- Focused backend test after implementation: `1 passed, 1 warning`.
+- Focused acceptance helper tests after implementation: `2 passed`.
+- Full local backend plus QA suite: `54 passed, 1 warning`.
+- Remote compile: `.venv/bin/python -m py_compile app/modules/rehab_arm/app_router.py app/settings.py`.
+- Cloud public-config now includes:
+  - `data.agent.message_endpoint = /api/rehab-arm/app/v1/agent/messages`
+  - `data.agent.model_readiness.mode = fallback_rule_based`
+  - `data.agent.model_readiness.reason = external_model_not_configured`
+- Cloud acceptance: `overall = PASS`, `p0_failed = 0`, `total = 21`.
+- `P1-AGENT-CONFIG-001` -> `WARN`, because current staging cloud-model relay credentials are not configured.
+- APK smoke remained `PASS` with size `4198462` bytes and content type `application/vnd.android.package-archive`.
+- Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+- Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/agent-readiness-ai-plan-390.png`; the Agent page still shows a false network warning, `setup_required`, and no visible `问康复师` entry, so Stitch still must consume the new public-config contract.
 
 ## Backend Source-Parity Follow-Up
 

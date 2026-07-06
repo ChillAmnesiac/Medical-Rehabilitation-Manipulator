@@ -81,6 +81,30 @@ def _phone_delivery_status(settings: Settings) -> dict[str, object]:
     }
 
 
+def _agent_model_readiness(settings: Settings) -> dict[str, object]:
+    provider = (settings.agent_model_provider or "openai_compatible").strip() or "openai_compatible"
+    configured = bool(
+        (settings.agent_model_base_url or "").strip()
+        and (settings.agent_model_api_key or "").strip()
+        and (settings.agent_model_name or "").strip()
+    )
+    if configured:
+        return {
+            "mode": "cloud_model_configured",
+            "configured": True,
+            "provider": provider,
+            "model": settings.agent_model_name,
+            "reason": None,
+        }
+    return {
+        "mode": "fallback_rule_based",
+        "configured": False,
+        "provider": provider,
+        "model": None,
+        "reason": "external_model_not_configured",
+    }
+
+
 def _post_sms_webhook(settings: Settings, payload: dict[str, object]) -> None:
     webhook_url = (settings.phone_verification_sms_webhook_url or "").strip()
     body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
@@ -187,6 +211,10 @@ def get_public_config(settings: Settings = Depends(get_settings)):
                 "catalog_endpoint": "/api/rehab-arm/app/v1/catalog",
                 "workflow_endpoint": "/api/rehab-arm/app/v1/me/workflow",
                 "agent_message_endpoint": "/api/rehab-arm/app/v1/agent/messages",
+            },
+            "agent": {
+                "message_endpoint": "/api/rehab-arm/app/v1/agent/messages",
+                "model_readiness": _agent_model_readiness(settings),
             },
             "phone_verification": {
                 "start_endpoint": "/api/rehab-arm/app/v1/account/phone-verifications",
