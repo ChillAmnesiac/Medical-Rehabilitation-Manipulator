@@ -2566,3 +2566,43 @@ Next unblock:
   and their assets.
 - The package must pass `tools/promote_rehab_mobile_stitch_frontend.py` dry-run
   before any real App files, cloud deployment, or APK package are touched.
+
+## 2026-07-07 Backend Acceptance Resmoke
+
+Codex re-ran the cloud backend acceptance smoke against the deployed staging
+API after the Stitch auth resmoke, using the staging account credentials only
+as process environment values. The raw JSON was not saved to the repository
+because it can include transient QA phone/device identifiers.
+
+Command shape:
+
+```powershell
+$env:REHAB_QA_EMAIL='<staging email>'
+$env:REHAB_QA_PASSWORD='<staging password>'
+.\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_acceptance.py --timeout 25
+```
+
+Result summary:
+
+- Exit code: `0`.
+- Overall: `PASS`.
+- P0 failures: `0`.
+- Total gates: `22`.
+- Failed gates: none.
+
+Warnings:
+
+- `P1-PHONE-SMS-001`: staging phone verification is still configured as
+  debug SMS rather than production SMS delivery.
+- `P1-BROWSER-001`: rendered frontend interaction gates still require browser
+  QA screenshots after the frontend is fixed.
+
+L1 interpretation:
+
+- Login/session, patient bootstrap, phone verification flow, device binding,
+  device conflict protection, workflow endpoint, Ask Therapist safe answer,
+  unsafe direct-control refusal, CORS, deployed web reachability, and APK URL
+  reachability are still healthy at the API/smoke level.
+- The current L1 blocker remains frontend rendering plus APK WebView asset
+  parity, not backend API regression.
+- No deployment or APK rebuild was performed because no runtime files changed.

@@ -79,7 +79,7 @@ Current result: `NOT READY`.
 
 | Area | Status | Evidence |
 | --- | --- | --- |
-| Backend API | PASS | `tools/qa_rehab_mobile_acceptance.py`, `overall = PASS`, `p0_failed = 0` |
+| Backend API | PASS | Latest cloud acceptance resmoke on 2026-07-07 ran `tools/qa_rehab_mobile_acceptance.py --timeout 25` with staging credentials in process env only: exit code `0`, `overall = PASS`, `p0_failed = 0`, `total = 22`, failed gates none. Remaining warnings are known non-P0 items: production SMS delivery is still `debug_sms`, and rendered browser interaction evidence depends on the frontend fix |
 | Deployment metadata | PASS | `P1-DEPLOY-META-001`: latest health verification exposed build SHA `a4d1c1565de3`, ref `ai/game-loop-core`, build time `2026-07-06T20:59:56Z`, and `app_env=staging` |
 | Stitch API fixture | PASS | `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` refreshed from live cloud API at `2026-07-06T21:10:05Z` with tokens, numeric codes, ids, email, and phone masked; it now proves `patient_view` core copy, phone verification start/confirm, unsafe Agent refusal, and `model_status.mode = cloud_model`, provider `qwen`, model `qwen-plus` |
 | Stitch L1 UI contract | PASS | `docs/stitch/rehab-mobile-l1-ui-contract-20260707.json` now extracts a compact patient-facing contract from the live fixture for Stitch generation: four required pages, exact visible copy, POST action endpoints, phone/device/Agent states, and cloud model status. It omits broad legacy public-config payloads such as `m33_legacy_spp_profile`, raw email, access tokens, and numeric debug codes |
