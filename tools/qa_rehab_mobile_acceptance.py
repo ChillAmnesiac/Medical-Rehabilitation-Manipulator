@@ -127,6 +127,48 @@ def agent_model_status_ok(value: Any) -> bool:
     return False
 
 
+def run_phone_verification_flow(client: Client, token: str, phone: str) -> tuple[bool, dict[str, Any]]:
+    start_status, start_body, _ = client.request(
+        "POST",
+        "/api/rehab-arm/app/v1/account/phone-verifications",
+        {"phone": phone, "purpose": "bind_account"},
+        token=token,
+    )
+    start_data = data(start_body)
+    detail: dict[str, Any] = {
+        "start_status_code": start_status,
+        "masked_phone": start_data.get("masked_phone"),
+        "delivery_channel": start_data.get("delivery_channel"),
+        "expires_in": start_data.get("expires_in"),
+    }
+    verification_id = start_data.get("verification_id")
+    debug_code = start_data.get("debug_code")
+    if start_status != 200:
+        detail["reason"] = "start_failed"
+        return False, detail
+    if not verification_id:
+        detail["reason"] = "verification_id_missing"
+        return False, detail
+    if not debug_code:
+        detail["reason"] = "debug_code_missing"
+        return False, detail
+
+    confirm_status, confirm_body, _ = client.request(
+        "POST",
+        f"/api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm",
+        {"code": debug_code},
+        token=token,
+    )
+    profile = data(confirm_body).get("profile") or {}
+    detail.update(
+        {
+            "confirm_status_code": confirm_status,
+            "phone_verified": profile.get("phone_verified"),
+        }
+    )
+    return confirm_status == 200 and profile.get("phone_verified") is True, detail
+
+
 def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     client = Client(args.api_base, args.timeout)
     results: list[Result] = []
@@ -228,6 +270,15 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             profile.get("phone_verified") is True,
             "Staging account has a verified phone binding.",
             {"phone_present": bool(profile.get("phone")), "phone_verified": profile.get("phone_verified")},
+        )
+        phone_flow_ok, phone_flow_detail = run_phone_verification_flow(client, token, args.phone_test_phone)
+        add(
+            results,
+            "P0-PHONE-FLOW-001",
+            "P0",
+            phone_flow_ok,
+            "Staging account can request and confirm a phone verification code.",
+            phone_flow_detail,
         )
 
         workflow_status, workflow_body, _ = client.request("GET", "/api/rehab-arm/app/v1/me/workflow", token=token)
@@ -371,6 +422,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--email", default=os.getenv("REHAB_QA_EMAIL"))
     parser.add_argument("--password", default=os.getenv("REHAB_QA_PASSWORD"))
+    parser.add_argument("--phone-test-phone", default=os.getenv("REHAB_QA_PHONE_TEST_PHONE", "+8613800006131"))
     parser.add_argument("--timeout", type=int, default=int(os.getenv("REHAB_QA_TIMEOUT", "20")))
     return parser.parse_args(argv)
 

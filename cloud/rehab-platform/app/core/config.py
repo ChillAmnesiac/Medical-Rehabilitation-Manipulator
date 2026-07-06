@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-rehab-platform-secret-change-me"
     jwt_algorithm: str = "HS256"
     access_token_ttl_minutes: int = 60 * 24 * 7
+    phone_verification_debug_code_enabled: bool = True
+    phone_verification_ttl_seconds: int = 300
+    phone_verification_max_attempts: int = 5
     agent_model_provider: str = "openai_compatible"
     agent_model_base_url: str = "https://api.openai.com/v1"
     agent_model_api_key: str | None = None

@@ -128,6 +128,34 @@
   - Current cloud model status: `fallback_rule_based`, `fallback_reason = external_model_not_configured`.
   - APK remains reachable: `Content-Length: 4198462`, content type `application/vnd.android.package-archive`.
 
+## 2026-07-06 Phone Verification Hardening
+
+- Local backend phone verification now supports:
+  - `PHONE_VERIFICATION_DEBUG_CODE_ENABLED`
+  - `PHONE_VERIFICATION_TTL_SECONDS`
+  - `PHONE_VERIFICATION_MAX_ATTEMPTS`
+- Production-like mode can hide `debug_code` while staging keeps `debug_sms` for automated QA.
+- Wrong-code attempts now stop with `PHONE_CODE_ATTEMPTS_EXCEEDED` after the configured limit.
+- Acceptance smoke now includes `P0-PHONE-FLOW-001`, which requests and confirms a staging code end to end.
+- Cloud patch deployed to:
+  - `app/settings.py`
+  - `app/modules/rehab_arm/app_service.py`
+- Cloud backups created:
+  - `app/settings.py.bak-phone-hardening-20260706`
+  - `app/modules/rehab_arm/app_service.py.bak-phone-hardening-20260706`
+- Cloud restart:
+  - PID: `1429532`
+  - Explicit database URL: `sqlite:///./ai_collab_server.db`
+  - Build SHA label: `phone-verification-hardening-20260706`
+  - Build ref: `codex/rehab-mobile-backend-qa-20260706`
+  - Build time: `2026-07-06T03:33:43Z`
+- Fresh verification:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests tools\test_qa_rehab_mobile_acceptance.py tools\test_qa_rehab_mobile_l1_frontend.py tools\test_qa_rehab_mobile_l1_release.py -q` -> `35 passed, 1 warning`
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 15`
+  - `P0-PHONE-FLOW-001` -> `PASS`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
+  - APK remains reachable: `Content-Length: 4198462`, content type `application/vnd.android.package-archive`.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

@@ -149,6 +149,7 @@ def start_phone_verification(
     request: PhoneVerificationStartRequest,
     user: User = Depends(require_current_user),
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ):
     phone = _normalize_phone(request.phone)
     purpose = request.purpose or "bind_account"
@@ -163,20 +164,20 @@ def start_phone_verification(
         phone=phone,
         purpose=purpose,
         code_hash=hash_password(code),
-        expires_at=utcnow() + timedelta(seconds=300),
+        expires_at=utcnow() + timedelta(seconds=settings.phone_verification_ttl_seconds),
     )
     db.add(verification)
     db.commit()
     db.refresh(verification)
-    return {
-        "data": {
-            "verification_id": str(verification.id),
-            "masked_phone": _mask_phone(phone),
-            "expires_in": 300,
-            "delivery_channel": "debug_sms",
-            "debug_code": code,
-        }
+    payload = {
+        "verification_id": str(verification.id),
+        "masked_phone": _mask_phone(phone),
+        "expires_in": settings.phone_verification_ttl_seconds,
+        "delivery_channel": "debug_sms" if settings.phone_verification_debug_code_enabled else "sms",
     }
+    if settings.phone_verification_debug_code_enabled:
+        payload["debug_code"] = code
+    return {"data": payload}
 
 
 @router.post("/account/phone-verifications/{verification_id}/confirm")
@@ -185,6 +186,7 @@ def confirm_phone_verification(
     request: PhoneVerificationConfirmRequest,
     user: User = Depends(require_current_user),
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings),
 ):
     verification = db.get(PhoneVerification, verification_id)
     now = utcnow()
@@ -198,10 +200,20 @@ def confirm_phone_verification(
             status_code=400,
             detail={"code": "PHONE_CODE_INVALID", "message": "Phone verification code is invalid or expired"},
         )
+    if verification.attempts >= settings.phone_verification_max_attempts:
+        raise HTTPException(
+            status_code=400,
+            detail={"code": "PHONE_CODE_ATTEMPTS_EXCEEDED", "message": "Phone verification attempts exceeded"},
+        )
     verification.attempts += 1
     if not verify_password(request.code.strip(), verification.code_hash):
         db.add(verification)
         db.commit()
+        if verification.attempts >= settings.phone_verification_max_attempts:
+            raise HTTPException(
+                status_code=400,
+                detail={"code": "PHONE_CODE_ATTEMPTS_EXCEEDED", "message": "Phone verification attempts exceeded"},
+            )
         raise HTTPException(
             status_code=400,
             detail={"code": "PHONE_CODE_INVALID", "message": "Phone verification code is invalid or expired"},

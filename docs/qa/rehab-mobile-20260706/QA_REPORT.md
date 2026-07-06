@@ -193,12 +193,13 @@ Latest API/package acceptance smoke passed:
 
 - Overall: `PASS`
 - P0 failed: `0`
-- Total checks: `14`
-- Cloud PID: `1409766`
+- Total checks: `15`
+- Cloud PID: `1429532`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
-- Build SHA: `agent-model-status-20260706`
-- Build time: `2026-07-06T03:13:48Z`
+- Build SHA: `phone-verification-hardening-20260706`
+- Build time: `2026-07-06T03:33:43Z`
 - `P0-PATIENT-VIEW-001`: `PASS`
+- `P0-PHONE-FLOW-001`: `PASS`
 - Agent safe answer with `data.model_status`: `PASS`
 - Current Agent model mode: `fallback_rule_based`, reason `external_model_not_configured`
 - Agent unsafe refusal: `PASS`
@@ -229,7 +230,7 @@ Fresh verification:
 - Syntax checks: `py_compile` passed for backend route and QA script.
 - Stricter cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 14`.
 
-Cloud runtime already had the deployed patient-view contract, so no extra cloud code patch or restart was needed for that source-parity follow-up. The later Agent model-status follow-up restarted the cloud service; latest verified cloud PID is `1409766`.
+Cloud runtime already had the deployed patient-view contract, so no extra cloud code patch or restart was needed for that source-parity follow-up. Later Agent and phone-verification follow-ups restarted the cloud service; latest verified cloud PID is `1429532`.
 
 ## Backend Agent Cloud-Model Follow-Up
 
@@ -248,6 +249,30 @@ Fresh verification:
 - Local backend suite: `25 passed, 1 warning`.
 - Acceptance helper tests: `2 passed`.
 - Cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 14`.
+- APK smoke remained `PASS` with size `4198462` bytes.
+
+## Backend Phone Verification Follow-Up
+
+2026-07-06 continuation work hardened the account phone-binding flow:
+
+- Local backend now has configurable phone verification behavior:
+  - `PHONE_VERIFICATION_DEBUG_CODE_ENABLED`
+  - `PHONE_VERIFICATION_TTL_SECONDS`
+  - `PHONE_VERIFICATION_MAX_ATTEMPTS`
+- When debug SMS is disabled, `POST /account/phone-verifications` no longer returns `debug_code`.
+- Wrong code attempts now stop with `PHONE_CODE_ATTEMPTS_EXCEEDED` after the configured limit.
+- Acceptance smoke now includes `P0-PHONE-FLOW-001`, which requests a staging code and confirms it end to end.
+- Cloud deployment patched `app/settings.py` and `app/modules/rehab_arm/app_service.py` on `106.55.62.122`.
+
+Fresh verification:
+
+- Red tests first:
+  - debug-code hiding failed because the API still returned `debug_sms`,
+  - attempt locking failed because the API still returned `PHONE_CODE_INVALID`.
+- Phone focused tests: `5 passed, 1 warning`.
+- Local backend plus QA suite: `35 passed, 1 warning`.
+- Cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 15`.
+- Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
 - APK smoke remained `PASS` with size `4198462` bytes.
 
 ## Accessibility Risks
