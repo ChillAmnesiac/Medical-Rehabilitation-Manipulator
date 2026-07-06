@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import json
 import shutil
 import sys
@@ -25,10 +26,32 @@ DEFAULT_OUTPUT_DIR = Path("artifacts/rehab-mobile-stitch-promotion")
 PREFLIGHT_REPORT = "stitch-frontend-l1-preflight.json"
 PROMOTION_REPORT = "stitch-frontend-promotion.json"
 MIRROR_REPORT = "webview-mirror-verification.json"
+FORBIDDEN_PROMOTION_FILE_PATTERNS = (
+    "frontend-l1-*.json",
+    "browser-qa*.json",
+    "browser-metrics*.json",
+    "stitch-frontend-*.json",
+    "webview-mirror-verification.json",
+    "rehab-mobile-frontend-release-manifest.json",
+)
 
 
 def _source_files(source_dir: Path) -> list[str]:
     return sorted(path.relative_to(source_dir).as_posix() for path in source_dir.rglob("*") if path.is_file())
+
+
+def check_package_cleanliness(source_dir: Path) -> dict[str, Any]:
+    files = _source_files(source_dir) if source_dir.is_dir() else []
+    unexpected_files = [
+        rel_path
+        for rel_path in files
+        if any(fnmatch.fnmatch(Path(rel_path).name, pattern) for pattern in FORBIDDEN_PROMOTION_FILE_PATTERNS)
+    ]
+    return {
+        "status": "PASS" if not unexpected_files else "FAIL",
+        "unexpected_files": unexpected_files,
+        "forbidden_patterns": list(FORBIDDEN_PROMOTION_FILE_PATTERNS),
+    }
 
 
 def _is_relative_to(path: Path, parent: Path) -> bool:
@@ -80,9 +103,17 @@ def run_frontend_l1_preflight(source_dir: Path, report_path: Path, timeout: int)
     return summary
 
 
-def _base_payload(args: argparse.Namespace, preflight_summary: dict[str, Any]) -> dict[str, Any]:
+def _base_payload(
+    args: argparse.Namespace,
+    preflight_summary: dict[str, Any],
+    package_cleanliness: dict[str, Any],
+) -> dict[str, Any]:
     copied = False
-    overall = "PASS" if preflight_summary.get("overall") == "PASS" else "FAIL"
+    overall = (
+        "PASS"
+        if preflight_summary.get("overall") == "PASS" and package_cleanliness.get("status") == "PASS"
+        else "FAIL"
+    )
     return {
         "schema": SCHEMA,
         "summary": {
@@ -100,6 +131,7 @@ def _base_payload(args: argparse.Namespace, preflight_summary: dict[str, Any]) -
             "replace_targets": [str(args.web_dir), str(args.android_www_dir)],
         },
         "frontend_l1_preflight": preflight_summary,
+        "package_cleanliness": package_cleanliness,
     }
 
 
@@ -138,8 +170,9 @@ def run(argv: list[str]) -> tuple[int, dict[str, Any]]:
         args.output_dir / PREFLIGHT_REPORT,
         args.timeout,
     )
-    payload = _base_payload(args, preflight_summary)
-    if preflight_summary.get("overall") != "PASS":
+    package_cleanliness = check_package_cleanliness(args.stitch_source_dir)
+    payload = _base_payload(args, preflight_summary, package_cleanliness)
+    if preflight_summary.get("overall") != "PASS" or package_cleanliness.get("status") != "PASS":
         report_path = args.output_dir / PROMOTION_REPORT
         report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         return 2, payload

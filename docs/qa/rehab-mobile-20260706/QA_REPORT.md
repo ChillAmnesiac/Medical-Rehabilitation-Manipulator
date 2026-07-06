@@ -2178,6 +2178,11 @@ Tooling changes:
   from the accepted Stitch source, then writes
   `webview-mirror-verification.json` from
   `tools/verify_rehab_mobile_webview_mirror.py`.
+- The promotion source must also be a clean frontend package. The tool rejects
+  mixed-in QA/release reports such as `browser-qa*.json`,
+  `browser-metrics*.json`, `frontend-l1-*.json`,
+  `stitch-frontend-*.json`, `webview-mirror-verification.json`, and
+  `rehab-mobile-frontend-release-manifest.json`.
 - Unsafe cases are blocked before copying, including failing L1 preflight,
   filesystem-root targets, targets inside the Stitch source, and output
   directories inside replace targets.
@@ -2193,15 +2198,23 @@ Fresh verification:
 - Red safety test then failed because `--execute` with `--output-dir` inside a
   replace target raised an exception after the tool had already started writing
   reports; the check now runs before any filesystem write.
+- Red package-cleanliness test then failed because a source directory with a
+  passing L1 preflight and an extra `frontend-l1-source-gate-v3.json` report
+  still dry-ran as `PASS`; the tool now returns `overall = FAIL` and reports
+  `package_cleanliness.status = FAIL`.
 - Focused promotion tests:
-  `tools/test_promote_rehab_mobile_stitch_frontend.py` -> `4 passed`.
+  `tools/test_promote_rehab_mobile_stitch_frontend.py` -> `5 passed`.
 - Related frontend/release chain:
   `tools/test_promote_rehab_mobile_stitch_frontend.py`,
   `tools/test_qa_rehab_mobile_l1_frontend.py`,
   `tools/test_qa_rehab_mobile_l1_frontend_local_source.py`,
   `tools/test_verify_rehab_mobile_webview_mirror.py`,
   `tools/test_prepare_rehab_mobile_frontend_release.py`, and
-  `tools/test_deploy_rehab_mobile_frontend_release.py` -> `34 passed`.
+  `tools/test_deploy_rehab_mobile_frontend_release.py` -> `35 passed`.
+- Stitch MCP status before this follow-up remained blocked: both
+  `list_screens(projects/323711356322969905)` and `create_project` returned
+  `401 invalid authentication credentials`, so no new frontend screen could be
+  generated in this pass.
 
 Current Stitch candidate dry-run:
 
@@ -2216,6 +2229,10 @@ Current Stitch candidate dry-run:
   `phone_verification_start_post`, `phone_verification_confirm_post`,
   `device_bind_post`, and `agent_messages_post`, with forbidden source hits
   `mockData`, `Simulate API response`, and `In real app`.
+- Package cleanliness blockers: current local candidate directory also contains
+  QA reports (`browser-metrics-*`, `browser-qa-*`, and `frontend-l1-*` JSON
+  files). A future accepted Stitch output must be exported to a clean
+  frontend-only directory before promotion.
 
 Acceptance boundary:
 

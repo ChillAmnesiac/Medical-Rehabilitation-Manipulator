@@ -43,5 +43,30 @@
     "web_base": null,
     "source_dir": "artifacts\\stitch\\l1-full-browser-qa-candidate-20260707",
     "report_path": "docs\\qa\\rehab-mobile-20260706\\stitch-promotion-current-candidate-20260707\\stitch-frontend-l1-preflight.json"
+  },
+  "package_cleanliness": {
+    "status": "FAIL",
+    "unexpected_files": [
+      "browser-metrics-gate-live-390x844.json",
+      "browser-metrics-gate-live-v3-390x844.json",
+      "browser-metrics-gate-live-v3-final-390x844.json",
+      "browser-qa-live-390x844.json",
+      "browser-qa-live-v3-390x844.json",
+      "frontend-l1-source-gate-v2.json",
+      "frontend-l1-source-gate-v3-final.json",
+      "frontend-l1-source-gate-v3-hardened.json",
+      "frontend-l1-source-gate-v3-post-hardened-final.json",
+      "frontend-l1-source-gate-v3-post-hardened.json",
+      "frontend-l1-source-gate-v3.json",
+      "frontend-l1-source-gate.json"
+    ],
+    "forbidden_patterns": [
+      "frontend-l1-*.json",
+      "browser-qa*.json",
+      "browser-metrics*.json",
+      "stitch-frontend-*.json",
+      "webview-mirror-verification.json",
+      "rehab-mobile-frontend-release-manifest.json"
+    ]
   }
 }

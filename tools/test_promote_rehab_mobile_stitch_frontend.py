@@ -153,6 +153,41 @@ def test_dry_run_accepts_l1_ready_stitch_source_without_copying(tmp_path):
     assert saved["summary"]["overall"] == "PASS"
 
 
+def test_dry_run_rejects_l1_ready_source_with_qa_reports_mixed_in(tmp_path):
+    module = _load_module()
+    stitch_source = tmp_path / "stitch"
+    web_dir = tmp_path / "web"
+    android_dir = tmp_path / "android" / "www"
+    output_dir = tmp_path / "promotion"
+    _write_l1_ready_stitch_source(stitch_source)
+    (stitch_source / "frontend-l1-source-gate-v3.json").write_text(
+        '{"summary": {"overall": "PASS"}}\n',
+        encoding="utf-8",
+    )
+
+    exit_code, payload = module.run(
+        [
+            "--stitch-source-dir",
+            str(stitch_source),
+            "--web-dir",
+            str(web_dir),
+            "--android-www-dir",
+            str(android_dir),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+
+    assert exit_code == 2
+    assert payload["summary"]["overall"] == "FAIL"
+    assert payload["summary"]["copied"] is False
+    assert payload["frontend_l1_preflight"]["overall"] == "PASS"
+    assert payload["package_cleanliness"]["status"] == "FAIL"
+    assert payload["package_cleanliness"]["unexpected_files"] == ["frontend-l1-source-gate-v3.json"]
+    saved = json.loads((output_dir / "stitch-frontend-promotion.json").read_text(encoding="utf-8"))
+    assert saved["package_cleanliness"]["unexpected_files"] == ["frontend-l1-source-gate-v3.json"]
+
+
 def test_execute_promotes_l1_ready_source_and_verifies_android_mirror(tmp_path):
     module = _load_module()
     stitch_source = tmp_path / "stitch"
