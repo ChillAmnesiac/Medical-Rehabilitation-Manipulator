@@ -63,6 +63,29 @@ Home hit list:
 
 Result: L1 remains `FAIL`. The backend contract is ready, but the frontend still needs Stitch changes.
 
+## 2026-07-06 L1 Static Frontend Gate
+
+Added a repeatable frontend gate:
+
+```powershell
+cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_frontend.py
+```
+
+Current production result:
+
+- Overall: `FAIL`
+- Failed: `4`
+- Total: `4`
+
+Failed gates:
+
+- `L1-HOME-STATIC-001`: missing `问康复师`; still contains `M33`, `M55`, and `RoboRehab Controller`.
+- `L1-PROFILE-STATIC-001`: missing `我的康复档案` and `手机号`; still contains `M33`, `M55`, `患者 A`, `ID: 8829`, `避免过度伸展`, and `RoboRehab Controller`.
+- `L1-DEVICE-STATIC-001`: still contains `M33`, `M55`, `UUID`, and `Gatekeeper`.
+- `L1-AGENT-STATIC-001`: missing `问康复师`.
+
+This gate is intentionally strict and should remain failing until Stitch converts normal user pages to the `patient_view` contract.
+
 ## Findings
 
 ### P0-Home-001 - False Network Error

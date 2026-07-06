@@ -100,6 +100,17 @@ $env:REHAB_QA_PASSWORD='<staging password>'
 cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_acceptance.py
 ```
 
+Then Codex must run the L1 static frontend gate:
+
+```powershell
+cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_frontend.py
+```
+
+Required result:
+
+- `overall = PASS`
+- `failed = 0`
+
 Then Codex must capture browser screenshots at `390 x 844`:
 
 1. Home first screen.
