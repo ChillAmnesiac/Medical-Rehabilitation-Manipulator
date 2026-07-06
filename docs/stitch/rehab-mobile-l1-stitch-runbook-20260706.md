@@ -11,6 +11,7 @@ Codex owns backend, QA, deployment verification, APK verification, and git commi
 - Backend/API: `PASS`
 - APK delivery: `PASS`
 - Frontend L1: `FAIL`
+- Sanitized live API fixture: `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json`
 - Latest browser evidence:
   - `docs/qa/rehab-mobile-20260706/06-profile-resmoke-390.png`
   - `docs/qa/rehab-mobile-20260706/07-home-resmoke-390.png`
@@ -40,6 +41,12 @@ Historical prompt kept for reference:
 Use this scorecard as the release gate:
 
 - `docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md`
+
+Use this sanitized live API fixture as the field-shape reference:
+
+- `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json`
+
+The fixture was exported from `http://106.55.62.122:8011` and masks tokens, verification codes, raw ids, email addresses, and phone numbers. Stitch should use it to understand response shapes, not hard-code its values.
 
 Use these screenshots as current failure evidence:
 

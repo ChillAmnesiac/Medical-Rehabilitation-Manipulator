@@ -318,6 +318,34 @@ Fresh verification:
 - Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
 - Browser QA attempt for this pass reached the in-app browser but screenshot capture timed out twice; no new screenshot was accepted for this metadata-only backend deployment. Existing screenshots and the frontend L1 static gate still document the visible frontend blockers.
 
+## Stitch API Fixture Follow-Up
+
+2026-07-06 continuation work exported a sanitized live API fixture so Stitch can wire the frontend from real cloud response shapes instead of guessing field names:
+
+- New exporter: `tools/export_rehab_mobile_stitch_fixture.py`.
+- New tests: `tools/test_export_rehab_mobile_stitch_fixture.py`.
+- Fixture: `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json`.
+- Fixture source: `http://106.55.62.122:8011`.
+- Included response families:
+  - `GET /health`
+  - `GET /api/rehab-arm/app/v1/public-config`
+  - `GET /api/rehab-arm/app/v1/me`
+  - safe `POST /api/rehab-arm/app/v1/agent/messages`
+  - unsafe `POST /api/rehab-arm/app/v1/agent/messages`
+- Privacy check: real account tokens, verification codes, UUID-like raw ids, email addresses, and phone numbers are removed or masked.
+- Stitch prompt and runbook now point to this fixture before frontend edits.
+
+Fresh verification:
+
+- Red tests first failed because `tools/export_rehab_mobile_stitch_fixture.py` did not exist.
+- Focused fixture tests after implementation and UUID sanitizer hardening: `3 passed`.
+- Full local backend plus QA suite: `63 passed, 1 warning`.
+- Cloud fixture export succeeded using the staging account.
+- Initial secret scan found UUID-like plan/device/draft ids embedded in live response fields and endpoints; sanitizer was tightened to replace `*_id`, `*_uuid`, and embedded UUID path segments.
+- Follow-up secret scan found no real staging email, raw phone number, verification code, UUID-like id, or long Bearer token in the generated fixture.
+- Cloud acceptance remained `overall = PASS`, `p0_failed = 0`, `total = 22`; APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
+- Total L1 release gate remained API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+
 ## Backend Agent Public Config Readiness Follow-Up
 
 2026-07-06 continuation work exposed Agent readiness before the user sends a chat message:

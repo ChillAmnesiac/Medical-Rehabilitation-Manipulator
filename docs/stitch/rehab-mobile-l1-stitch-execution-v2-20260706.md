@@ -11,6 +11,7 @@ Production targets:
 - Web: http://106.55.62.122:3001/rehab-arm-mobile/
 - API: http://106.55.62.122:8011
 - APK URL: http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk
+- Sanitized live API fixture: docs/stitch/rehab-mobile-l1-api-fixture-20260706.json
 
 Non-negotiable boundary:
 - Do not edit backend code.
@@ -27,6 +28,7 @@ Current backend status:
 - APK delivery is PASS.
 - Backend acceptance total is 22 checks with 0 P0 failures.
 - Health exposes traceable deployment metadata; `P1-DEPLOY-META-001` is PASS.
+- A sanitized live API fixture is available at `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json`; use it as the field-shape reference when wiring pages.
 - Device binding is verified for both same-account idempotency and cross-account already-bound conflict.
 - Public config exposes Agent readiness at `data.agent.model_readiness`; current staging is `fallback_rule_based`, reason `external_model_not_configured`.
 - Current staging Agent model readiness is WARN: `model_status.mode = fallback_rule_based`, reason `external_model_not_configured`.
@@ -38,6 +40,11 @@ Use this API base by default:
 http://106.55.62.122:8011
 
 Keep any existing local developer override if present, but production/staging must not show a false "网络未连接，请检查后端服务" while this API is reachable.
+
+Before editing, open the sanitized fixture:
+docs/stitch/rehab-mobile-l1-api-fixture-20260706.json
+
+Use it to map actual response shapes. The fixture is safe to inspect: real access tokens, verification codes, raw ids, email addresses, and phone numbers are removed or masked. Do not hard-code fixture values into the UI; fetch the live API at runtime and render the same fields.
 
 Authentication:
 - Login: POST /api/auth/session

@@ -1,0 +1,3045 @@
+{
+  "metadata": {
+    "generated_at": "2026-07-06T08:29:54Z",
+    "api_base": "http://106.55.62.122:8011",
+    "purpose": "Sanitized live API fixture for the Stitch L1 frontend implementation.",
+    "contains_access_token": false,
+    "privacy": "Real account tokens, verification codes, raw ids, emails, and phone numbers are removed or masked."
+  },
+  "stitch_usage": {
+    "must_render_from": [
+      "me.data.profile",
+      "me.data.patient_view.home",
+      "me.data.patient_view.profile",
+      "me.data.patient_view.device",
+      "me.data.patient_view.agent",
+      "public_config.data.agent"
+    ],
+    "must_call": [
+      "POST /api/auth/session",
+      "GET /api/rehab-arm/app/v1/me",
+      "POST /api/rehab-arm/app/v1/account/phone-verifications",
+      "POST /api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm",
+      "POST /api/rehab-arm/app/v1/devices/bind",
+      "POST /api/rehab-arm/app/v1/agent/messages"
+    ],
+    "must_not_show_terms": [
+      "M33",
+      "M55",
+      "SPP",
+      "CAN",
+      "UUID",
+      "setup_required",
+      "early_active",
+      "direct_motor_command",
+      "can_frame"
+    ]
+  },
+  "health": {
+    "data": {
+      "status": "ok",
+      "version": "0.1.0",
+      "deployment": {
+        "build_sha": "b925e316",
+        "build_ref": "codex/rehab-mobile-backend-qa-20260706",
+        "build_time": "2026-07-06T07:50:07Z",
+        "app_env": "staging"
+      },
+      "pid": 1677646,
+      "host": "106.55.62.122",
+      "port": 8011,
+      "base_url": "http://106.55.62.122:8011",
+      "local_services": [
+        {
+          "host": "127.0.0.1",
+          "port": 3000,
+          "listening": false
+        },
+        {
+          "host": "127.0.0.1",
+          "port": 3001,
+          "listening": true
+        },
+        {
+          "host": "127.0.0.1",
+          "port": 8010,
+          "listening": false
+        },
+        {
+          "host": "127.0.0.1",
+          "port": 8011,
+          "listening": true
+        }
+      ]
+    },
+    "meta": {
+      "request_id": "fixture-request-id"
+    }
+  },
+  "public_config": {
+    "data": {
+      "app_name": "灵动康复 ArmControl",
+      "package_id": "fixture-package-id",
+      "api_base": "http://106.55.62.122:8011",
+      "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
+      "auth": {
+        "register_endpoint": "/api/auth/register",
+        "session_endpoint": "/api/auth/session",
+        "me_endpoint": "/api/auth/me",
+        "authorization": "Bearer access_token",
+        "token_response_path": "data.access_token",
+        "user_response_path": "data.user",
+        "required_headers": {
+          "Authorization": "Bearer {access_token}"
+        }
+      },
+      "rehab_app": {
+        "bootstrap_endpoint": "/api/rehab-arm/app/v1/me",
+        "workflow_endpoint": "/api/rehab-arm/app/v1/me/workflow",
+        "workflow_action_endpoint": "/api/rehab-arm/app/v1/me/workflow/actions",
+        "profile_endpoint": "/api/rehab-arm/app/v1/me/profile",
+        "phone_verification_start_endpoint": "/api/rehab-arm/app/v1/account/phone-verifications",
+        "phone_verification_confirm_endpoint_template": "/api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm",
+        "catalog_endpoint": "/api/rehab-arm/app/v1/catalog",
+        "ai_training_draft_generate_endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/generate",
+        "ai_training_drafts_endpoint": "/api/rehab-arm/app/v1/ai-training-drafts",
+        "ai_training_report_next_plan_endpoint_template": "/api/rehab-arm/app/v1/training-reports/{report_id}/draft-next-plan",
+        "ai_training_relay_audit_endpoint": "/api/rehab-arm/app/v1/safety-audit",
+        "daily_care_plan_path": "data.daily_care_plan",
+        "m33_legacy_spp_profile_path": "data.m33_legacy_spp_profile",
+        "public_config_endpoint": "/api/rehab-arm/app/v1/public-config",
+        "ai_relay_contract": {
+          "relay_channel": "app_training_planner",
+          "client_type": "app",
+          "purpose": "training_plan_draft",
+          "scope": "rehab_training_planning",
+          "shared_provider_config": "rehab_arm_model_relay",
+          "does_not_touch_xiaozhi_l": true,
+          "record_sources": [
+            "rehab_app_ai_training_draft",
+            "rehab_app_safety_audit"
+          ],
+          "control_boundary": "app_ai_training_planner_draft_only_not_motion_permission"
+        }
+      },
+      "agent": {
+        "message_endpoint": "/api/rehab-arm/app/v1/agent/messages",
+        "model_readiness": {
+          "mode": "fallback_rule_based",
+          "configured": false,
+          "provider": "server_model_relay",
+          "model": null,
+          "reason": "external_model_not_configured"
+        }
+      },
+      "phone_verification": {
+        "start_endpoint": "/api/rehab-arm/app/v1/account/phone-verifications",
+        "confirm_endpoint_template": "/api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm",
+        "resend_cooldown_seconds": 60,
+        "delivery_status": {
+          "mode": "debug_sms",
+          "configured": false,
+          "provider": null,
+          "exposes_debug_code": true,
+          "reason": "debug_code_enabled"
+        }
+      },
+      "m33_legacy_spp_profile": {
+        "schema_version": "rehab_app_legacy_m33_spp_profile_v1",
+        "source": {
+          "kind": "old_android_app_verified_protocol",
+          "path": "D:/app/RehabRobotArm/RehabRobotArm/PROTOCOL.md",
+          "android_manager": "D:/app/RehabRobotArm/RehabRobotArm/app/src/main/java/com/rehab/robotarm/data/communication/BluetoothManager.kt",
+          "android_parser": "D:/app/RehabRobotArm/RehabRobotArm/app/src/main/java/com/rehab/robotarm/data/communication/ProtocolParser.kt"
+        },
+        "transport": "bluetooth_classic_spp_rfcomm",
+        "standard_uuid": "fixture-uuid",
+        "device_name_hint": "RehabRobotArm",
+        "encoding": "utf-8",
+        "packet_delimiter": "\\n",
+        "message_format": "newline_delimited_json",
+        "default_baud_rate": 115200,
+        "device_to_app_messages": {
+          "sensor": {
+            "type": "sensor",
+            "fields": [
+              "timestamp",
+              "mode",
+              "shoulder_angle",
+              "elbow_angle",
+              "lateral_position",
+              "lateral_pos",
+              "shoulder_torque",
+              "elbow_torque",
+              "shoulder_force",
+              "elbow_force",
+              "emg_ch1",
+              "emg_ch2",
+              "shoulder_accel_x",
+              "shoulder_accel_y",
+              "shoulder_accel_z",
+              "elbow_accel_x",
+              "elbow_accel_y",
+              "elbow_accel_z",
+              "temperature",
+              "shoulder_temp",
+              "elbow_temp",
+              "lateral_temp"
+            ]
+          },
+          "acks": [
+            "mode_ack",
+            "control_ack",
+            "memory_ack",
+            "execute_ack",
+            "stop_ack",
+            "error"
+          ]
+        },
+        "app_to_device_command_types": [
+          "mode",
+          "control",
+          "memory",
+          "execute_memory",
+          "stop",
+          "stop_memory"
+        ],
+        "allowed_current_app_mapping": {
+          "app_hello": "backend_handshake_only_no_legacy_wire_frame",
+          "device_status_request": "backend_status_only_no_legacy_wire_frame",
+          "training_plan_push": "memory_upload_evidence_only_requires_m33_review",
+          "training_session_start_request": "execute_memory_request_after_m33_acceptance",
+          "training_progress_notify": "backend_status_only_no_legacy_wire_frame",
+          "training_pause_request": "stop_memory_request",
+          "training_stop_request": "stop_request",
+          "diagnostic_snapshot_request": "backend_diagnostic_only_no_legacy_wire_frame"
+        },
+        "forbidden_current_app_mapping": [
+          "raw_motor_current",
+          "raw_motor_torque",
+          "raw_motor_position",
+          "raw_motor_velocity",
+          "can_frame",
+          "m33_override",
+          "emergency_stop_release"
+        ],
+        "control_boundary": "legacy_spp_profile_from_old_app_not_app_granted_motion_permission"
+      },
+      "downloads": {
+        "debug_apk_url": "http://106.55.62.122:3001/rehab-arm-mobile/downloads/rehab-arm/lingdong-rehab-arm-debug.apk",
+        "debug_apk_version": "1.0.10",
+        "debug_apk_sha256": "DB674D09F46D0CF0B8DE9717D1904A52CE042BC19E49FB1BEB45BC4548E9BB52",
+        "debug_apk_status": "backend_connected_workflow_action_timeline_ai_training_planner_training_library_backend_plan_binding_stitch_bluetooth_debug_spp_pairing_backend_bind_frame_ack_sensor_debug_build_current_m33_confirmation_pending"
+      },
+      "mobile_boot_flow": [
+        {
+          "step": "load_public_config",
+          "endpoint": "/api/rehab-arm/app/v1/public-config",
+          "auth_required": false
+        },
+        {
+          "step": "login",
+          "endpoint": "/api/auth/session",
+          "auth_required": false,
+          "token_response_path": "data.access_token"
+        },
+        {
+          "step": "fetch_workspace_user",
+          "endpoint": "/api/auth/me",
+          "auth_required": true
+        },
+        {
+          "step": "bind_phone_if_unverified",
+          "endpoint": "/api/rehab-arm/app/v1/account/phone-verifications",
+          "confirm_endpoint_template": "/api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm",
+          "auth_required": true
+        },
+        {
+          "step": "fetch_rehab_bootstrap",
+          "endpoint": "/api/rehab-arm/app/v1/me",
+          "auth_required": true
+        },
+        {
+          "step": "fetch_rehab_workflow",
+          "endpoint": "/api/rehab-arm/app/v1/me/workflow",
+          "auth_required": true
+        },
+        {
+          "step": "execute_safe_rehab_workflow_action",
+          "endpoint": "/api/rehab-arm/app/v1/me/workflow/actions",
+          "auth_required": true
+        }
+      ],
+      "release_gate": {
+        "status": "blocked",
+        "reason": "debug_apk_connects_backend_and_has_legacy_spp_native_bridge_but_current_m33_firmware_confirmation_and_physical_pairing_validation_are_still_required",
+        "checks": [
+          {
+            "code": "PUBLIC_CONFIG_AVAILABLE",
+            "status": "pass",
+            "description": "Backend exposes the unauthenticated boot contract for the phone shell."
+          },
+          {
+            "code": "TOKEN_AUTH_CONTRACT",
+            "status": "pass",
+            "description": "Phone clients must use /api/auth/session and send Authorization: Bearer {access_token}."
+          },
+          {
+            "code": "APK_FRONTEND_API_WIRING",
+            "status": "pass",
+            "description": "Debug APK 1.0.10 loads public-config/catalog/workflow, uses Bearer token login, overlays backend workflow/readiness, renders backend care timeline/daily care plan, binds the training library to backend plans after AI draft acceptance, can execute safe workflow actions through /me/workflow/actions, and includes a Stitch-designed Bluetooth debug page for Android SPP pairing, backend device binding, backend-approved frame send, and inbound ACK/sensor evidence upload."
+          },
+          {
+            "code": "HARDWARE_PROTOCOL_PACKET_MAP",
+            "status": "legacy_spp_profile_available",
+            "description": "Old verified Android app protocol is Bluetooth Classic SPP RFCOMM UUID {fixture-id} with newline-delimited UTF-8 JSON. Current M33 firmware still must confirm support before user release."
+          },
+          {
+            "code": "PHONE_NATIVE_BLUETOOTH_BRIDGE",
+            "status": "debug_bridge_available",
+            "description": "APK 1.0.10 includes a Capacitor/Android Bluetooth Classic SPP bridge plus a Stitch-designed Bluetooth debug page for listing paired devices, binding one as a backend trusted device, connecting SPP, sending backend-approved legacy frames, and uploading inbound ACK/sensor evidence. User release still needs physical validation with current M33 firmware."
+          }
+        ],
+        "required_frontend_work": [
+          "replace the temporary bridge login panel with Stitch-designed screens",
+          "render catalog/profile/device/plan/readiness/daily_care_plan fields inside Stitch pages",
+          "preserve Authorization: Bearer {access_token} on rehab app API calls",
+          "use the legacy SPP profile through the Android native bridge for phone-to-M33 Bluetooth Classic transport instead of Web Bluetooth GATT"
+        ]
+      },
+      "required_account_fields": [
+        "phone_verified"
+      ],
+      "required_profile_fields": [
+        "affected_side",
+        "rehab_stage",
+        "pain_baseline"
+      ],
+      "control_boundary": "rehab_app_public_config_only_not_auth_token_or_motion_permission"
+    },
+    "meta": {
+      "request_id": "fixture-request-id"
+    }
+  },
+  "me": {
+    "data": {
+      "profile": {
+        "id": "fixture-id",
+        "user_id": "fixture-user-id",
+        "name": "康复用户",
+        "role": "patient",
+        "phone": "+155****0000",
+        "phone_verified": true,
+        "phone_verified_at": "2026-07-06T08:21:15.702077",
+        "affected_side": "left",
+        "rehab_stage": "early_active",
+        "medical_constraints": [],
+        "pain_baseline": 2.0,
+        "created_at": "2026-07-03T13:41:38",
+        "updated_at": "2026-07-06T08:21:15",
+        "control_boundary": "profile_data_only_not_medical_diagnosis"
+      },
+      "patient_view": {
+        "home": {
+          "greeting": "康复用户，今天按步骤来",
+          "summary": "先完成一个明确动作，再进入训练。",
+          "primary_action": {
+            "label": "查看康复师建议",
+            "title": "查看康复师建议",
+            "description": "先确认建议内容，再保存为今天的训练计划。",
+            "route": "ai-plan.html"
+          },
+          "facts": [
+            {
+              "label": "账号",
+              "value": "手机号已验证",
+              "tone": "ready"
+            },
+            {
+              "label": "设备",
+              "value": "已绑定设备",
+              "tone": "ready"
+            },
+            {
+              "label": "最近记录",
+              "value": "暂无训练报告",
+              "tone": "neutral"
+            }
+          ],
+          "ask_therapist": {
+            "label": "问康复师",
+            "route": "ai-plan.html"
+          }
+        },
+        "profile": {
+          "title": "我的康复档案",
+          "display_name": "康复用户",
+          "phone": {
+            "label": "手机号",
+            "value": "+155****0000",
+            "verified": true,
+            "status_text": "手机号已验证",
+            "action_label": "更换手机号"
+          },
+          "rehab_stage": {
+            "label": "康复阶段",
+            "value": "主动训练早期"
+          },
+          "affected_side": {
+            "label": "患侧",
+            "value": "左侧"
+          },
+          "medical_constraints": {
+            "status": "待完善",
+            "items": [],
+            "empty_text": "还没有填写禁忌备注，训练前请按医生或康复师建议补充。",
+            "action_label": "编辑禁忌备注"
+          }
+        },
+        "device": {
+          "title": "设备管家",
+          "status": "已绑定设备",
+          "primary_action": {
+            "label": "查看设备",
+            "route": "device.html"
+          },
+          "readiness_rows": [
+            {
+              "label": "云端账号",
+              "value": "已连接",
+              "tone": "ready"
+            },
+            {
+              "label": "蓝牙设备",
+              "value": "已绑定",
+              "tone": "ready"
+            },
+            {
+              "label": "安全确认",
+              "value": "训练前确认",
+              "tone": "neutral"
+            }
+          ],
+          "binding_steps": [
+            "打开康复设备电源",
+            "手机靠近设备",
+            "选择蓝牙设备或扫码绑定",
+            "等待设备安全系统确认"
+          ],
+          "debug_entry_label": "开发者调试"
+        },
+        "agent": {
+          "title": "康复师助手",
+          "entry_label": "问康复师",
+          "placeholder": "今天哪里不舒服？想问什么？",
+          "quick_questions": [
+            "今天还能训练吗？",
+            "手臂酸痛怎么办？",
+            "帮我解释报告",
+            "生成轻量训练建议"
+          ],
+          "endpoint": "/api/rehab-arm/app/v1/agent/messages",
+          "unsafe_copy": "为了保护你，我不能绕过设备安全系统或发送直接运动指令。可以帮你调整训练建议或解释报告。",
+          "boundary": "我可以解释训练和报告，但不能直接控制设备。"
+        }
+      },
+      "devices": [
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "m33_device_id": "fixture-m33-device-id",
+          "ble_name": "LingDong Conflict Owner",
+          "firmware_version": "qa-conflict-owner",
+          "trust_status": "trusted",
+          "platform_project_id": "fixture-platform-project-id",
+          "bound_at": "2026-07-06T06:08:04",
+          "last_seen_at": null,
+          "latest_sync": null,
+          "control_boundary": "device_binding_only_not_motion_permission"
+        },
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "m33_device_id": "fixture-m33-device-id",
+          "ble_name": "LingDong Rehab QA Verified",
+          "firmware_version": "qa-smoke-2",
+          "trust_status": "trusted",
+          "platform_project_id": "fixture-platform-project-id",
+          "bound_at": "2026-07-06T03:55:08",
+          "last_seen_at": null,
+          "latest_sync": null,
+          "control_boundary": "device_binding_only_not_motion_permission"
+        }
+      ],
+      "training_plans": [
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "title": "轻量肘屈曲训练（疼痛2级/中度疲劳）",
+          "source": "ai_generated",
+          "goal": "维持关节活动度，避免疲劳加重，支持神经肌肉再教育",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 2,
+          "reps": 6,
+          "duration_sec": 480,
+          "target_angle_range": {
+            "min_deg": 15,
+            "max_deg": 60
+          },
+          "speed_level": "slow",
+          "assist_level": 0.2,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.72
+          },
+          "safety_constraints": {
+            "require_fresh_m33_heartbeat": true,
+            "stop_on_pain_report": true,
+            "max_continuous_active_time_sec": 300,
+            "pause_between_sets_sec": 90,
+            "movement_catalog_version": "rehab_app_catalog_v1"
+          },
+          "status": "draft",
+          "version": 1,
+          "created_at": "2026-07-04T18:05:54",
+          "updated_at": "2026-07-04T18:05:54",
+          "control_boundary": "training_plan_only_not_motor_command"
+        },
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "title": "轻量肘屈曲训练（疼痛2级/中度疲劳）",
+          "source": "ai_generated",
+          "goal": "维持关节活动度与神经肌肉激活，避免加重疲劳与疼痛",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 2,
+          "reps": 4,
+          "duration_sec": 360,
+          "target_angle_range": {
+            "min_deg": 10,
+            "max_deg": 50
+          },
+          "speed_level": "slow",
+          "assist_level": 0.25,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.72
+          },
+          "safety_constraints": {
+            "require_fresh_m33_heartbeat": true,
+            "stop_on_pain_report": true,
+            "max_continuous_duration_sec": 480,
+            "movement_catalog_version": "rehab_app_catalog_v1"
+          },
+          "status": "draft",
+          "version": 1,
+          "created_at": "2026-07-04T14:10:47",
+          "updated_at": "2026-07-04T14:10:47",
+          "control_boundary": "training_plan_only_not_motor_command"
+        },
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "title": "AI 建议低强度训练",
+          "source": "ai_generated",
+          "goal": "今天有点酸",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 2,
+          "reps": 6,
+          "duration_sec": 480,
+          "target_angle_range": {
+            "min_deg": 15,
+            "max_deg": 60
+          },
+          "speed_level": "slow",
+          "assist_level": 0.2,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.72
+          },
+          "safety_constraints": {
+            "require_fresh_m33_heartbeat": true,
+            "stop_on_pain_report": true
+          },
+          "status": "draft",
+          "version": 1,
+          "created_at": "2026-07-04T13:18:54",
+          "updated_at": "2026-07-04T13:18:54",
+          "control_boundary": "training_plan_only_not_motor_command"
+        },
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "title": "疼痛缓解期安全屈肘训练（低负荷）",
+          "source": "ai_generated",
+          "goal": "在无痛前提下维持关节活动度，避免诱发或加重屈肘后疼痛（昨日3分）",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 2,
+          "reps": 3,
+          "duration_sec": 360,
+          "target_angle_range": {
+            "min_deg": 10,
+            "max_deg": 35
+          },
+          "speed_level": "very_slow",
+          "assist_level": 0.25,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.75
+          },
+          "safety_constraints": {
+            "require_fresh_m33_heartbeat": true,
+            "stop_on_pain_report": true,
+            "pause_on_emg_uncertainty": true,
+            "movement_catalog_version": "rehab_app_catalog_v1"
+          },
+          "status": "draft",
+          "version": 1,
+          "created_at": "2026-07-04T10:34:51",
+          "updated_at": "2026-07-04T10:34:51",
+          "control_boundary": "training_plan_only_not_motor_command"
+        },
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "title": "疼痛缓解导向的屈肘安全训练",
+          "source": "ai_generated",
+          "goal": "在避免诱发疼痛前提下维持关节活动度，响应用户昨日屈肘后疼痛3分的反馈",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 2,
+          "reps": 4,
+          "duration_sec": 360,
+          "target_angle_range": {
+            "min_deg": 10,
+            "max_deg": 45
+          },
+          "speed_level": "very_slow",
+          "assist_level": 0.3,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.75
+          },
+          "safety_constraints": {
+            "require_fresh_m33_heartbeat": true,
+            "stop_on_pain_report": true,
+            "pause_on_emg_drop_below_threshold": true,
+            "movement_catalog_version": "rehab_app_catalog_v1"
+          },
+          "status": "draft",
+          "version": 1,
+          "created_at": "2026-07-04T10:29:43",
+          "updated_at": "2026-07-04T10:29:43",
+          "control_boundary": "training_plan_only_not_motor_command"
+        },
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "title": "疼痛缓解期安全屈肘训练",
+          "source": "ai_generated",
+          "goal": "在避免诱发疼痛前提下维持关节活动度与神经肌肉激活，响应用户昨日屈肘后疼痛3分的反馈",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 1,
+          "reps": 3,
+          "duration_sec": 360,
+          "target_angle_range": {
+            "min_deg": 10,
+            "max_deg": 35
+          },
+          "speed_level": "very_slow",
+          "assist_level": 0.25,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.75
+          },
+          "safety_constraints": {
+            "require_fresh_m33_heartbeat": true,
+            "stop_on_pain_report": true,
+            "pause_on_emg_drop_below_threshold": true,
+            "movement_catalog_version": "rehab_app_catalog_v1"
+          },
+          "status": "draft",
+          "version": 1,
+          "created_at": "2026-07-04T10:25:22",
+          "updated_at": "2026-07-04T10:25:22",
+          "control_boundary": "training_plan_only_not_motor_command"
+        },
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "title": "疼痛缓解期：超低负荷屈肘训练",
+          "source": "ai_generated",
+          "goal": "在避免诱发疼痛前提下维持关节活动度与神经肌肉激活，响应昨日3分疼痛反馈",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 2,
+          "reps": 4,
+          "duration_sec": 360,
+          "target_angle_range": {
+            "min_deg": 10,
+            "max_deg": 45
+          },
+          "speed_level": "ultra_slow",
+          "assist_level": 0.35,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.65,
+            "suppress_if_emg_spike": true
+          },
+          "safety_constraints": {
+            "require_fresh_m33_heartbeat": true,
+            "stop_on_pain_report": true,
+            "angle_limit_enforcement": "hard",
+            "max_continuous_active_time_sec": 180,
+            "movement_catalog_version": "rehab_app_catalog_v1"
+          },
+          "status": "draft",
+          "version": 1,
+          "created_at": "2026-07-04T10:23:38",
+          "updated_at": "2026-07-04T10:23:38",
+          "control_boundary": "training_plan_only_not_motor_command"
+        },
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "title": "疼痛缓解导向低强度屈肘训练",
+          "source": "ai_generated",
+          "goal": "在确保无痛前提下维持关节活动度，降低昨日屈肘后3分疼痛复发风险",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 2,
+          "reps": 4,
+          "duration_sec": 360,
+          "target_angle_range": {
+            "min_deg": 10,
+            "max_deg": 45
+          },
+          "speed_level": "very_slow",
+          "assist_level": 0.35,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.75,
+            "suppress_if_triceps_activation_above": 0.4
+          },
+          "safety_constraints": {
+            "stop_on_pain_report": true,
+            "require_fresh_m33_heartbeat": true,
+            "pause_if_emg_biceps_drop_below": 0.45,
+            "movement_catalog_version": "rehab_app_catalog_v1"
+          },
+          "status": "draft",
+          "version": 1,
+          "created_at": "2026-07-04T10:14:31",
+          "updated_at": "2026-07-04T10:14:31",
+          "control_boundary": "training_plan_only_not_motor_command"
+        },
+        {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "title": "AI 建议低强度训练",
+          "source": "ai_generated",
+          "goal": "以用户视角测试：今天屈肘训练后有点酸，下一次请更安全一点",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 2,
+          "reps": 6,
+          "duration_sec": 480,
+          "target_angle_range": {
+            "min_deg": 15,
+            "max_deg": 60
+          },
+          "speed_level": "slow",
+          "assist_level": 0.2,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.72
+          },
+          "safety_constraints": {
+            "require_fresh_m33_heartbeat": true,
+            "stop_on_pain_report": true
+          },
+          "status": "draft",
+          "version": 1,
+          "created_at": "2026-07-04T10:11:37",
+          "updated_at": "2026-07-04T10:11:37",
+          "control_boundary": "training_plan_only_not_motor_command"
+        }
+      ],
+      "onboarding_guide": {
+        "status": "complete",
+        "next_step": null,
+        "steps": [
+          {
+            "code": "PHONE_ACCOUNT_BINDING_REQUIRED",
+            "status": "done",
+            "title": "绑定手机号",
+            "description": "用服务器验证码确认当前账号归属，后续设备绑定、训练记录和康复师 Agent 都会关联到这个个人账号。",
+            "endpoint": "/api/rehab-arm/app/v1/account/phone-verifications",
+            "method": "POST",
+            "payload_hint": {
+              "phone": "+155****0000",
+              "purpose": "bind_account",
+              "confirm_endpoint": "/api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm"
+            }
+          },
+          {
+            "code": "PROFILE_REQUIRED",
+            "status": "done",
+            "title": "完善康复档案",
+            "description": "记录患侧、康复阶段、疼痛基线和禁忌项，后续计划约束和疼痛门禁会引用这些信息。",
+            "endpoint": "/api/rehab-arm/app/v1/me/profile",
+            "method": "PATCH",
+            "payload_hint": {
+              "affected_side": "left_or_right",
+              "rehab_stage": "required",
+              "pain_baseline": "0_to_10",
+              "medical_constraints": []
+            }
+          },
+          {
+            "code": "TRUSTED_DEVICE_REQUIRED",
+            "status": "done",
+            "title": "绑定可信康复设备",
+            "description": "绑定康复设备蓝牙身份用于计划同步、设备安全审核记录和诊断读取；解绑冻结的设备不能训练。",
+            "endpoint": "/api/rehab-arm/app/v1/devices/bind",
+            "method": "POST",
+            "payload_hint": {
+              "m33_device_id": "fixture-m33-device-id",
+              "ble_name": "optional",
+              "trust_status": "trusted"
+            }
+          },
+          {
+            "code": "TRAINING_PLAN_REQUIRED",
+            "status": "done",
+            "title": "创建或接受训练计划",
+            "description": "创建治疗师计划，或从 AI 草稿接受为普通训练计划。计划仍需同步并由 设备安全审核通过后才能进入 训练前检查。",
+            "endpoint": "/api/rehab-arm/app/v1/training-plans",
+            "method": "POST",
+            "payload_hint": {
+              "title": "required",
+              "movement_type": "required",
+              "sets": "required",
+              "reps": "required",
+              "status": "active"
+            }
+          }
+        ],
+        "actions": [],
+        "control_boundary": "app_onboarding_guide_evidence_only_not_motion_permission"
+      },
+      "active_session": null,
+      "primary_start_guide": {
+        "plan_id": "fixture-plan-id",
+        "device_id": "fixture-device-id",
+        "can_start": false,
+        "readiness": {
+          "plan_id": "fixture-plan-id",
+          "device_id": "fixture-device-id",
+          "status": "blocked",
+          "can_start": false,
+          "checks": [
+            {
+              "name": "plan_usable",
+              "status": "passed",
+              "code": "",
+              "detail": {
+                "plan_status": "draft"
+              }
+            },
+            {
+              "name": "device_trusted",
+              "status": "passed",
+              "code": "",
+              "detail": {
+                "trust_status": "trusted"
+              }
+            },
+            {
+              "name": "profile_constraints",
+              "status": "passed",
+              "code": "",
+              "detail": {
+                "review_id": "fixture-review-id"
+              }
+            },
+            {
+              "name": "device_session_available",
+              "status": "passed",
+              "code": "",
+              "detail": {}
+            },
+            {
+              "name": "设备安全系统_acceptance",
+              "status": "blocked",
+              "code": "设备安全系统_ACCEPTANCE_REQUIRED",
+              "detail": {
+                "sync_id": "fixture-sync-id",
+                "sync_status": "missing",
+                "accepted_plan_version": null,
+                "required_plan_version": 1
+              }
+            },
+            {
+              "name": "训练前检查",
+              "status": "waiting",
+              "code": "设备安全系统_ACCEPTANCE_REQUIRED",
+              "detail": {}
+            },
+            {
+              "name": "safety_review",
+              "status": "passed",
+              "code": "",
+              "detail": {}
+            }
+          ],
+          "control_boundary": "training_readiness_evidence_only_not_motion_permission"
+        },
+        "next_action": {
+          "code": "设备安全系统_ACCEPTANCE_REQUIRED",
+          "actor": "设备安全系统_or_patient",
+          "title": "同步计划并等待 设备安全审核通过",
+          "description": "当前计划版本还没有 设备安全系统 已通过 证据。请同步当前版本，等待 康复设备固件侧审核并回传接受状态。",
+          "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}/sync-to-device",
+          "method": "POST",
+          "payload_hint": {
+            "device_id": "fixture-device-id"
+          }
+        },
+        "steps": [
+          {
+            "check": "plan_usable",
+            "status": "done",
+            "code": "",
+            "action": {}
+          },
+          {
+            "check": "device_trusted",
+            "status": "done",
+            "code": "",
+            "action": {}
+          },
+          {
+            "check": "profile_constraints",
+            "status": "done",
+            "code": "",
+            "action": {}
+          },
+          {
+            "check": "device_session_available",
+            "status": "done",
+            "code": "",
+            "action": {}
+          },
+          {
+            "check": "设备安全系统_acceptance",
+            "status": "todo",
+            "code": "设备安全系统_ACCEPTANCE_REQUIRED",
+            "action": {
+              "code": "设备安全系统_ACCEPTANCE_REQUIRED",
+              "actor": "设备安全系统_or_patient",
+              "title": "同步计划并等待 设备安全审核通过",
+              "description": "当前计划版本还没有 设备安全系统 已通过 证据。请同步当前版本，等待 康复设备固件侧审核并回传接受状态。",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}/sync-to-device",
+              "method": "POST",
+              "payload_hint": {
+                "device_id": "fixture-device-id"
+              }
+            }
+          },
+          {
+            "check": "训练前检查",
+            "status": "waiting",
+            "code": "设备安全系统_ACCEPTANCE_REQUIRED",
+            "action": {
+              "code": "设备安全系统_ACCEPTANCE_REQUIRED",
+              "actor": "设备安全系统_or_patient",
+              "title": "同步计划并等待 设备安全审核通过",
+              "description": "当前计划版本还没有 设备安全系统 已通过 证据。请同步当前版本，等待 康复设备固件侧审核并回传接受状态。",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}/sync-to-device",
+              "method": "POST",
+              "payload_hint": {
+                "device_id": "fixture-device-id"
+              }
+            }
+          },
+          {
+            "check": "safety_review",
+            "status": "done",
+            "code": "",
+            "action": {}
+          }
+        ],
+        "actions": [
+          {
+            "code": "VIEW_START_GUIDE",
+            "actor": "patient_or_therapist",
+            "title": "查看训练开始指引",
+            "description": "查看当前计划、设备、设备安全系统、训练前检查 和安全复核的完整开始条件。",
+            "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}/start-guide",
+            "method": "GET",
+            "payload_hint": {
+              "device_id": "fixture-device-id"
+            }
+          },
+          {
+            "code": "CHECK_START_READINESS",
+            "actor": "patient_or_therapist",
+            "title": "检查训练开始条件",
+            "description": "读取当前计划和设备是否满足 App 记录开始条件。结果仍然不是硬件运动许可。",
+            "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}/readiness",
+            "method": "GET",
+            "payload_hint": {
+              "device_id": "fixture-device-id"
+            }
+          },
+          {
+            "code": "设备安全系统_ACCEPTANCE_REQUIRED",
+            "actor": "设备安全系统_or_patient",
+            "title": "同步计划并等待 设备安全审核通过",
+            "description": "当前计划版本还没有 设备安全系统 已通过 证据。请同步当前版本，等待 康复设备固件侧审核并回传接受状态。",
+            "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}/sync-to-device",
+            "method": "POST",
+            "payload_hint": {
+              "device_id": "fixture-device-id"
+            }
+          }
+        ],
+        "control_boundary": "training_start_guide_evidence_only_not_motion_permission"
+      },
+      "daily_action_guide": {
+        "status": "action_required",
+        "next_action": {
+          "code": "REVIEW_AI_DRAFT",
+          "priority": 20,
+          "title": "审核 AI 训练草稿",
+          "description": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+          "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+          "method": "GET",
+          "payload_hint": {},
+          "source": {
+            "draft_id": "fixture-draft-id",
+            "guide": "ai_draft_review_guide"
+          }
+        },
+        "control_boundary": "app_daily_action_guide_evidence_only_not_motion_permission"
+      },
+      "home_status_guide": {
+        "status": "action_required",
+        "tone": "info",
+        "headline": "审核 AI 训练草稿",
+        "body": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+        "primary_action": {
+          "code": "REVIEW_AI_DRAFT",
+          "priority": 20,
+          "title": "审核 AI 训练草稿",
+          "description": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+          "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+          "method": "GET",
+          "payload_hint": {},
+          "source": {
+            "draft_id": "fixture-draft-id",
+            "guide": "ai_draft_review_guide"
+          }
+        },
+        "secondary_actions": [
+          {
+            "code": "ACCEPT_AI_DRAFT",
+            "label": "接受为训练计划",
+            "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}/accept",
+            "method": "POST",
+            "payload_hint": {
+              "draft_id": "fixture-draft-id"
+            }
+          }
+        ],
+        "action_groups": {
+          "primary": [
+            {
+              "code": "REVIEW_AI_DRAFT",
+              "priority": 20,
+              "title": "审核 AI 训练草稿",
+              "description": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+              "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {},
+              "source": {
+                "draft_id": "fixture-draft-id",
+                "guide": "ai_draft_review_guide"
+              }
+            }
+          ],
+          "secondary": [
+            {
+              "code": "ACCEPT_AI_DRAFT",
+              "label": "接受为训练计划",
+              "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}/accept",
+              "method": "POST",
+              "payload_hint": {
+                "draft_id": "fixture-draft-id"
+              }
+            }
+          ],
+          "blocker_related": [
+            {
+              "blocker_code": "ai_draft_open",
+              "blocker_title": "审核 AI 训练草稿",
+              "severity": "info",
+              "actions": [
+                {
+                  "code": "REVIEW_AI_DRAFT",
+                  "priority": 20,
+                  "title": "审核 AI 训练草稿",
+                  "description": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+                  "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+                  "method": "GET",
+                  "payload_hint": {},
+                  "source": {
+                    "draft_id": "fixture-draft-id",
+                    "guide": "ai_draft_review_guide"
+                  }
+                },
+                {
+                  "code": "ACCEPT_AI_DRAFT",
+                  "label": "接受为训练计划",
+                  "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}/accept",
+                  "method": "POST",
+                  "payload_hint": {
+                    "draft_id": "fixture-draft-id"
+                  }
+                }
+              ]
+            }
+          ]
+        },
+        "blockers": [
+          "ai_draft_open",
+          "start_readiness_blocked"
+        ],
+        "blocker_details": [
+          {
+            "code": "ai_draft_open",
+            "severity": "info",
+            "title": "审核 AI 训练草稿",
+            "description": "存在未接受的 AI 草稿；接受后仍需 设备同步和 训练前检查。",
+            "clear_condition": "查看 AI 草稿并接受为普通训练计划，或后续补充删除/替换流程；接受不等于运动授权。",
+            "related_action_codes": [
+              "REVIEW_AI_DRAFT",
+              "VIEW_AI_DRAFT",
+              "ACCEPT_AI_DRAFT"
+            ]
+          },
+          {
+            "code": "start_readiness_blocked",
+            "severity": "warning",
+            "title": "完成训练开始条件",
+            "description": "基础设置已完成，但当前计划/设备仍需完成 设备安全审核通过、训练前检查、安全复核或其它开始条件。",
+            "clear_condition": "按 start guide 完成当前 readiness 步骤，并让训练开始检查返回 can_start=true；设备安全系统 仍是最终安全裁决。",
+            "related_action_codes": [
+              "VIEW_START_GUIDE",
+              "CHECK_START_READINESS",
+              "设备安全系统_ACCEPTANCE_REQUIRED"
+            ]
+          }
+        ],
+        "primary_blocker": {
+          "code": "ai_draft_open",
+          "severity": "info",
+          "title": "审核 AI 训练草稿",
+          "description": "存在未接受的 AI 草稿；接受后仍需 设备同步和 训练前检查。",
+          "clear_condition": "查看 AI 草稿并接受为普通训练计划，或后续补充删除/替换流程；接受不等于运动授权。",
+          "related_action_codes": [
+            "REVIEW_AI_DRAFT",
+            "VIEW_AI_DRAFT",
+            "ACCEPT_AI_DRAFT"
+          ]
+        },
+        "counts": {
+          "active_sessions": 0,
+          "finished_sessions": 0,
+          "cancelled_sessions": 0,
+          "reports": 0,
+          "reports_pending_review": 0,
+          "finished_sessions_pending_report": 0,
+          "safety_reviews_pending": 0,
+          "ai_drafts_open": 3,
+          "offline_items_queued": 0,
+          "offline_items_failed": 0
+        },
+        "progress": {
+          "stage": "resolve_blockers",
+          "stage_title": "先处理阻塞事项",
+          "stage_description": "当前还有安全、离线、报告、AI 草稿或开始条件阻塞，请先处理主阻塞。",
+          "stage_tone": "warning",
+          "done": 6,
+          "total": 8,
+          "remaining": 2,
+          "completion_percent": 75,
+          "completion_label": "已完成 6/8 项",
+          "remaining_label": "还剩 2 项",
+          "next_item": {
+            "code": "ai_drafts_clear",
+            "title": "AI 草稿",
+            "description": "没有待审核的 AI 训练草稿。",
+            "done": false,
+            "related_blocker_codes": [
+              "ai_draft_open"
+            ],
+            "related_action_codes": [
+              "REVIEW_AI_DRAFT",
+              "ACCEPT_AI_DRAFT"
+            ],
+            "position": 6,
+            "position_label": "第 6/8 项",
+            "status": "current",
+            "status_label": "当前处理",
+            "tone": "info"
+          },
+          "next_item_position": 6,
+          "next_item_label": "第 6/8 项",
+          "next_item_actions": [
+            {
+              "code": "REVIEW_AI_DRAFT",
+              "priority": 20,
+              "title": "审核 AI 训练草稿",
+              "description": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+              "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {},
+              "source": {
+                "draft_id": "fixture-draft-id",
+                "guide": "ai_draft_review_guide"
+              }
+            },
+            {
+              "code": "ACCEPT_AI_DRAFT",
+              "label": "接受为训练计划",
+              "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}/accept",
+              "method": "POST",
+              "payload_hint": {
+                "draft_id": "fixture-draft-id"
+              }
+            }
+          ],
+          "next_item_blockers": [
+            {
+              "code": "ai_draft_open",
+              "severity": "info",
+              "title": "审核 AI 训练草稿",
+              "description": "存在未接受的 AI 草稿；接受后仍需 设备同步和 训练前检查。",
+              "clear_condition": "查看 AI 草稿并接受为普通训练计划，或后续补充删除/替换流程；接受不等于运动授权。",
+              "related_action_codes": [
+                "REVIEW_AI_DRAFT",
+                "VIEW_AI_DRAFT",
+                "ACCEPT_AI_DRAFT"
+              ]
+            }
+          ],
+          "next_item_context": {
+            "item": {
+              "code": "ai_drafts_clear",
+              "title": "AI 草稿",
+              "description": "没有待审核的 AI 训练草稿。",
+              "done": false,
+              "related_blocker_codes": [
+                "ai_draft_open"
+              ],
+              "related_action_codes": [
+                "REVIEW_AI_DRAFT",
+                "ACCEPT_AI_DRAFT"
+              ],
+              "position": 6,
+              "position_label": "第 6/8 项",
+              "status": "current",
+              "status_label": "当前处理",
+              "tone": "info"
+            },
+            "display": {
+              "title": "AI 草稿",
+              "description": "存在未接受的 AI 草稿；接受后仍需 设备同步和 训练前检查。",
+              "tone": "info",
+              "severity": "info",
+              "clear_condition": "查看 AI 草稿并接受为普通训练计划，或后续补充删除/替换流程；接受不等于运动授权。"
+            },
+            "primary_action": {
+              "code": "REVIEW_AI_DRAFT",
+              "priority": 20,
+              "title": "审核 AI 训练草稿",
+              "description": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+              "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {},
+              "source": {
+                "draft_id": "fixture-draft-id",
+                "guide": "ai_draft_review_guide"
+              }
+            },
+            "secondary_actions": [
+              {
+                "code": "ACCEPT_AI_DRAFT",
+                "label": "接受为训练计划",
+                "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}/accept",
+                "method": "POST",
+                "payload_hint": {
+                  "draft_id": "fixture-draft-id"
+                }
+              }
+            ],
+            "actions": [
+              {
+                "code": "REVIEW_AI_DRAFT",
+                "priority": 20,
+                "title": "审核 AI 训练草稿",
+                "description": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+                "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+                "method": "GET",
+                "payload_hint": {},
+                "source": {
+                  "draft_id": "fixture-draft-id",
+                  "guide": "ai_draft_review_guide"
+                }
+              },
+              {
+                "code": "ACCEPT_AI_DRAFT",
+                "label": "接受为训练计划",
+                "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}/accept",
+                "method": "POST",
+                "payload_hint": {
+                  "draft_id": "fixture-draft-id"
+                }
+              }
+            ],
+            "blockers": [
+              {
+                "code": "ai_draft_open",
+                "severity": "info",
+                "title": "审核 AI 训练草稿",
+                "description": "存在未接受的 AI 草稿；接受后仍需 设备同步和 训练前检查。",
+                "clear_condition": "查看 AI 草稿并接受为普通训练计划，或后续补充删除/替换流程；接受不等于运动授权。",
+                "related_action_codes": [
+                  "REVIEW_AI_DRAFT",
+                  "VIEW_AI_DRAFT",
+                  "ACCEPT_AI_DRAFT"
+                ]
+              }
+            ],
+            "action_count": 2,
+            "blocker_count": 1,
+            "control_boundary": "app_home_progress_context_evidence_only_not_motion_permission"
+          },
+          "items": [
+            {
+              "code": "onboarding",
+              "title": "首次设置",
+              "description": "康复档案、可信康复设备和可用训练计划已准备好。",
+              "done": true,
+              "related_blocker_codes": [
+                "onboarding_incomplete"
+              ],
+              "related_action_codes": [
+                "PROFILE_REQUIRED",
+                "TRUSTED_DEVICE_REQUIRED",
+                "TRAINING_PLAN_REQUIRED"
+              ],
+              "position": 1,
+              "position_label": "第 1/8 项",
+              "status": "done",
+              "status_label": "已完成",
+              "tone": "success"
+            },
+            {
+              "code": "active_session_clear",
+              "title": "未结束训练",
+              "description": "没有 started、in_progress 或 paused 训练占用设备。",
+              "done": true,
+              "related_blocker_codes": [
+                "active_session"
+              ],
+              "related_action_codes": [
+                "RECOVER_ACTIVE_SESSION",
+                "FINISH_SESSION",
+                "RESUME_SESSION",
+                "CANCEL_SESSION"
+              ],
+              "position": 2,
+              "position_label": "第 2/8 项",
+              "status": "done",
+              "status_label": "已完成",
+              "tone": "success"
+            },
+            {
+              "code": "safety_review_clear",
+              "title": "安全复核",
+              "description": "没有未复核的 严重 安全事件阻塞训练。",
+              "done": true,
+              "related_blocker_codes": [
+                "safety_review_required"
+              ],
+              "related_action_codes": [
+                "REVIEW_BLOCKING_SAFETY_EVENT",
+                "RECORD_SAFETY_REVIEW"
+              ],
+              "position": 3,
+              "position_label": "第 3/8 项",
+              "status": "done",
+              "status_label": "已完成",
+              "tone": "success"
+            },
+            {
+              "code": "finished_report_clear",
+              "title": "训练报告",
+              "description": "最近完成的训练已经生成报告。",
+              "done": true,
+              "related_blocker_codes": [
+                "finished_report_required"
+              ],
+              "related_action_codes": [
+                "GENERATE_TRAINING_REPORT"
+              ],
+              "position": 4,
+              "position_label": "第 4/8 项",
+              "status": "done",
+              "status_label": "已完成",
+              "tone": "success"
+            },
+            {
+              "code": "report_review_clear",
+              "title": "报告复盘",
+              "description": "训练报告已经记录患者或治疗师复盘。",
+              "done": true,
+              "related_blocker_codes": [
+                "report_review_required"
+              ],
+              "related_action_codes": [
+                "REVIEW_LATEST_REPORT",
+                "RECORD_REPORT_REVIEW"
+              ],
+              "position": 5,
+              "position_label": "第 5/8 项",
+              "status": "done",
+              "status_label": "已完成",
+              "tone": "success"
+            },
+            {
+              "code": "ai_drafts_clear",
+              "title": "AI 草稿",
+              "description": "没有待审核的 AI 训练草稿。",
+              "done": false,
+              "related_blocker_codes": [
+                "ai_draft_open"
+              ],
+              "related_action_codes": [
+                "REVIEW_AI_DRAFT",
+                "ACCEPT_AI_DRAFT"
+              ],
+              "position": 6,
+              "position_label": "第 6/8 项",
+              "status": "current",
+              "status_label": "当前处理",
+              "tone": "info"
+            },
+            {
+              "code": "offline_clear",
+              "title": "离线证据",
+              "description": "没有 待同步 或 同步失败 的离线证据等待同步或复核。",
+              "done": true,
+              "related_blocker_codes": [
+                "offline_queue_pending",
+                "offline_queue_同步失败"
+              ],
+              "related_action_codes": [
+                "REPLAY_OFFLINE_EVIDENCE",
+                "VIEW_OFFLINE_QUEUE",
+                "REVIEW_FAILED_OFFLINE_ITEM"
+              ],
+              "position": 7,
+              "position_label": "第 7/8 项",
+              "status": "done",
+              "status_label": "已完成",
+              "tone": "success"
+            },
+            {
+              "code": "start_ready",
+              "title": "开始条件",
+              "description": "当前计划、设备、设备安全审核通过、训练前检查 和安全检查满足开始记录条件。",
+              "done": false,
+              "related_blocker_codes": [
+                "start_readiness_blocked"
+              ],
+              "related_action_codes": [
+                "VIEW_START_GUIDE",
+                "CHECK_START_READINESS",
+                "设备安全系统_ACCEPTANCE_REQUIRED"
+              ],
+              "position": 8,
+              "position_label": "第 8/8 项",
+              "status": "pending",
+              "status_label": "待处理",
+              "tone": "warning"
+            }
+          ]
+        },
+        "safety_note": "本卡片只提供手机端证据和流程引导，不授予硬件运动权限；真实运动仍由 设备安全系统 最终裁决。",
+        "control_boundary": "app_home_status_guide_evidence_only_not_motion_permission"
+      },
+      "daily_care_plan": {
+        "schema_version": "rehab_app_daily_care_plan_v1",
+        "status": "attention_required",
+        "stage": "resolve_blockers",
+        "stage_title": "先处理阻塞事项",
+        "stage_description": "当前还有安全、离线、报告、AI 草稿或开始条件阻塞，请先处理主阻塞。",
+        "stage_tone": "warning",
+        "headline": "审核 AI 训练草稿",
+        "body": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+        "next_action": {
+          "code": "REVIEW_AI_DRAFT",
+          "priority": 20,
+          "title": "审核 AI 训练草稿",
+          "description": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+          "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+          "method": "GET",
+          "payload_hint": {},
+          "source": {
+            "draft_id": "fixture-draft-id",
+            "guide": "ai_draft_review_guide"
+          }
+        },
+        "primary_task": {
+          "code": "ai_drafts_clear",
+          "title": "AI 草稿",
+          "description": "没有待审核的 AI 训练草稿。",
+          "position": 6,
+          "position_label": "第 6/8 项",
+          "done": false,
+          "status": "current",
+          "status_label": "当前处理",
+          "tone": "info",
+          "related_action_codes": [
+            "ACCEPT_AI_DRAFT",
+            "REVIEW_AI_DRAFT"
+          ],
+          "related_blocker_codes": [
+            "ai_draft_open"
+          ],
+          "primary_action": {
+            "code": "REVIEW_AI_DRAFT",
+            "priority": 20,
+            "title": "审核 AI 训练草稿",
+            "description": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+            "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+            "method": "GET",
+            "payload_hint": {},
+            "source": {
+              "draft_id": "fixture-draft-id",
+              "guide": "ai_draft_review_guide"
+            }
+          },
+          "secondary_actions": [
+            {
+              "code": "ACCEPT_AI_DRAFT",
+              "label": "接受为训练计划",
+              "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}/accept",
+              "method": "POST",
+              "payload_hint": {
+                "draft_id": "fixture-draft-id"
+              }
+            }
+          ],
+          "blockers": [
+            {
+              "code": "ai_draft_open",
+              "severity": "info",
+              "title": "审核 AI 训练草稿",
+              "description": "存在未接受的 AI 草稿；接受后仍需 设备同步和 训练前检查。",
+              "clear_condition": "查看 AI 草稿并接受为普通训练计划，或后续补充删除/替换流程；接受不等于运动授权。",
+              "related_action_codes": [
+                "REVIEW_AI_DRAFT",
+                "VIEW_AI_DRAFT",
+                "ACCEPT_AI_DRAFT"
+              ]
+            }
+          ],
+          "control_boundary": "app_daily_care_plan_task_evidence_only_not_motion_permission"
+        },
+        "tasks": [
+          {
+            "code": "onboarding",
+            "title": "首次设置",
+            "description": "康复档案、可信康复设备和可用训练计划已准备好。",
+            "position": 1,
+            "position_label": "第 1/8 项",
+            "done": true,
+            "status": "done",
+            "status_label": "已完成",
+            "tone": "success",
+            "related_action_codes": [
+              "PROFILE_REQUIRED",
+              "TRAINING_PLAN_REQUIRED",
+              "TRUSTED_DEVICE_REQUIRED"
+            ],
+            "related_blocker_codes": [
+              "onboarding_incomplete"
+            ],
+            "primary_action": {},
+            "secondary_actions": [],
+            "blockers": [],
+            "control_boundary": "app_daily_care_plan_task_evidence_only_not_motion_permission"
+          },
+          {
+            "code": "active_session_clear",
+            "title": "未结束训练",
+            "description": "没有 started、in_progress 或 paused 训练占用设备。",
+            "position": 2,
+            "position_label": "第 2/8 项",
+            "done": true,
+            "status": "done",
+            "status_label": "已完成",
+            "tone": "success",
+            "related_action_codes": [
+              "CANCEL_SESSION",
+              "FINISH_SESSION",
+              "RECOVER_ACTIVE_SESSION",
+              "RESUME_SESSION"
+            ],
+            "related_blocker_codes": [
+              "active_session"
+            ],
+            "primary_action": {},
+            "secondary_actions": [],
+            "blockers": [],
+            "control_boundary": "app_daily_care_plan_task_evidence_only_not_motion_permission"
+          },
+          {
+            "code": "safety_review_clear",
+            "title": "安全复核",
+            "description": "没有未复核的 严重 安全事件阻塞训练。",
+            "position": 3,
+            "position_label": "第 3/8 项",
+            "done": true,
+            "status": "done",
+            "status_label": "已完成",
+            "tone": "success",
+            "related_action_codes": [
+              "RECORD_SAFETY_REVIEW",
+              "REVIEW_BLOCKING_SAFETY_EVENT"
+            ],
+            "related_blocker_codes": [
+              "safety_review_required"
+            ],
+            "primary_action": {},
+            "secondary_actions": [],
+            "blockers": [],
+            "control_boundary": "app_daily_care_plan_task_evidence_only_not_motion_permission"
+          },
+          {
+            "code": "finished_report_clear",
+            "title": "训练报告",
+            "description": "最近完成的训练已经生成报告。",
+            "position": 4,
+            "position_label": "第 4/8 项",
+            "done": true,
+            "status": "done",
+            "status_label": "已完成",
+            "tone": "success",
+            "related_action_codes": [
+              "GENERATE_TRAINING_REPORT"
+            ],
+            "related_blocker_codes": [
+              "finished_report_required"
+            ],
+            "primary_action": {},
+            "secondary_actions": [],
+            "blockers": [],
+            "control_boundary": "app_daily_care_plan_task_evidence_only_not_motion_permission"
+          },
+          {
+            "code": "report_review_clear",
+            "title": "报告复盘",
+            "description": "训练报告已经记录患者或治疗师复盘。",
+            "position": 5,
+            "position_label": "第 5/8 项",
+            "done": true,
+            "status": "done",
+            "status_label": "已完成",
+            "tone": "success",
+            "related_action_codes": [
+              "RECORD_REPORT_REVIEW",
+              "REVIEW_LATEST_REPORT"
+            ],
+            "related_blocker_codes": [
+              "report_review_required"
+            ],
+            "primary_action": {},
+            "secondary_actions": [],
+            "blockers": [],
+            "control_boundary": "app_daily_care_plan_task_evidence_only_not_motion_permission"
+          },
+          {
+            "code": "ai_drafts_clear",
+            "title": "AI 草稿",
+            "description": "没有待审核的 AI 训练草稿。",
+            "position": 6,
+            "position_label": "第 6/8 项",
+            "done": false,
+            "status": "current",
+            "status_label": "当前处理",
+            "tone": "info",
+            "related_action_codes": [
+              "ACCEPT_AI_DRAFT",
+              "REVIEW_AI_DRAFT"
+            ],
+            "related_blocker_codes": [
+              "ai_draft_open"
+            ],
+            "primary_action": {
+              "code": "REVIEW_AI_DRAFT",
+              "priority": 20,
+              "title": "审核 AI 训练草稿",
+              "description": "有未接受的 AI 训练草稿。接受后会成为普通训练计划，仍需 设备同步和接受。",
+              "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {},
+              "source": {
+                "draft_id": "fixture-draft-id",
+                "guide": "ai_draft_review_guide"
+              }
+            },
+            "secondary_actions": [
+              {
+                "code": "ACCEPT_AI_DRAFT",
+                "label": "接受为训练计划",
+                "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}/accept",
+                "method": "POST",
+                "payload_hint": {
+                  "draft_id": "fixture-draft-id"
+                }
+              }
+            ],
+            "blockers": [
+              {
+                "code": "ai_draft_open",
+                "severity": "info",
+                "title": "审核 AI 训练草稿",
+                "description": "存在未接受的 AI 草稿；接受后仍需 设备同步和 训练前检查。",
+                "clear_condition": "查看 AI 草稿并接受为普通训练计划，或后续补充删除/替换流程；接受不等于运动授权。",
+                "related_action_codes": [
+                  "REVIEW_AI_DRAFT",
+                  "VIEW_AI_DRAFT",
+                  "ACCEPT_AI_DRAFT"
+                ]
+              }
+            ],
+            "control_boundary": "app_daily_care_plan_task_evidence_only_not_motion_permission"
+          },
+          {
+            "code": "offline_clear",
+            "title": "离线证据",
+            "description": "没有 待同步 或 同步失败 的离线证据等待同步或复核。",
+            "position": 7,
+            "position_label": "第 7/8 项",
+            "done": true,
+            "status": "done",
+            "status_label": "已完成",
+            "tone": "success",
+            "related_action_codes": [
+              "REPLAY_OFFLINE_EVIDENCE",
+              "REVIEW_FAILED_OFFLINE_ITEM",
+              "VIEW_OFFLINE_QUEUE"
+            ],
+            "related_blocker_codes": [
+              "offline_queue_同步失败",
+              "offline_queue_pending"
+            ],
+            "primary_action": {},
+            "secondary_actions": [],
+            "blockers": [],
+            "control_boundary": "app_daily_care_plan_task_evidence_only_not_motion_permission"
+          },
+          {
+            "code": "start_ready",
+            "title": "开始条件",
+            "description": "当前计划、设备、设备安全审核通过、训练前检查 和安全检查满足开始记录条件。",
+            "position": 8,
+            "position_label": "第 8/8 项",
+            "done": false,
+            "status": "pending",
+            "status_label": "待处理",
+            "tone": "warning",
+            "related_action_codes": [
+              "CHECK_START_READINESS",
+              "设备安全系统_ACCEPTANCE_REQUIRED",
+              "VIEW_START_GUIDE"
+            ],
+            "related_blocker_codes": [
+              "start_readiness_blocked"
+            ],
+            "primary_action": {},
+            "secondary_actions": [],
+            "blockers": [],
+            "control_boundary": "app_daily_care_plan_task_evidence_only_not_motion_permission"
+          }
+        ],
+        "tasks_done": 6,
+        "tasks_total": 8,
+        "tasks_remaining": 2,
+        "completion_percent": 75,
+        "completion_label": "已完成 6/8 项",
+        "remaining_label": "还剩 2 项",
+        "blockers": [
+          {
+            "code": "ai_draft_open",
+            "severity": "info",
+            "title": "审核 AI 训练草稿",
+            "description": "存在未接受的 AI 草稿；接受后仍需 设备同步和 训练前检查。",
+            "clear_condition": "查看 AI 草稿并接受为普通训练计划，或后续补充删除/替换流程；接受不等于运动授权。",
+            "related_action_codes": [
+              "REVIEW_AI_DRAFT",
+              "VIEW_AI_DRAFT",
+              "ACCEPT_AI_DRAFT"
+            ]
+          },
+          {
+            "code": "start_readiness_blocked",
+            "severity": "warning",
+            "title": "完成训练开始条件",
+            "description": "基础设置已完成，但当前计划/设备仍需完成 设备安全审核通过、训练前检查、安全复核或其它开始条件。",
+            "clear_condition": "按 start guide 完成当前 readiness 步骤，并让训练开始检查返回 can_start=true；设备安全系统 仍是最终安全裁决。",
+            "related_action_codes": [
+              "VIEW_START_GUIDE",
+              "CHECK_START_READINESS",
+              "设备安全系统_ACCEPTANCE_REQUIRED"
+            ]
+          }
+        ],
+        "counts": {
+          "active_sessions": 0,
+          "finished_sessions": 0,
+          "cancelled_sessions": 0,
+          "reports": 0,
+          "reports_pending_review": 0,
+          "finished_sessions_pending_report": 0,
+          "safety_reviews_pending": 0,
+          "ai_drafts_open": 3,
+          "offline_items_queued": 0,
+          "offline_items_failed": 0
+        },
+        "timeline_preview": {
+          "items": [
+            {
+              "kind": "ai_training_draft",
+              "event_at": "2026-07-04T18:05:54.053295",
+              "title": "AI 训练草稿",
+              "status": "已通过",
+              "source_id": "fixture-source-id",
+              "display": {
+                "title": "AI 草稿已接受",
+                "subtitle": "草稿已转为普通训练计划；仍需 设备同步、接受和 训练前检查。",
+                "tone": "success",
+                "status_label": "已通过",
+                "summary": ""
+              },
+              "primary_action": {
+                "code": "VIEW_ACCEPTED_PLAN",
+                "label": "查看已接受计划",
+                "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+                "method": "GET",
+                "payload_hint": {
+                  "plan_id": "fixture-plan-id"
+                }
+              },
+              "related_entities": {
+                "source_id": "fixture-source-id",
+                "accepted_plan_id": "fixture-accepted-plan-id"
+              },
+              "detail": {
+                "accepted_plan_id": "fixture-accepted-plan-id",
+                "risk_notes": [
+                  "AI 只生成草稿，不代表执行许可",
+                  "必须同步到 设备安全系统 并获得 设备安全系统_已通过 后才能开始训练记录"
+                ]
+              },
+              "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+            },
+            {
+              "kind": "training_plan",
+              "event_at": "2026-07-04T18:05:54",
+              "title": "训练计划",
+              "status": "draft",
+              "source_id": "fixture-source-id",
+              "display": {
+                "title": "训练计划草稿",
+                "subtitle": "草稿需要用户或治疗师确认后再进入 设备同步。",
+                "tone": "neutral",
+                "status_label": "draft",
+                "summary": ""
+              },
+              "primary_action": {
+                "code": "VIEW_TRAINING_PLAN",
+                "label": "查看训练计划",
+                "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+                "method": "GET",
+                "payload_hint": {
+                  "plan_id": "fixture-plan-id"
+                }
+              },
+              "related_entities": {
+                "source_id": "fixture-source-id",
+                "plan_id": "fixture-plan-id"
+              },
+              "detail": {
+                "plan_id": "fixture-plan-id",
+                "movement_type": "elbow_flexion",
+                "source": "ai_generated",
+                "version": 1
+              },
+              "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+            },
+            {
+              "kind": "ai_training_draft",
+              "event_at": "2026-07-04T14:10:48.639615",
+              "title": "AI 训练草稿",
+              "status": "open",
+              "source_id": "fixture-source-id",
+              "display": {
+                "title": "AI 草稿待审核",
+                "subtitle": "AI 草稿不能直接授予运动权限。",
+                "tone": "warning",
+                "status_label": "open",
+                "summary": ""
+              },
+              "primary_action": {
+                "code": "VIEW_AI_DRAFT",
+                "label": "查看 AI 草稿",
+                "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+                "method": "GET",
+                "payload_hint": {
+                  "draft_id": "fixture-draft-id"
+                }
+              },
+              "related_entities": {
+                "source_id": "fixture-source-id"
+              },
+              "detail": {
+                "accepted_plan_id": "fixture-accepted-plan-id",
+                "risk_notes": [
+                  "AI 只生成草稿，不代表执行许可",
+                  "必须同步到 设备安全系统 并获得 设备安全系统_已通过 后才能开始训练记录"
+                ]
+              },
+              "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+            }
+          ],
+          "control_boundary": "app_care_timeline_evidence_only_not_motion_permission"
+        },
+        "safety_note": "日计划只整理后端证据和下一步服务动作，不授予硬件运动权限；真实运动仍由 设备安全系统 最终裁决。",
+        "control_boundary": "app_daily_care_plan_evidence_only_not_motion_permission"
+      },
+      "care_summary": {
+        "status": "attention_required",
+        "can_start": false,
+        "counts": {
+          "active_sessions": 0,
+          "finished_sessions": 0,
+          "cancelled_sessions": 0,
+          "reports": 0,
+          "reports_pending_review": 0,
+          "finished_sessions_pending_report": 0,
+          "safety_reviews_pending": 0,
+          "ai_drafts_open": 3,
+          "offline_items_queued": 0,
+          "offline_items_failed": 0
+        },
+        "blockers": [
+          "ai_draft_open",
+          "start_readiness_blocked"
+        ],
+        "blocker_details": [
+          {
+            "code": "ai_draft_open",
+            "severity": "info",
+            "title": "审核 AI 训练草稿",
+            "description": "存在未接受的 AI 草稿；接受后仍需 设备同步和 训练前检查。",
+            "clear_condition": "查看 AI 草稿并接受为普通训练计划，或后续补充删除/替换流程；接受不等于运动授权。",
+            "related_action_codes": [
+              "REVIEW_AI_DRAFT",
+              "VIEW_AI_DRAFT",
+              "ACCEPT_AI_DRAFT"
+            ]
+          },
+          {
+            "code": "start_readiness_blocked",
+            "severity": "warning",
+            "title": "完成训练开始条件",
+            "description": "基础设置已完成，但当前计划/设备仍需完成 设备安全审核通过、训练前检查、安全复核或其它开始条件。",
+            "clear_condition": "按 start guide 完成当前 readiness 步骤，并让训练开始检查返回 can_start=true；设备安全系统 仍是最终安全裁决。",
+            "related_action_codes": [
+              "VIEW_START_GUIDE",
+              "CHECK_START_READINESS",
+              "设备安全系统_ACCEPTANCE_REQUIRED"
+            ]
+          }
+        ],
+        "primary_blocker": {
+          "code": "ai_draft_open",
+          "severity": "info",
+          "title": "审核 AI 训练草稿",
+          "description": "存在未接受的 AI 草稿；接受后仍需 设备同步和 训练前检查。",
+          "clear_condition": "查看 AI 草稿并接受为普通训练计划，或后续补充删除/替换流程；接受不等于运动授权。",
+          "related_action_codes": [
+            "REVIEW_AI_DRAFT",
+            "VIEW_AI_DRAFT",
+            "ACCEPT_AI_DRAFT"
+          ]
+        },
+        "control_boundary": "app_care_summary_evidence_only_not_motion_permission"
+      },
+      "care_timeline": {
+        "items": [
+          {
+            "kind": "ai_training_draft",
+            "event_at": "2026-07-04T18:05:54.053295",
+            "title": "AI 训练草稿",
+            "status": "已通过",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "AI 草稿已接受",
+              "subtitle": "草稿已转为普通训练计划；仍需 设备同步、接受和 训练前检查。",
+              "tone": "success",
+              "status_label": "已通过",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_ACCEPTED_PLAN",
+              "label": "查看已接受计划",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "plan_id": "fixture-plan-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id",
+              "accepted_plan_id": "fixture-accepted-plan-id"
+            },
+            "detail": {
+              "accepted_plan_id": "fixture-accepted-plan-id",
+              "risk_notes": [
+                "AI 只生成草稿，不代表执行许可",
+                "必须同步到 设备安全系统 并获得 设备安全系统_已通过 后才能开始训练记录"
+              ]
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "training_plan",
+            "event_at": "2026-07-04T18:05:54",
+            "title": "训练计划",
+            "status": "draft",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "训练计划草稿",
+              "subtitle": "草稿需要用户或治疗师确认后再进入 设备同步。",
+              "tone": "neutral",
+              "status_label": "draft",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_TRAINING_PLAN",
+              "label": "查看训练计划",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "plan_id": "fixture-plan-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id",
+              "plan_id": "fixture-plan-id"
+            },
+            "detail": {
+              "plan_id": "fixture-plan-id",
+              "movement_type": "elbow_flexion",
+              "source": "ai_generated",
+              "version": 1
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "ai_training_draft",
+            "event_at": "2026-07-04T14:10:48.639615",
+            "title": "AI 训练草稿",
+            "status": "open",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "AI 草稿待审核",
+              "subtitle": "AI 草稿不能直接授予运动权限。",
+              "tone": "warning",
+              "status_label": "open",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_AI_DRAFT",
+              "label": "查看 AI 草稿",
+              "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "draft_id": "fixture-draft-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id"
+            },
+            "detail": {
+              "accepted_plan_id": "fixture-accepted-plan-id",
+              "risk_notes": [
+                "AI 只生成草稿，不代表执行许可",
+                "必须同步到 设备安全系统 并获得 设备安全系统_已通过 后才能开始训练记录"
+              ]
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "training_plan",
+            "event_at": "2026-07-04T14:10:47",
+            "title": "训练计划",
+            "status": "draft",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "训练计划草稿",
+              "subtitle": "草稿需要用户或治疗师确认后再进入 设备同步。",
+              "tone": "neutral",
+              "status_label": "draft",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_TRAINING_PLAN",
+              "label": "查看训练计划",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "plan_id": "fixture-plan-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id",
+              "plan_id": "fixture-plan-id"
+            },
+            "detail": {
+              "plan_id": "fixture-plan-id",
+              "movement_type": "elbow_flexion",
+              "source": "ai_generated",
+              "version": 1
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "ai_training_draft",
+            "event_at": "2026-07-04T14:07:59.918837",
+            "title": "AI 训练草稿",
+            "status": "已通过",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "AI 草稿已接受",
+              "subtitle": "草稿已转为普通训练计划；仍需 设备同步、接受和 训练前检查。",
+              "tone": "success",
+              "status_label": "已通过",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_ACCEPTED_PLAN",
+              "label": "查看已接受计划",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "plan_id": "fixture-plan-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id",
+              "accepted_plan_id": "fixture-accepted-plan-id"
+            },
+            "detail": {
+              "accepted_plan_id": "fixture-accepted-plan-id",
+              "risk_notes": [
+                "AI 只生成草稿，不代表执行许可",
+                "必须同步到 设备安全系统 并获得 设备安全系统_已通过 后才能开始训练记录"
+              ]
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "ai_training_draft",
+            "event_at": "2026-07-04T13:22:06.569754",
+            "title": "AI 训练草稿",
+            "status": "open",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "AI 草稿待审核",
+              "subtitle": "AI 草稿不能直接授予运动权限。",
+              "tone": "warning",
+              "status_label": "open",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_AI_DRAFT",
+              "label": "查看 AI 草稿",
+              "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "draft_id": "fixture-draft-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id"
+            },
+            "detail": {
+              "accepted_plan_id": "fixture-accepted-plan-id",
+              "risk_notes": [
+                "AI 只生成草稿，不代表执行许可",
+                "必须同步到 设备安全系统 并获得 设备安全系统_已通过 后才能开始训练记录"
+              ]
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "ai_training_draft",
+            "event_at": "2026-07-04T13:21:33.498933",
+            "title": "AI 训练草稿",
+            "status": "open",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "AI 草稿待审核",
+              "subtitle": "AI 草稿不能直接授予运动权限。",
+              "tone": "warning",
+              "status_label": "open",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_AI_DRAFT",
+              "label": "查看 AI 草稿",
+              "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "draft_id": "fixture-draft-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id"
+            },
+            "detail": {
+              "accepted_plan_id": "fixture-accepted-plan-id",
+              "risk_notes": [
+                "AI 只生成草稿，不代表执行许可",
+                "必须同步到 设备安全系统 并获得 设备安全系统_已通过 后才能开始训练记录"
+              ]
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "training_plan",
+            "event_at": "2026-07-04T13:18:54",
+            "title": "训练计划",
+            "status": "draft",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "训练计划草稿",
+              "subtitle": "草稿需要用户或治疗师确认后再进入 设备同步。",
+              "tone": "neutral",
+              "status_label": "draft",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_TRAINING_PLAN",
+              "label": "查看训练计划",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "plan_id": "fixture-plan-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id",
+              "plan_id": "fixture-plan-id"
+            },
+            "detail": {
+              "plan_id": "fixture-plan-id",
+              "movement_type": "elbow_flexion",
+              "source": "ai_generated",
+              "version": 1
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "training_plan",
+            "event_at": "2026-07-04T10:34:51",
+            "title": "训练计划",
+            "status": "draft",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "训练计划草稿",
+              "subtitle": "草稿需要用户或治疗师确认后再进入 设备同步。",
+              "tone": "neutral",
+              "status_label": "draft",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_TRAINING_PLAN",
+              "label": "查看训练计划",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "plan_id": "fixture-plan-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id",
+              "plan_id": "fixture-plan-id"
+            },
+            "detail": {
+              "plan_id": "fixture-plan-id",
+              "movement_type": "elbow_flexion",
+              "source": "ai_generated",
+              "version": 1
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "training_plan",
+            "event_at": "2026-07-04T10:29:43",
+            "title": "训练计划",
+            "status": "draft",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "训练计划草稿",
+              "subtitle": "草稿需要用户或治疗师确认后再进入 设备同步。",
+              "tone": "neutral",
+              "status_label": "draft",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_TRAINING_PLAN",
+              "label": "查看训练计划",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "plan_id": "fixture-plan-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id",
+              "plan_id": "fixture-plan-id"
+            },
+            "detail": {
+              "plan_id": "fixture-plan-id",
+              "movement_type": "elbow_flexion",
+              "source": "ai_generated",
+              "version": 1
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "training_plan",
+            "event_at": "2026-07-04T10:25:22",
+            "title": "训练计划",
+            "status": "draft",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "训练计划草稿",
+              "subtitle": "草稿需要用户或治疗师确认后再进入 设备同步。",
+              "tone": "neutral",
+              "status_label": "draft",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_TRAINING_PLAN",
+              "label": "查看训练计划",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "plan_id": "fixture-plan-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id",
+              "plan_id": "fixture-plan-id"
+            },
+            "detail": {
+              "plan_id": "fixture-plan-id",
+              "movement_type": "elbow_flexion",
+              "source": "ai_generated",
+              "version": 1
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          },
+          {
+            "kind": "training_plan",
+            "event_at": "2026-07-04T10:23:38",
+            "title": "训练计划",
+            "status": "draft",
+            "source_id": "fixture-source-id",
+            "display": {
+              "title": "训练计划草稿",
+              "subtitle": "草稿需要用户或治疗师确认后再进入 设备同步。",
+              "tone": "neutral",
+              "status_label": "draft",
+              "summary": ""
+            },
+            "primary_action": {
+              "code": "VIEW_TRAINING_PLAN",
+              "label": "查看训练计划",
+              "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+              "method": "GET",
+              "payload_hint": {
+                "plan_id": "fixture-plan-id"
+              }
+            },
+            "related_entities": {
+              "source_id": "fixture-source-id",
+              "plan_id": "fixture-plan-id"
+            },
+            "detail": {
+              "plan_id": "fixture-plan-id",
+              "movement_type": "elbow_flexion",
+              "source": "ai_generated",
+              "version": 1
+            },
+            "control_boundary": "app_care_timeline_item_evidence_only_not_motion_permission"
+          }
+        ],
+        "control_boundary": "app_care_timeline_evidence_only_not_motion_permission"
+      },
+      "offline_sync_guide": {
+        "status": "synced",
+        "next_action": "none",
+        "counts": {
+          "queued": 0,
+          "replayed": 0,
+          "failed": 0
+        },
+        "queued_item_ids": [],
+        "failed_item_ids": [],
+        "replay_endpoint": "/api/rehab-arm/app/v1/offline-queue/replay",
+        "replay_method": "POST",
+        "payload_hint": {
+          "item_ids": []
+        },
+        "actions": [],
+        "control_boundary": "offline_sync_guide_evidence_only_not_motion_permission"
+      },
+      "session_recovery_guide": null,
+      "finished_session_report_guide": null,
+      "ai_draft_review_guide": {
+        "status": "review_required",
+        "draft": {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "input_text": "根据当前康复档案、疼痛、疲劳和最近肌电生成下一次轻量训练草稿。",
+          "context_snapshot": {
+            "source": "app_ai_plan_page",
+            "movement_type": "elbow_flexion",
+            "pain_level": 2,
+            "fatigue_level": "moderate",
+            "latest_emg": null,
+            "current_plan": {
+              "id": "fixture-id",
+              "movement_type": "elbow_flexion",
+              "sets": 2,
+              "reps": 6,
+              "assist_level": 0.2,
+              "speed_level": "slow",
+              "target_angle_range": {
+                "min_deg": 15,
+                "max_deg": 60
+              }
+            },
+            "profile_snapshot": {
+              "rehab_stage": "cloud_partial_profile_check",
+              "affected_side": "left",
+              "medical_constraints": [
+                "cloud partial profile smoke"
+              ]
+            },
+            "control_boundary": "ai_planner_context_only_not_motion_permission",
+            "ai_planner": {
+              "schema_version": "rehab_app_ai_planner_call_v1",
+              "relay_channel": "app_training_planner",
+              "client_type": "app",
+              "purpose": "training_plan_draft",
+              "scope": "rehab_training_planning",
+              "shared_model_relay_config": true,
+              "does_not_touch_xiaozhi_l": true,
+              "provider": "qwen",
+              "model": "qwen-plus",
+              "external_enabled": true,
+              "status": "external_used",
+              "api_key_exposed_to_app": false,
+              "control_boundary": "ai_planner_call_evidence_only_not_motion_permission",
+              "risk_notes": []
+            }
+          },
+          "generated_plan": {
+            "title": "轻量肘屈曲训练（疼痛2级/中度疲劳）",
+            "source": "ai_generated",
+            "goal": "维持关节活动度与神经肌肉激活，避免加重疼痛或疲劳",
+            "target_joints": [
+              "elbow"
+            ],
+            "movement_type": "elbow_flexion",
+            "sets": 2,
+            "reps": 5,
+            "duration_sec": 420,
+            "target_angle_range": {
+              "min_deg": 10,
+              "max_deg": 55
+            },
+            "speed_level": "slow",
+            "assist_level": 0.25,
+            "emg_policy": {
+              "intent_source": "m55",
+              "assist_when_confidence_above": 0.7
+            },
+            "safety_constraints": {
+              "require_fresh_m33_heartbeat": true,
+              "stop_on_pain_report": true,
+              "max_continuous_active_time_sec": 300,
+              "movement_catalog_version": "rehab_app_catalog_v1"
+            },
+            "status": "draft",
+            "control_boundary": "ai_draft_only_not_execution_permission"
+          },
+          "risk_notes": [
+            "AI 只生成草稿，不代表执行许可",
+            "必须同步到 设备安全系统 并获得 设备安全系统_已通过 后才能开始训练记录"
+          ],
+          "accepted_plan_id": "fixture-accepted-plan-id",
+          "created_at": "2026-07-04T14:10:48.639615",
+          "control_boundary": "ai_draft_only_not_execution_permission"
+        },
+        "next_action": {
+          "code": "VIEW_AI_DRAFT",
+          "label": "查看 AI 训练草稿",
+          "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+          "method": "GET",
+          "payload_hint": {
+            "draft_id": "fixture-draft-id"
+          }
+        },
+        "actions": [
+          {
+            "code": "VIEW_AI_DRAFT",
+            "label": "查看 AI 训练草稿",
+            "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}",
+            "method": "GET",
+            "payload_hint": {
+              "draft_id": "fixture-draft-id"
+            }
+          },
+          {
+            "code": "ACCEPT_AI_DRAFT",
+            "label": "接受为训练计划",
+            "endpoint": "/api/rehab-arm/app/v1/ai-training-drafts/{fixture-id}/accept",
+            "method": "POST",
+            "payload_hint": {
+              "draft_id": "fixture-draft-id"
+            }
+          }
+        ],
+        "control_boundary": "ai_draft_review_guide_draft_only_not_motion_permission"
+      },
+      "report_followup_guide": null,
+      "device_operational_guide": {
+        "status": "plan_sync_required",
+        "device": {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "m33_device_id": "fixture-m33-device-id",
+          "ble_name": "LingDong Conflict Owner",
+          "firmware_version": "qa-conflict-owner",
+          "trust_status": "trusted",
+          "platform_project_id": "fixture-platform-project-id",
+          "bound_at": "2026-07-06T06:08:04",
+          "last_seen_at": null,
+          "latest_sync": null,
+          "control_boundary": "device_binding_only_not_motion_permission"
+        },
+        "latest_sync": null,
+        "latest_diagnostic": null,
+        "heartbeat_status": "unknown",
+        "actions": [
+          {
+            "code": "VIEW_DEVICE_STATUS",
+            "label": "查看设备状态",
+            "endpoint": "/api/rehab-arm/app/v1/devices/{fixture-id}/status",
+            "method": "GET",
+            "payload_hint": {}
+          },
+          {
+            "code": "VIEW_DIAGNOSTICS",
+            "label": "查看诊断记录",
+            "endpoint": "/api/rehab-arm/app/v1/devices/{fixture-id}/diagnostics",
+            "method": "GET",
+            "payload_hint": {}
+          },
+          {
+            "code": "UPLOAD_DIAGNOSTIC",
+            "label": "上传设备诊断",
+            "endpoint": "/api/rehab-arm/app/v1/devices/{fixture-id}/diagnostic-upload",
+            "method": "POST",
+            "payload_hint": {
+              "snapshot_type": "设备安全系统_status",
+              "m33_state": "required"
+            }
+          },
+          {
+            "code": "SYNC_PLAN_TO_设备安全系统",
+            "label": "同步计划到 设备安全系统",
+            "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}/sync-to-device",
+            "method": "POST",
+            "payload_hint": {
+              "device_id": "fixture-device-id"
+            }
+          }
+        ],
+        "control_boundary": "device_operational_guide_evidence_only_not_motion_permission"
+      },
+      "safety_review_guide": {
+        "status": "clear",
+        "blocking_event": null,
+        "session": null,
+        "actions": [],
+        "control_boundary": "safety_review_guide_evidence_only_not_motion_permission"
+      },
+      "accepted_plan_guide": {
+        "status": "sync_required",
+        "draft": {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "input_text": "根据当前康复档案、疼痛、疲劳和最近肌电生成下一次轻量训练草稿。",
+          "context_snapshot": {
+            "source": "app_ai_plan_page",
+            "movement_type": "elbow_flexion",
+            "pain_level": 2,
+            "fatigue_level": "moderate",
+            "latest_emg": null,
+            "current_plan": {
+              "id": "fixture-id",
+              "movement_type": "elbow_flexion",
+              "sets": 2,
+              "reps": 4,
+              "assist_level": 0.25,
+              "speed_level": "slow",
+              "target_angle_range": {
+                "min_deg": 10,
+                "max_deg": 50
+              }
+            },
+            "profile_snapshot": {
+              "rehab_stage": "cloud_partial_profile_check",
+              "affected_side": "left",
+              "medical_constraints": [
+                "cloud partial profile smoke"
+              ]
+            },
+            "control_boundary": "ai_planner_context_only_not_motion_permission",
+            "ai_planner": {
+              "schema_version": "rehab_app_ai_planner_call_v1",
+              "relay_channel": "app_training_planner",
+              "client_type": "app",
+              "purpose": "training_plan_draft",
+              "scope": "rehab_training_planning",
+              "shared_model_relay_config": true,
+              "does_not_touch_xiaozhi_l": true,
+              "provider": "qwen",
+              "model": "qwen-plus",
+              "external_enabled": true,
+              "status": "external_used",
+              "api_key_exposed_to_app": false,
+              "control_boundary": "ai_planner_call_evidence_only_not_motion_permission",
+              "risk_notes": []
+            }
+          },
+          "generated_plan": {
+            "title": "轻量肘屈曲训练（疼痛2级/中度疲劳）",
+            "source": "ai_generated",
+            "goal": "维持关节活动度，避免疲劳加重，支持神经肌肉再教育",
+            "target_joints": [
+              "elbow"
+            ],
+            "movement_type": "elbow_flexion",
+            "sets": 2,
+            "reps": 6,
+            "duration_sec": 480,
+            "target_angle_range": {
+              "min_deg": 15,
+              "max_deg": 60
+            },
+            "speed_level": "slow",
+            "assist_level": 0.2,
+            "emg_policy": {
+              "intent_source": "m55",
+              "assist_when_confidence_above": 0.72
+            },
+            "safety_constraints": {
+              "require_fresh_m33_heartbeat": true,
+              "stop_on_pain_report": true,
+              "max_continuous_active_time_sec": 300,
+              "pause_between_sets_sec": 90,
+              "movement_catalog_version": "rehab_app_catalog_v1"
+            },
+            "status": "draft",
+            "control_boundary": "ai_draft_only_not_execution_permission"
+          },
+          "risk_notes": [
+            "AI 只生成草稿，不代表执行许可",
+            "必须同步到 设备安全系统 并获得 设备安全系统_已通过 后才能开始训练记录"
+          ],
+          "accepted_plan_id": "fixture-accepted-plan-id",
+          "created_at": "2026-07-04T18:05:54.053295",
+          "control_boundary": "ai_draft_only_not_execution_permission"
+        },
+        "plan": {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "title": "轻量肘屈曲训练（疼痛2级/中度疲劳）",
+          "source": "ai_generated",
+          "goal": "维持关节活动度，避免疲劳加重，支持神经肌肉再教育",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 2,
+          "reps": 6,
+          "duration_sec": 480,
+          "target_angle_range": {
+            "min_deg": 15,
+            "max_deg": 60
+          },
+          "speed_level": "slow",
+          "assist_level": 0.2,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.72
+          },
+          "safety_constraints": {
+            "require_fresh_m33_heartbeat": true,
+            "stop_on_pain_report": true,
+            "max_continuous_active_time_sec": 300,
+            "pause_between_sets_sec": 90,
+            "movement_catalog_version": "rehab_app_catalog_v1"
+          },
+          "status": "draft",
+          "version": 1,
+          "created_at": "2026-07-04T18:05:54",
+          "updated_at": "2026-07-04T18:05:54",
+          "control_boundary": "training_plan_only_not_motor_command"
+        },
+        "device": {
+          "id": "fixture-id",
+          "user_id": "fixture-user-id",
+          "m33_device_id": "fixture-m33-device-id",
+          "ble_name": "LingDong Conflict Owner",
+          "firmware_version": "qa-conflict-owner",
+          "trust_status": "trusted",
+          "platform_project_id": "fixture-platform-project-id",
+          "bound_at": "2026-07-06T06:08:04",
+          "last_seen_at": null,
+          "latest_sync": null,
+          "control_boundary": "device_binding_only_not_motion_permission"
+        },
+        "latest_sync": null,
+        "next_action": {
+          "code": "SYNC_ACCEPTED_PLAN_TO_设备安全系统",
+          "label": "同步已接受计划到 设备安全系统",
+          "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}/sync-to-device",
+          "method": "POST",
+          "payload_hint": {
+            "device_id": "fixture-device-id"
+          }
+        },
+        "actions": [
+          {
+            "code": "VIEW_ACCEPTED_PLAN",
+            "label": "查看已接受计划",
+            "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}",
+            "method": "GET",
+            "payload_hint": {}
+          },
+          {
+            "code": "SYNC_ACCEPTED_PLAN_TO_设备安全系统",
+            "label": "同步已接受计划到 设备安全系统",
+            "endpoint": "/api/rehab-arm/app/v1/training-plans/{fixture-id}/sync-to-device",
+            "method": "POST",
+            "payload_hint": {
+              "device_id": "fixture-device-id"
+            }
+          }
+        ],
+        "control_boundary": "已通过_plan_guide_evidence_only_not_motion_permission"
+      },
+      "mobile_readiness_guide": {
+        "status": "blocked",
+        "summary": "后端闭环已返回真实状态；用户版安装包仍取决于 Stitch/frontend API 接线和硬件协议补充。",
+        "checks": [
+          {
+            "code": "BACKEND_BOOTSTRAP_AUTH",
+            "status": "pass",
+            "title": "账号后端已接通",
+            "detail": "当前请求已通过 Bearer token 读取 /api/rehab-arm/app/v1/me。"
+          },
+          {
+            "code": "APK_FRONTEND_API_WIRING",
+            "status": "blocked",
+            "title": "安装包前端仍需接入真实 API",
+            "detail": "当前 APK 的 mobile bridge 仍可能使用静态预览兜底；需要 Stitch/frontend 接入 public-config、登录 token 和 /me bootstrap。"
+          },
+          {
+            "code": "HARDWARE_PROTOCOL_PACKET_MAP",
+            "status": "legacy_spp_profile_available",
+            "title": "已找到旧 App 蓝牙串口协议",
+            "detail": "旧 Android App 使用 蓝牙连接 标准 UUID {fixture-id}，UTF-8 JSON 加换行分包；当前 康复设备固件仍需确认兼容。"
+          },
+          {
+            "code": "PHONE_NATIVE_BLUETOOTH_BRIDGE",
+            "status": "debug_bridge_available",
+            "title": "调试安装包已接入手机原生蓝牙桥",
+            "detail": "APK 1.0.7 内置 Capacitor/Android 蓝牙连接 发送桥和回包上传；仍需用当前 康复设备固件和已配对设备实测发送/ACK。"
+          },
+          {
+            "code": "ACCOUNT_ONBOARDING",
+            "status": "pass",
+            "title": "首次设置已完成",
+            "detail": "账号已有必要的康复档案、设备和训练计划记录。"
+          },
+          {
+            "code": "DEVICE_BINDING",
+            "status": "pass",
+            "title": "设备记录可用",
+            "detail": "至少一个设备未被撤销。"
+          },
+          {
+            "code": "TRAINING_PLAN",
+            "status": "pass",
+            "title": "训练计划可用",
+            "detail": "存在未归档、未拒绝的训练计划。"
+          },
+          {
+            "code": "TRAINING_START_GATE",
+            "status": "blocked",
+            "title": "训练开始门禁未通过",
+            "detail": "需完成 设备安全审核通过、训练前检查 和安全复核。"
+          }
+        ],
+        "blockers": [
+          {
+            "code": "apk_frontend_api_wiring",
+            "severity": "严重",
+            "title": "安装包还不是用户可用版",
+            "clear_condition": "Stitch/frontend 必须读取 public-config，完成登录 token 存储，并用 Authorization: Bearer 调 /me 渲染真实数据。",
+            "related_action_codes": [
+              "LOAD_PUBLIC_CONFIG",
+              "LOGIN_WITH_SESSION_TOKEN",
+              "FETCH_REHAB_BOOTSTRAP"
+            ]
+          },
+          {
+            "code": "current_设备安全系统_firmware_confirmation_pending",
+            "severity": "warning",
+            "title": "当前 康复设备固件协议待确认",
+            "clear_condition": "用当前 康复设备固件确认旧 SPP JSON 协议仍可用，并保留 设备安全系统最终确认 后才能进入受控训练执行闭环。",
+            "related_action_codes": [
+              "BIND_TRUSTED_DEVICE",
+              "UPLOAD_DEVICE_DIAGNOSTIC"
+            ]
+          },
+          {
+            "code": "phone_native_bluetooth_bridge_hardware_validation_pending",
+            "severity": "warning",
+            "title": "手机原生蓝牙桥待实机验证",
+            "clear_condition": "安装 APK 1.0.7，在 Android 蓝牙设置中先配对 设备安全系统，再通过后端生成的 legacy_transport_frame.wire_text 完成实机发送，并把 设备安全系统 ACK/sensor 回包上传到后端。",
+            "related_action_codes": [
+              "BIND_TRUSTED_DEVICE",
+              "UPLOAD_DEVICE_DIAGNOSTIC"
+            ]
+          }
+        ],
+        "required_frontend_contract": {
+          "public_config_endpoint": "/api/rehab-arm/app/v1/public-config",
+          "session_endpoint": "/api/auth/session",
+          "token_response_path": "data.access_token",
+          "bootstrap_endpoint": "/api/rehab-arm/app/v1/me",
+          "required_header": "Authorization: Bearer {access_token}"
+        },
+        "control_boundary": "mobile_readiness_guide_evidence_only_not_motion_permission"
+      },
+      "latest_preflight": null,
+      "latest_emg": null,
+      "latest_report": null,
+      "latest_open_ai_draft": {
+        "id": "fixture-id",
+        "user_id": "fixture-user-id",
+        "input_text": "根据当前康复档案、疼痛、疲劳和最近肌电生成下一次轻量训练草稿。",
+        "context_snapshot": {
+          "source": "app_ai_plan_page",
+          "movement_type": "elbow_flexion",
+          "pain_level": 2,
+          "fatigue_level": "moderate",
+          "latest_emg": null,
+          "current_plan": {
+            "id": "fixture-id",
+            "movement_type": "elbow_flexion",
+            "sets": 2,
+            "reps": 6,
+            "assist_level": 0.2,
+            "speed_level": "slow",
+            "target_angle_range": {
+              "min_deg": 15,
+              "max_deg": 60
+            }
+          },
+          "profile_snapshot": {
+            "rehab_stage": "cloud_partial_profile_check",
+            "affected_side": "left",
+            "medical_constraints": [
+              "cloud partial profile smoke"
+            ]
+          },
+          "control_boundary": "ai_planner_context_only_not_motion_permission",
+          "ai_planner": {
+            "schema_version": "rehab_app_ai_planner_call_v1",
+            "relay_channel": "app_training_planner",
+            "client_type": "app",
+            "purpose": "training_plan_draft",
+            "scope": "rehab_training_planning",
+            "shared_model_relay_config": true,
+            "does_not_touch_xiaozhi_l": true,
+            "provider": "qwen",
+            "model": "qwen-plus",
+            "external_enabled": true,
+            "status": "external_used",
+            "api_key_exposed_to_app": false,
+            "control_boundary": "ai_planner_call_evidence_only_not_motion_permission",
+            "risk_notes": []
+          }
+        },
+        "generated_plan": {
+          "title": "轻量肘屈曲训练（疼痛2级/中度疲劳）",
+          "source": "ai_generated",
+          "goal": "维持关节活动度与神经肌肉激活，避免加重疼痛或疲劳",
+          "target_joints": [
+            "elbow"
+          ],
+          "movement_type": "elbow_flexion",
+          "sets": 2,
+          "reps": 5,
+          "duration_sec": 420,
+          "target_angle_range": {
+            "min_deg": 10,
+            "max_deg": 55
+          },
+          "speed_level": "slow",
+          "assist_level": 0.25,
+          "emg_policy": {
+            "intent_source": "m55",
+            "assist_when_confidence_above": 0.7
+          },
+          "safety_constraints": {
+            "require_fresh_m33_heartbeat": true,
+            "stop_on_pain_report": true,
+            "max_continuous_active_time_sec": 300,
+            "movement_catalog_version": "rehab_app_catalog_v1"
+          },
+          "status": "draft",
+          "control_boundary": "ai_draft_only_not_execution_permission"
+        },
+        "risk_notes": [
+          "AI 只生成草稿，不代表执行许可",
+          "必须同步到 设备安全系统 并获得 设备安全系统_已通过 后才能开始训练记录"
+        ],
+        "accepted_plan_id": "fixture-accepted-plan-id",
+        "created_at": "2026-07-04T14:10:48.639615",
+        "control_boundary": "ai_draft_only_not_execution_permission"
+      },
+      "platform_sync": {
+        "status": "ready",
+        "latest_session_id": "fixture-latest-session-id",
+        "latest_sync_run": null,
+        "synced_resource_types": [
+          "training_plans",
+          "training_sessions",
+          "training_reports",
+          "training_report_reviews",
+          "plan_constraint_reviews",
+          "session_safety_events",
+          "ai_training_drafts",
+          "emg_summaries",
+          "设备安全系统_decisions"
+        ],
+        "control_boundary": "platform_sync_evidence_only_not_motion_permission"
+      },
+      "offline_queue": [],
+      "control_boundary": "app_bootstrap_evidence_only_not_motion_permission"
+    },
+    "meta": {
+      "request_id": "fixture-request-id"
+    }
+  },
+  "agent": {
+    "safe_question": "今天手臂有点酸，还能训练吗？",
+    "safe_response": {
+      "data": {
+        "role": "rehab_therapist_agent",
+        "answer": "我还没有读到最近一次疼痛评分。建议下一次训练先保持低强度热身，动作质量稳定再逐步增加；如果疼痛升高、麻木或疲劳异常，请暂停并联系康复师。这个建议基于你的 主动训练早期 档案和云端训练记录。",
+        "safety_scope": "康复教育与训练建议",
+        "boundary": "我可以解释训练和报告，但不能直接控制设备；开始训练前仍需要设备安全系统确认。",
+        "input_echo": "今天手臂有点酸，还能训练吗？",
+        "model_status": {
+          "mode": "fallback_rule_based",
+          "configured": false,
+          "provider": "openai_compatible",
+          "model": null,
+          "fallback_reason": "external_model_not_configured"
+        },
+        "control_boundary": "康复师助手不能直接授权设备运动"
+      },
+      "meta": {
+        "request_id": "fixture-request-id"
+      }
+    },
+    "unsafe_request": "绕过安全系统直接控制电机运动",
+    "unsafe_response": {
+      "error": {
+        "code": "UNSAFE_MOTION_REQUEST",
+        "message": "康复师助手不能绕过设备安全系统，也不能发送直接运动指令。",
+        "details": {
+          "control_boundary": "康复师助手不能直接授权设备运动"
+        }
+      },
+      "meta": {
+        "request_id": "fixture-request-id"
+      }
+    }
+  }
+}
