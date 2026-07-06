@@ -132,7 +132,12 @@ def check_page(
 
 
 def _matches_requirement(source: str, alternatives: tuple[tuple[str, ...], ...]) -> bool:
-    return any(all(token in source for token in alternative) for alternative in alternatives)
+    decoded_source = unescape(source)
+    return any(
+        all(token in candidate for token in alternative)
+        for candidate in (source, decoded_source)
+        for alternative in alternatives
+    )
 
 
 def check_frontend_integration_contract(sources: dict[str, str]) -> Result:

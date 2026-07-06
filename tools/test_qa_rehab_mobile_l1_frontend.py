@@ -96,6 +96,44 @@ def test_frontend_integration_contract_requires_l1_interaction_states():
     assert "ask_therapist_accessibility" in result.detail["missing_requirements"]
 
 
+def test_frontend_integration_contract_accepts_html_entity_accessibility_label():
+    module = _load_module()
+
+    sources = {
+        "home.html": """
+          localStorage.setItem('access_token', token);
+          fetch('/api/auth/session');
+          fetch('/api/rehab-arm/app/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+          const home = response.data.patient_view.home;
+          const agent = response.data.patient_view.agent;
+          <button aria-label="&#38382;&#24247;&#22797;&#24072;">&#38382;&#24247;&#22797;&#24072;</button>
+        """,
+        "profile.html": """
+          const profile = response.data.patient_view.profile;
+          fetch('/api/rehab-arm/app/v1/account/phone-verifications');
+          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`);
+          if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
+          if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
+          if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
+        """,
+        "device.html": """
+          const device = response.data.patient_view.device;
+          fetch('/api/rehab-arm/app/v1/devices/bind');
+          if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
+        """,
+        "ai-plan.html": """
+          const agent = response.data.patient_view.agent;
+          fetch('/api/rehab-arm/app/v1/agent/messages');
+          if (error.code === 'UNSAFE_MOTION_REQUEST') showSafeRefusal();
+          renderModelStatus(response.data.model_status);
+        """,
+    }
+
+    result = module.check_frontend_integration_contract(sources)
+
+    assert "ask_therapist_accessibility" not in result.detail["missing_requirements"]
+
+
 MODULE_PATH = Path(__file__).with_name("qa_rehab_mobile_l1_frontend.py")
 
 

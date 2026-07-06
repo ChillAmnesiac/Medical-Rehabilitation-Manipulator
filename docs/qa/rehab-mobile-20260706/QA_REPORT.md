@@ -1500,3 +1500,38 @@ QA hardening added after this failed resmoke:
 - Fresh deployed frontend gate after the hardening still returns `overall =
   FAIL`, `failed = 5`; `home.html` is missing both `查看康复师建议` and
   `问康复师` and still exposes `M33`, `M55`, and `RoboRehab Controller`.
+
+## 2026-07-07 Stitch MCP Home Entity Copy Resmoke
+
+Codex ran another narrow Stitch MCP `home.html` experiment using HTML numeric
+character references for the exact release-gated copy.
+
+Evidence:
+
+- Stitch screen: `8d43c827e5464979a08926467114eda3`,
+  title `首页 - 领动康复手臂 (QA 实验版)`.
+- Downloaded candidate:
+  `artifacts/stitch/l1-entity-iteration-20260707/home-entity.html`.
+- The downloaded candidate rendered visible text containing
+  `查看康复师建议` and `问康复师`.
+- Direct page-gate check using `tools/qa_rehab_mobile_l1_frontend.py` logic
+  returned `PASS` for `L1-HOME-STATIC-001` with no forbidden hits.
+
+Result:
+
+- HTML entity copy is a working strategy for preventing Stitch from rewriting
+  exact Chinese release labels.
+- The generated candidate is not accepted as frontend source because it covers
+  only `home.html`, includes demo wording such as `李先生`, and has not passed
+  the full four-page integration gate.
+- No Stitch-generated HTML was copied into frontend source or the APK WebView
+  mirror.
+
+QA hardening added after this resmoke:
+
+- The generated Stitch V4 prompt now includes HTML entity fallback snippets for
+  every exact release-gated visible string.
+- `tools/qa_rehab_mobile_l1_frontend.py` now matches integration requirements
+  against both raw and HTML-decoded source, so an accessibility label encoded
+  as numeric HTML entities can still satisfy the `问康复师` contract when the
+  browser-visible label is correct.

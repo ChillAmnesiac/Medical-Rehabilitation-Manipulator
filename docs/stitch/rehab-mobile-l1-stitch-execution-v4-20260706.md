@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-07T01:50:00Z
+Generated: 2026-07-07T02:10:00Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -24,6 +24,22 @@ They must appear verbatim as visible HTML text on the listed page:
 - ai-plan.html: 问康复师
 
 Stitch must reject its own output if any generated page replaces these strings with softer copy such as 开始康复训练, 康复助手, 咨询治疗师, or 设备连接.
+
+HTML entity fallback snippets tested through Stitch MCP:
+Use these snippets when Stitch starts rewriting Chinese labels. Browser-visible text still decodes to the required Chinese copy.
+- home.html:
+  - `<span>&#26597;&#30475;&#24247;&#22797;&#24072;&#24314;&#35758;</span>`
+  - `<button type="button" aria-label="&#38382;&#24247;&#22797;&#24072;">&#38382;&#24247;&#22797;&#24072;</button>`
+- profile.html:
+  - `<span>&#25105;&#30340;&#24247;&#22797;&#26723;&#26696;</span>`
+  - `<span>&#25163;&#26426;&#21495;</span>`
+  - `<span>&#32465;&#23450;&#25163;&#26426;&#21495;</span>`
+  - `<span>&#39564;&#35777;&#30721;</span>`
+- device.html:
+  - `<span>&#32465;&#23450;&#35774;&#22791;</span>`
+  - `<span>&#25171;&#24320;&#24247;&#22797;&#35774;&#22791;&#30005;&#28304;</span>`
+- ai-plan.html:
+  - `<button type="button" aria-label="&#38382;&#24247;&#22797;&#24072;">&#38382;&#24247;&#22797;&#24072;</button>`
 
 ## Current Status
 - Stitch blockers: home_next_step, phone_binding, device_binding, ask_therapist_safety, profile_no_fake_debug, browser_qa_evidence, frontend_l1_gate

@@ -85,6 +85,44 @@ Follow-up hardening:
   an `Exact Release-Gated Visible Copy` section so Stitch cannot treat these as
   optional UX labels.
 
+## 2026-07-07 Home HTML Entity Copy Iteration
+
+Codex ran a second narrow Stitch MCP iteration for `home.html`, this time
+asking Stitch to copy HTML numeric character references for the exact release
+copy.
+
+Artifacts, not committed as frontend source:
+
+- `artifacts/stitch/l1-entity-iteration-20260707/home-entity.html`
+- `artifacts/stitch/l1-entity-iteration-20260707/home-entity.jpg`
+- `artifacts/stitch/l1-entity-iteration-20260707/home-entity-generate-response.json`
+
+Generated screen:
+
+| Page | Screen ID | Title | Accepted |
+| --- | --- | --- | --- |
+| `home.html` | `8d43c827e5464979a08926467114eda3` | `首页 - 领动康复手臂 (QA 实验版)` | No |
+
+Result:
+
+- The generated visible text decoded to `查看康复师建议` and `问康复师`.
+- The generated home candidate passed `L1-HOME-STATIC-001` when checked through
+  `tools/qa_rehab_mobile_l1_frontend.py` page-gate logic.
+- The candidate did not hit raw forbidden terms in the home HTML.
+- The candidate is still not accepted as frontend source because it is only one
+  page, includes demo wording such as `李先生`, and has not passed the full
+  four-page integration gate.
+- No generated HTML was copied into `apps/web/public/rehab-arm-mobile/` or
+  `apps/mobile/rehab-arm-android/www/`.
+
+Follow-up hardening:
+
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` now includes
+  HTML entity fallback snippets for exact release-gated copy.
+- `tools/qa_rehab_mobile_l1_frontend.py` now accepts HTML-decoded source when
+  checking integration requirements, so an accessible label written as numeric
+  HTML entities can still satisfy the `问康复师` accessibility contract.
+
 ## Next Stitch Prompt Delta
 
 The next Stitch iteration should be even more constrained:

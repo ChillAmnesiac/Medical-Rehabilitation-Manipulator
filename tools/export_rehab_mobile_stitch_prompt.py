@@ -62,6 +62,10 @@ def _front_failures_section(packet: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _html_entity_text(term: str) -> str:
+    return "".join(f"&#{ord(char)};" for char in term)
+
+
 def _exact_visible_copy_section() -> list[str]:
     lines = [
         "## Exact Release-Gated Visible Copy",
@@ -74,8 +78,19 @@ def _exact_visible_copy_section() -> list[str]:
         [
             "",
             "Stitch must reject its own output if any generated page replaces these strings with softer copy such as 开始康复训练, 康复助手, 咨询治疗师, or 设备连接.",
+            "",
+            "HTML entity fallback snippets tested through Stitch MCP:",
+            "Use these snippets when Stitch starts rewriting Chinese labels. Browser-visible text still decodes to the required Chinese copy.",
         ]
     )
+    for page, terms in EXACT_VISIBLE_COPY.items():
+        lines.append(f"- {page}:")
+        for term in terms:
+            entity_text = _html_entity_text(term)
+            if term == "问康复师":
+                lines.append(f'  - `<button type="button" aria-label="{entity_text}">{entity_text}</button>`')
+            else:
+                lines.append(f"  - `<span>{entity_text}</span>`")
     return lines
 
 
