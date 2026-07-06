@@ -12,6 +12,7 @@ Codex owns backend, QA, deployment verification, APK verification, and git commi
 - APK delivery: `PASS`
 - Frontend L1: `FAIL`
 - Sanitized live API fixture: `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json`
+- Fixture now includes sanitized phone-verification `start_response` and `confirm_response` examples, with `verification_id` preserved as `fixture-verification-id` and debug codes removed.
 - Latest browser evidence:
   - `docs/qa/rehab-mobile-20260706/06-profile-resmoke-390.png`
   - `docs/qa/rehab-mobile-20260706/07-home-resmoke-390.png`
@@ -20,6 +21,7 @@ Codex owns backend, QA, deployment verification, APK verification, and git commi
   - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-device-390.png`
   - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png`
   - `docs/qa/rehab-mobile-20260706/screenshots/continuation-device-qa-20260706-390.png`
+  - `docs/qa/rehab-mobile-20260706/screenshots/model-relay-ops-device-390.png`
 
 Latest visible frontend blockers:
 
@@ -34,10 +36,11 @@ Latest visible frontend blockers:
 
 Use this prompt as the primary frontend task:
 
-- `docs/stitch/rehab-mobile-l1-stitch-execution-v2-20260706.md`
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`
 
 Historical prompt kept for reference:
 
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v2-20260706.md`
 - `docs/stitch/rehab-mobile-stitch-execution-20260706.md`
 
 Use this scorecard as the release gate:
@@ -155,4 +158,4 @@ Then Codex must:
 
 ## Current Next Action
 
-Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v2-20260706.md`, deploy the generated frontend assets, then hand control back to Codex for browser QA and git-managed closeout.
+Run Stitch with `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`, deploy the generated frontend assets, then hand control back to Codex for browser QA and git-managed closeout.

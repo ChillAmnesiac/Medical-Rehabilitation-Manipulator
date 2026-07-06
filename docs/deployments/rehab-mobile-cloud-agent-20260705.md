@@ -438,6 +438,27 @@
 - No cloud runtime deployment was made for this ops-only change.
 - L1 remains blocked until a real model key is configured and the Agent smoke reports `data.model_status.mode = cloud_model`.
 
+## 2026-07-06 Stitch Fixture V3 Handoff
+
+- Confirmed Codex has no callable Google Stitch MCP tool or installable Stitch plugin in this environment.
+- Refreshed the sanitized live API fixture:
+  - `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json`
+- The fixture now includes phone verification examples:
+  - `phone_verification.start_response`
+  - `phone_verification.confirm_response`
+- `verification_id` is preserved as `fixture-verification-id`; `debug_code`, tokens, raw ids, real email, and real phone values remain removed or masked.
+- Added primary frontend handoff prompt:
+  - `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`
+- Updated the Stitch runbook to point to V3.
+- Fresh verification:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools/test_export_rehab_mobile_stitch_fixture.py tools/test_configure_rehab_model_relay.py tools/test_qa_rehab_mobile_acceptance.py tools/test_qa_rehab_mobile_l1_release.py -q` -> `30 passed`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud/rehab-platform/tests tools/test_qa_rehab_mobile_acceptance.py tools/test_qa_rehab_mobile_l1_frontend.py tools/test_qa_rehab_mobile_l1_release.py tools/test_export_rehab_mobile_stitch_fixture.py tools/test_configure_rehab_model_relay.py -q` -> `71 passed, 1 warning`
+  - Fixture safety check passed for masked `verification_id`, phone verification start/confirm examples, and no real QA email/token/debug code/raw verification id.
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 22`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`
+  - APK HEAD -> `200`, size `4198462`, content type `application/vnd.android.package-archive`
+- No cloud runtime deployment was made for this frontend-handoff/QA artifact change.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

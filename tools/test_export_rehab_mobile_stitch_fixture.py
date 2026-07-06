@@ -37,10 +37,10 @@ def test_sanitize_for_stitch_removes_tokens_codes_and_masks_identity():
     text = json.dumps(sanitized, ensure_ascii=False)
 
     assert "secret-token" not in text
-    assert "verify-42" not in text
     assert "123456" not in text
     assert "3245056131@qq.com" not in text
     assert "+15550101111" not in text
+    assert sanitized["data"]["verification_id"] == "fixture-verification-id"
     assert sanitized["data"]["profile"]["email"] == "qa-user@example.invalid"
     assert sanitized["data"]["profile"]["phone"] == "+155****0000"
     assert sanitized["data"]["profile"]["id"] == "fixture-id"
@@ -87,6 +87,22 @@ def test_build_fixture_includes_stitch_contract_sections_without_secret_values()
         },
         safe_agent={"data": {"answer": "\u5efa\u8bae\u5148\u964d\u4f4e\u5f3a\u5ea6", "model_status": {"mode": "fallback_rule_based"}}},
         unsafe_agent={"error": {"code": "UNSAFE_MOTION_REQUEST", "message": "\u4e0d\u80fd\u7ed5\u8fc7\u5b89\u5168\u673a\u5236"}},
+        phone_verification_start={
+            "data": {
+                "verification_id": "real-verification-id",
+                "phone": "+15550101111",
+                "masked_phone": "+155****1111",
+                "delivery_channel": "debug_sms",
+                "debug_code": "123456",
+            }
+        },
+        phone_verification_confirm={
+            "data": {
+                "phone": "+15550101111",
+                "phone_verified": True,
+                "verification_id": "real-verification-id",
+            }
+        },
         generated_at="2026-07-06T08:00:00Z",
     )
     text = json.dumps(fixture, ensure_ascii=False)
@@ -103,8 +119,12 @@ def test_build_fixture_includes_stitch_contract_sections_without_secret_values()
     ]
     assert fixture["me"]["data"]["patient_view"]["agent"]["entry_label"] == "\u95ee\u5eb7\u590d\u5e08"
     assert fixture["agent"]["safe_response"]["data"]["answer"] == "\u5efa\u8bae\u5148\u964d\u4f4e\u5f3a\u5ea6"
+    assert fixture["phone_verification"]["start_response"]["data"]["verification_id"] == "fixture-verification-id"
+    assert fixture["phone_verification"]["confirm_response"]["data"]["phone_verified"] is True
     assert "3245056131@qq.com" not in text
     assert "+15550101111" not in text
+    assert "123456" not in text
+    assert "real-verification-id" not in text
     assert "real-user-id" not in text
 
 

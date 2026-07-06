@@ -720,4 +720,23 @@ Do not call this build user-ready. Backend is ready for Stitch to consume, but t
 Stitch execution runbook:
 
 - `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`
-- Primary Stitch prompt: `docs/stitch/rehab-mobile-l1-stitch-execution-v2-20260706.md`
+- Primary Stitch prompt: `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`
+
+## Stitch Fixture And Prompt V3 Follow-Up
+
+2026-07-06 continuation work refreshed the Stitch handoff package after the model-relay ops pass:
+
+- Confirmed no callable Google Stitch tool or installable Stitch plugin is available in this Codex environment, so Codex still provides prompts and backend QA artifacts only.
+- Refreshed `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` from the live cloud API.
+- The fixture now includes sanitized `phone_verification.start_response` and `phone_verification.confirm_response` examples.
+- `verification_id` is preserved as `fixture-verification-id` so Stitch can wire the confirm URL without exposing raw ids.
+- `debug_code`, access tokens, real email, and real phone values remain removed or masked.
+- Added the current primary Stitch prompt: `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`.
+- Updated the runbook to make V3 the primary frontend task.
+- Verification after the V3 handoff:
+  - Fixture/tool focused tests: `30 passed`.
+  - Full local backend plus QA suite: `71 passed, 1 warning`.
+  - Fixture safety check: passed; no real QA email, token, debug code, raw verification id, or real phone value found.
+  - Cloud acceptance: API/APK `PASS`, `p0_failed = 0`, `total = 22`.
+  - Total L1 release gate remains `FAIL`, with blockers `frontend_l1_gate` and `agent_cloud_model`.
+  - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.

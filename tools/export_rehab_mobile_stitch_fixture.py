@@ -21,7 +21,6 @@ SECRET_KEYS = {
     "refresh_token",
     "password",
     "debug_code",
-    "verification_id",
 }
 EMAIL_KEYS = {"email"}
 PHONE_KEYS = {"phone", "phone_number"}
@@ -109,6 +108,8 @@ def build_fixture(
     me: dict[str, Any],
     safe_agent: dict[str, Any],
     unsafe_agent: dict[str, Any],
+    phone_verification_start: dict[str, Any] | None = None,
+    phone_verification_confirm: dict[str, Any] | None = None,
     generated_at: str | None = None,
 ) -> dict[str, Any]:
     generated_at = generated_at or datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
@@ -158,7 +159,22 @@ def build_fixture(
             "unsafe_request": UNSAFE_REQUEST,
             "unsafe_response": sanitize_for_stitch(unsafe_agent),
         },
+        "phone_verification": {
+            "start_request": {"phone": "+15550000000", "purpose": "bind_account"},
+            "start_response": sanitize_for_stitch(phone_verification_start or {}),
+            "confirm_endpoint_template": (
+                "/api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm"
+            ),
+            "confirm_request": {"code": "<verification-code>"},
+            "confirm_response": sanitize_for_stitch(phone_verification_confirm or {}),
+            "staging_note": "debug_code is intentionally removed from this fixture; use live staging response only in debug_sms mode.",
+        },
     }
+
+
+def default_fixture_phone() -> str:
+    suffix = datetime.now(UTC).strftime("%M%S%f")[-7:]
+    return f"+1555{suffix}"
 
 
 def fetch_fixture(args: argparse.Namespace) -> dict[str, Any]:
@@ -205,6 +221,36 @@ def fetch_fixture(args: argparse.Namespace) -> dict[str, Any]:
     if unsafe_status != 400 or not isinstance(unsafe_agent, dict):
         raise SystemExit(f"unsafe agent request expected 400 and got {unsafe_status}")
 
+    phone = args.phone or default_fixture_phone()
+    phone_start_status, phone_start = client.request(
+        "POST",
+        "/api/rehab-arm/app/v1/account/phone-verifications",
+        {"phone": phone, "purpose": "bind_account"},
+        token=token,
+    )
+    if phone_start_status != 200 or not isinstance(phone_start, dict):
+        raise SystemExit(f"phone verification start request failed with status {phone_start_status}")
+    phone_start_data = data(phone_start)
+    verification_id = phone_start_data.get("verification_id")
+    debug_code = phone_start_data.get("debug_code")
+    phone_confirm: dict[str, Any] = {
+        "data": {
+            "status": "not_run",
+            "reason": "debug_code_not_available",
+            "verification_id": verification_id,
+        }
+    }
+    if verification_id and debug_code:
+        phone_confirm_status, phone_confirm_body = client.request(
+            "POST",
+            f"/api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm",
+            {"code": str(debug_code)},
+            token=token,
+        )
+        if phone_confirm_status != 200 or not isinstance(phone_confirm_body, dict):
+            raise SystemExit(f"phone verification confirm request failed with status {phone_confirm_status}")
+        phone_confirm = phone_confirm_body
+
     return build_fixture(
         api_base=args.api_base,
         health=health,
@@ -212,6 +258,8 @@ def fetch_fixture(args: argparse.Namespace) -> dict[str, Any]:
         me=me,
         safe_agent=safe_agent,
         unsafe_agent=unsafe_agent,
+        phone_verification_start=phone_start,
+        phone_verification_confirm=phone_confirm,
     )
 
 
@@ -221,6 +269,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--email", default=os.getenv("REHAB_QA_EMAIL"))
     parser.add_argument("--password", default=os.getenv("REHAB_QA_PASSWORD"))
     parser.add_argument("--output", type=Path, default=DEFAULT_OUTPUT)
+    parser.add_argument("--phone", default=os.getenv("REHAB_STITCH_FIXTURE_PHONE"))
     parser.add_argument("--timeout", type=int, default=int(os.getenv("REHAB_QA_TIMEOUT", "20")))
     return parser.parse_args(argv)
 

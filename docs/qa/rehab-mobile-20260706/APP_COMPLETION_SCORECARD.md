@@ -81,7 +81,7 @@ Current result: `NOT READY`.
 | --- | --- | --- |
 | Backend API | PASS | `tools/qa_rehab_mobile_acceptance.py`, `overall = PASS`, `p0_failed = 0` |
 | Deployment metadata | PASS | `P1-DEPLOY-META-001`: health exposes build SHA `8e17a51d`, ref `codex/rehab-mobile-backend-qa-20260706`, build time, and `app_env=staging` |
-| Stitch API fixture | PASS | `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` exported from live cloud API with tokens, codes, ids, email, and phone masked |
+| Stitch API fixture | PASS | `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` exported from live cloud API with tokens, codes, ids, email, and phone masked; now includes phone verification start/confirm response examples |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code; `P1-PHONE-RESEND-001` rejects immediate resend with `retry_after` |
 | Phone SMS delivery readiness | WARN | Webhook delivery path is implemented and covered locally; `P1-PHONE-SMS-001` still warns because current staging mode is `debug_sms`, reason `debug_code_enabled` |
@@ -101,7 +101,7 @@ Current result: `NOT READY`.
 
 ## Next Work Order
 
-1. Run the Stitch prompt in `docs/stitch/rehab-mobile-l1-stitch-execution-v2-20260706.md`.
+1. Run the Stitch prompt in `docs/stitch/rehab-mobile-l1-stitch-execution-v3-20260706.md`.
 2. Follow the Stitch runbook in `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`.
 3. Deploy updated frontend web assets to `http://106.55.62.122:3001/rehab-arm-mobile/`.
 4. Rebuild or refresh APK if the APK bundles frontend assets.
