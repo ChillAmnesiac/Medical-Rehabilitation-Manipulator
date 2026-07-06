@@ -65,7 +65,12 @@ The backend exposes the routes already used by `apps/web/public/rehab-arm-mobile
 
 ### Rehab Therapist Agent
 
-`POST /api/rehab-arm/app/v1/agent/messages` uses an OpenAI-compatible chat endpoint when `AGENT_MODEL_API_KEY` is configured. If no external model is configured or the provider is unavailable, the endpoint safely falls back to a rule-based patient answer and always returns `data.model_status`.
+`POST /api/rehab-arm/app/v1/agent/messages` uses a configured cloud model when `AGENT_MODEL_API_KEY` is set. Supported providers are:
+
+- `openai_compatible`: chat completions endpoint, for example `AGENT_MODEL_BASE_URL=https://api.openai.com/v1`
+- `gemini`: Google Gemini `generateContent`, for example `AGENT_MODEL_BASE_URL=https://generativelanguage.googleapis.com/v1beta`
+
+If no external model is configured or the provider is unavailable, the endpoint safely falls back to a rule-based patient answer and always returns `data.model_status`.
 
 Required response status contract:
 

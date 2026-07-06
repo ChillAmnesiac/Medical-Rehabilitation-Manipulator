@@ -845,6 +845,37 @@ Fresh verification:
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
 
+## Agent Gemini Provider Follow-Up
+
+2026-07-06 continuation work widened the backend Agent cloud-model relay so `agent_cloud_model` can be closed with either an OpenAI-compatible endpoint or Google Gemini:
+
+- Updated backend service: `cloud/rehab-platform/app/services/agent.py`
+- Updated tests: `cloud/rehab-platform/tests/test_agent.py`
+- Updated config tool: `tools/configure_rehab_model_relay.py`
+- Updated tests: `tools/test_configure_rehab_model_relay.py`
+- Updated docs: `cloud/rehab-platform/README.md`, `cloud/rehab-platform/.env.example`, and `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md`
+
+New behavior:
+
+- `AGENT_MODEL_PROVIDER=openai_compatible` keeps the existing chat-completions path.
+- `AGENT_MODEL_PROVIDER=gemini` calls Google Gemini `generateContent`.
+- Gemini requests use `x-goog-api-key` and never place the key in the JSON body.
+- Gemini responses are parsed from `candidates[0].content.parts[].text`.
+- `tools/configure_rehab_model_relay.py --provider gemini` defaults `base_url` to `https://generativelanguage.googleapis.com/v1beta` when omitted.
+
+Fresh verification:
+
+- Red test first: `call_gemini_model` did not exist.
+- Follow-up red test first: config payload still required `base_url` for `provider=gemini`.
+- Focused Agent/config tests: `16 passed, 1 warning`.
+
+Current product decision remains unchanged until staging is configured with a real model key and smoke-tested:
+
+- `P1-AGENT-CONFIG-001` must be `PASS`.
+- `P1-AGENT-MODEL-001` must be `PASS`.
+- Agent safe answer must report `data.model_status.mode = cloud_model`.
+- Do not commit, paste, screenshot, or log real model API keys.
+
 ## Frontend Release Bundle Tool Follow-Up
 
 2026-07-06 continuation work added a backend-owned packaging step for the moment Stitch returns updated frontend assets:

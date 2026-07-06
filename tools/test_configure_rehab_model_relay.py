@@ -35,6 +35,19 @@ def test_build_config_payload_keeps_secret_out_of_summary():
     assert summary["api_key"] == "<redacted>"
 
 
+def test_build_config_payload_defaults_gemini_base_url():
+    payload = module.build_config_payload(
+        provider="gemini",
+        base_url="",
+        model="gemini-1.5-flash",
+        api_key="test-api-key-value",
+    )
+
+    assert payload["provider"] == "gemini"
+    assert payload["base_url"] == "https://generativelanguage.googleapis.com/v1beta"
+    assert payload["model"] == "gemini-1.5-flash"
+
+
 def test_model_relay_config_path_quotes_project_id():
     assert (
         module.model_relay_config_path("project id/with spaces")

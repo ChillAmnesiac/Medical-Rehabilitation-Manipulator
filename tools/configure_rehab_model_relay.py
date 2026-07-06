@@ -19,6 +19,10 @@ from typing import Any
 
 DEFAULT_API_BASE = "http://106.55.62.122:8011"
 DEFAULT_AGENT_MESSAGE = "今天训练后有点酸痛，明天还能继续训练吗？"
+DEFAULT_PROVIDER_BASE_URLS = {
+    "gemini": "https://generativelanguage.googleapis.com/v1beta",
+    "google_gemini": "https://generativelanguage.googleapis.com/v1beta",
+}
 
 
 class Client:
@@ -74,9 +78,11 @@ def build_config_payload(
     api_key: str,
     external_enabled: bool = True,
 ) -> dict[str, Any]:
+    provider_text = require_text("provider", provider)
+    base_url_text = (base_url or "").strip() or DEFAULT_PROVIDER_BASE_URLS.get(provider_text.casefold())
     return {
-        "provider": require_text("provider", provider),
-        "base_url": require_text("base_url", base_url).rstrip("/"),
+        "provider": provider_text,
+        "base_url": require_text("base_url", base_url_text).rstrip("/"),
         "model": require_text("model", model),
         "api_key": require_text("api_key", api_key),
         "external_enabled": bool(external_enabled),

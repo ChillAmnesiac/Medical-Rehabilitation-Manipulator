@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable
+from urllib.parse import quote
 
 import httpx
 
@@ -28,6 +29,7 @@ class CloudModelError(RuntimeError):
 
 
 CloudModelCaller = Callable[[Settings, list[dict[str, str]]], str]
+DEFAULT_GEMINI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta"
 
 
 def is_unsafe_motion_request(text: str) -> bool:
@@ -120,12 +122,45 @@ def call_openai_compatible_model(settings: Settings, messages: list[dict[str, st
     return answer
 
 
+def call_gemini_model(settings: Settings, messages: list[dict[str, str]]) -> str:
+    payload = _gemini_payload(settings, messages)
+    headers = {
+        "x-goog-api-key": str(settings.agent_model_api_key or ""),
+        "Content-Type": "application/json",
+    }
+    try:
+        with httpx.Client(timeout=settings.agent_model_timeout_seconds) as client:
+            response = client.post(_gemini_generate_content_url(settings), headers=headers, json=payload)
+            response.raise_for_status()
+            body = response.json()
+    except (httpx.HTTPError, ValueError) as exc:
+        raise CloudModelError("cloud_model_unavailable") from exc
+
+    try:
+        parts = body["candidates"][0]["content"]["parts"]
+    except (KeyError, IndexError, TypeError) as exc:
+        raise CloudModelError("cloud_model_invalid_response") from exc
+    answer = "".join(str(part.get("text") or "") for part in parts if isinstance(part, dict)).strip()
+    if not answer:
+        raise CloudModelError("cloud_model_empty_response")
+    return answer
+
+
+def call_configured_cloud_model(settings: Settings, messages: list[dict[str, str]]) -> str:
+    provider = (settings.agent_model_provider or "openai_compatible").strip().casefold()
+    if provider in {"openai", "openai_compatible", "openai-compatible"}:
+        return call_openai_compatible_model(settings, messages)
+    if provider in {"gemini", "google_gemini", "google-gemini"}:
+        return call_gemini_model(settings, messages)
+    raise CloudModelError("cloud_model_provider_unsupported")
+
+
 def answer_patient_question(
     user: User,
     latest_report: TrainingReport | None,
     message: str,
     settings: Settings | None = None,
-    cloud_model_caller: CloudModelCaller = call_openai_compatible_model,
+    cloud_model_caller: CloudModelCaller = call_configured_cloud_model,
 ) -> dict[str, object]:
     if settings is not None and _cloud_model_configured(settings):
         try:
@@ -158,6 +193,43 @@ def answer_patient_question(
         "fallback_reason": "external_model_not_configured",
     }
     return _agent_response(message, _rule_based_patient_answer(user, latest_report), model_status)
+
+
+def _gemini_generate_content_url(settings: Settings) -> str:
+    base_url = (settings.agent_model_base_url or DEFAULT_GEMINI_BASE_URL).rstrip("/")
+    if base_url.endswith(":generateContent"):
+        return base_url
+    model = quote(settings.agent_model_name, safe="")
+    return f"{base_url}/models/{model}:generateContent"
+
+
+def _gemini_payload(settings: Settings, messages: list[dict[str, str]]) -> dict[str, object]:
+    system_parts: list[dict[str, str]] = []
+    contents: list[dict[str, object]] = []
+    for message in messages:
+        role = str(message.get("role") or "user").strip().lower()
+        content = str(message.get("content") or "").strip()
+        if not content:
+            continue
+        if role == "system":
+            system_parts.append({"text": content})
+            continue
+        contents.append(
+            {
+                "role": "model" if role == "assistant" else "user",
+                "parts": [{"text": content}],
+            }
+        )
+    payload: dict[str, object] = {
+        "contents": contents,
+        "generationConfig": {
+            "temperature": settings.agent_model_temperature,
+            "maxOutputTokens": settings.agent_model_max_tokens,
+        },
+    }
+    if system_parts:
+        payload["system_instruction"] = {"parts": system_parts}
+    return payload
 
 
 def _agent_response(message: str, answer: str, model_status: dict[str, object]) -> dict[str, object]:

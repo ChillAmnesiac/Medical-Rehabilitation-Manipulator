@@ -671,3 +671,20 @@
 - General Stitch backend handoff prompt: `docs/stitch/rehab-backend-contract-v1-prompt.md`
 - Phone-binding Stitch handoff prompt: `docs/stitch/rehab-phone-binding-stitch-prompt.md`
 - Safety boundary remains: the App and cloud provide education, planning, evidence, and transport frames only; M33 remains final motion authority.
+
+## 2026-07-06 Agent Gemini Provider Support
+
+- Added backend support for `AGENT_MODEL_PROVIDER=gemini` alongside the existing `openai_compatible` provider.
+- Gemini calls use Google `generateContent` with `x-goog-api-key`; the API key is kept out of JSON request bodies and docs.
+- `tools/configure_rehab_model_relay.py --provider gemini` now defaults the base URL to `https://generativelanguage.googleapis.com/v1beta` when omitted.
+- Updated:
+  - `cloud/rehab-platform/app/services/agent.py`
+  - `cloud/rehab-platform/tests/test_agent.py`
+  - `tools/configure_rehab_model_relay.py`
+  - `tools/test_configure_rehab_model_relay.py`
+  - `cloud/rehab-platform/.env.example`
+  - `cloud/rehab-platform/README.md`
+  - `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md`
+- Focused verification:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud/rehab-platform/tests/test_agent.py tools/test_configure_rehab_model_relay.py -q` -> `16 passed, 1 warning`
+- Staging still needs a real provider key configured and smoke-tested before `agent_cloud_model` can pass.

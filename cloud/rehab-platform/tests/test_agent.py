@@ -3,7 +3,7 @@ from fastapi.testclient import TestClient
 from app.core.config import Settings
 from app.main import create_app
 from app.models import TrainingReport, User
-from app.services.agent import CloudModelError, answer_patient_question
+from app.services.agent import CloudModelError, answer_patient_question, call_gemini_model
 
 
 def _auth_headers(client: TestClient) -> dict[str, str]:
@@ -198,6 +198,103 @@ def test_rehab_agent_uses_configured_cloud_model_with_patient_context():
     prompt_text = str(calls[0]["messages"])
     assert "康复师" in prompt_text
     assert "pain_score" in prompt_text
+
+
+def test_gemini_model_call_posts_generate_content(monkeypatch):
+    captured = {}
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "candidates": [
+                    {
+                        "content": {
+                            "parts": [
+                                {"text": "建议先做低强度热身，"},
+                                {"text": "疼痛升高就暂停。"},
+                            ]
+                        }
+                    }
+                ]
+            }
+
+    class FakeClient:
+        def __init__(self, timeout):
+            captured["timeout"] = timeout
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *_exc):
+            return None
+
+        def post(self, url, headers, json):
+            captured["url"] = url
+            captured["headers"] = headers
+            captured["json"] = json
+            return FakeResponse()
+
+    monkeypatch.setattr("app.services.agent.httpx.Client", FakeClient)
+    settings = Settings(
+        agent_model_provider="gemini",
+        agent_model_api_key="gemini-key",
+        agent_model_base_url="https://generativelanguage.googleapis.com/v1beta",
+        agent_model_name="gemini-1.5-flash",
+        agent_model_timeout_seconds=12,
+        agent_model_temperature=0.1,
+        agent_model_max_tokens=256,
+    )
+
+    answer = call_gemini_model(
+        settings,
+        [
+            {"role": "system", "content": "你是康复师，只回答安全康复建议。"},
+            {"role": "user", "content": '{"patient_message":"训练后酸痛怎么办"}'},
+        ],
+    )
+
+    assert answer == "建议先做低强度热身，疼痛升高就暂停。"
+    assert captured["timeout"] == 12
+    assert captured["url"] == (
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    )
+    assert captured["headers"]["x-goog-api-key"] == "gemini-key"
+    assert "gemini-key" not in str(captured["json"])
+    assert captured["json"]["system_instruction"]["parts"][0]["text"].startswith("你是康复师")
+    assert captured["json"]["contents"][0]["role"] == "user"
+    assert captured["json"]["generationConfig"] == {"temperature": 0.1, "maxOutputTokens": 256}
+
+
+def test_rehab_agent_dispatches_gemini_provider_with_patient_context(monkeypatch):
+    user = User(email="patient@example.com", password_hash="x", name="康复用户", rehab_stage="主动训练早期")
+    settings = Settings(
+        agent_model_provider="gemini",
+        agent_model_api_key="gemini-key",
+        agent_model_base_url="https://generativelanguage.googleapis.com/v1beta",
+        agent_model_name="gemini-1.5-flash",
+    )
+    calls = []
+
+    def fake_gemini_call(model_settings, messages):
+        calls.append({"settings": model_settings, "messages": messages})
+        return "可以继续低强度训练，但如果疼痛升高请暂停并联系康复师。"
+
+    monkeypatch.setattr("app.services.agent.call_gemini_model", fake_gemini_call)
+
+    answer = answer_patient_question(user, None, "今天训练后酸痛怎么办？", settings=settings)
+
+    assert answer["model_status"] == {
+        "mode": "cloud_model",
+        "configured": True,
+        "provider": "gemini",
+        "model": "gemini-1.5-flash",
+    }
+    assert answer["answer"].startswith("可以继续低强度训练")
+    assert calls[0]["settings"].agent_model_provider == "gemini"
+    assert "patient_message" in str(calls[0]["messages"])
 
 
 def test_rehab_agent_falls_back_when_cloud_model_is_unavailable():
