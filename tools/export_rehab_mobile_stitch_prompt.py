@@ -96,6 +96,7 @@ def _verification_section(packet: dict[str, Any]) -> list[str]:
 def _post_stitch_bundle_section(packet: dict[str, Any]) -> list[str]:
     artifacts = packet.get("required_artifacts") or {}
     tool = artifacts.get("frontend_release_tool") or "tools/prepare_rehab_mobile_frontend_release.py"
+    verifier = artifacts.get("frontend_release_verifier") or "tools/verify_rehab_mobile_frontend_release.py"
     source_dir = (packet.get("target") or {}).get("frontend_edit_scope", "apps/web/public/rehab-arm-mobile/")
     source_arg = source_dir.rstrip("/")
     return [
@@ -110,6 +111,12 @@ def _post_stitch_bundle_section(packet: dict[str, Any]) -> list[str]:
         (
             ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
             f"{tool} --source-dir {source_arg} --output-dir artifacts/rehab-mobile-frontend-release"
+        ),
+        (
+            ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
+            f"{verifier} "
+            "--manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json "
+            "--output artifacts/rehab-mobile-frontend-release/frontend-release-verification.json"
         ),
         "```",
     ]

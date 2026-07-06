@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-06T13:53:47Z
+Generated: 2026-07-06T14:03:19Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -129,6 +129,7 @@ Codex will run the local frontend L1 preflight and package the generated assets 
 ```powershell
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile --output artifacts/rehab-mobile-frontend-release/frontend-l1-preflight.json
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools/prepare_rehab_mobile_frontend_release.py --source-dir apps/web/public/rehab-arm-mobile --output-dir artifacts/rehab-mobile-frontend-release
+.\cloud\rehab-platform\.venv\Scripts\python.exe tools/verify_rehab_mobile_frontend_release.py --manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json --output artifacts/rehab-mobile-frontend-release/frontend-release-verification.json
 ```
 
 ## Codex Verification Commands

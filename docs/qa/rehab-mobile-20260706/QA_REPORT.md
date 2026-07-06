@@ -867,6 +867,35 @@ Fresh verification:
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
 
+## Frontend Release Manifest Verification Follow-Up
+
+2026-07-06 continuation work added a deploy-before-copy verification gate for the moment Stitch returns updated frontend assets:
+
+- New script: `tools/verify_rehab_mobile_frontend_release.py`
+- New tests: `tools/test_verify_rehab_mobile_frontend_release.py`
+- Updated release tool: `tools/prepare_rehab_mobile_frontend_release.py`
+- Updated repair packet artifact: `required_artifacts.frontend_release_verifier`
+- Refreshed prompt: `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`
+
+The verifier checks the generated frontend release manifest before any cloud copy:
+
+- Manifest schema is `rehab-mobile-frontend-release/v1`.
+- Zip exists, is non-empty, and matches the recorded sha256.
+- Local frontend preflight report exists and is `PASS`.
+- Required page artifacts are recorded for `home.html`, `profile.html`, `device.html`, and `ai-plan.html`.
+- Deploy commands and post-deploy verification commands are present.
+- Exact final browser QA screenshot filenames are preserved.
+
+Fresh verification:
+
+- Red test first: `tools/verify_rehab_mobile_frontend_release.py` did not exist.
+- Follow-up red tests first: release manifest did not include the verifier command, and the repair packet did not expose `frontend_release_verifier`.
+- Full local backend plus QA suite: `94 passed, 1 warning`.
+- Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remains `FAIL`: `8 / 11` failing, including all five exact L1 success screenshots missing.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.
+
 2026-07-06 continuation work tightened this path so Stitch output is checked before any cloud copy:
 
 - Updated script: `tools/qa_rehab_mobile_l1_frontend.py`

@@ -92,6 +92,7 @@ def _verification_commands(api_base: str, web_base: str, apk_url: str) -> list[s
         f"$env:REHAB_QA_WEB_BASE='{web_base}'",
         f"$env:REHAB_QA_APK_URL='{apk_url}'",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile",
+        ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\verify_rehab_mobile_frontend_release.py --manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json --output artifacts/rehab-mobile-frontend-release/frontend-release-verification.json",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_release.py",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_objective_audit.py",
         f"curl.exe -I -sS {apk_url}",

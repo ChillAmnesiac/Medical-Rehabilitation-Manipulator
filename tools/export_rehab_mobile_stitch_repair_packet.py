@@ -25,6 +25,7 @@ DEFAULT_REQUIRED_ARTIFACTS = {
     "stitch_runbook": "docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md",
     "api_fixture": "docs/stitch/rehab-mobile-l1-api-fixture-20260706.json",
     "frontend_release_tool": "tools/prepare_rehab_mobile_frontend_release.py",
+    "frontend_release_verifier": "tools/verify_rehab_mobile_frontend_release.py",
     "scorecard": "docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md",
     "qa_report": "docs/qa/rehab-mobile-20260706/QA_REPORT.md",
     "model_relay_runbook": "docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md",
