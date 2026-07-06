@@ -239,6 +239,7 @@ def test_render_prompt_hardens_browser_candidate_copy_and_touch_targets():
     assert "method: 'POST'" in prompt
     assert "Do not hard-code staging email, staging password, Bearer tokens, SMS debug codes, or API keys" in prompt
     assert "L1-FRONTEND-PRIVACY-001" in prompt
+    assert "Do not include bluetooth-debug.html, emg.html, or legacy-debug.html" in prompt
 
 
 def test_cli_writes_prompt_from_repair_packet(tmp_path):

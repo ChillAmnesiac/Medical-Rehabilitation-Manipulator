@@ -2666,3 +2666,71 @@ Acceptance boundary:
 
 - No cloud deployment or APK rebuild was performed because no runtime frontend
   files were accepted from Stitch and the current combined L1 gate still fails.
+
+## 2026-07-07 Stitch Promotion Debug Route Guard
+
+Codex tightened the Stitch frontend promotion gate so a visually/API-ready
+Stitch export cannot be promoted if the export package contains engineering
+debug HTML routes.
+
+New package-cleanliness blockers:
+
+- `bluetooth-debug.html`.
+- `legacy-debug.html`.
+- `emg.html`.
+
+Why this matters:
+
+- The current APK already contains stale/debug WebView routes such as
+  `bluetooth-debug.html`.
+- L1 requires the patient app path to be free of engineering/debug internals.
+- A future Stitch export must be a clean patient-facing package before Codex
+  mirrors it into Android WebView assets or deploys it to cloud.
+
+TDD evidence:
+
+- Red promotion test first failed because an otherwise L1-ready Stitch source
+  containing `bluetooth-debug.html` and `emg.html` returned exit code `0`.
+- `tools/promote_rehab_mobile_stitch_frontend.py` now blocks those route names
+  in `check_package_cleanliness()`.
+- Red prompt test first failed because the V4 Stitch prompt did not tell Stitch
+  to omit those debug routes.
+- `tools/export_rehab_mobile_stitch_prompt.py` now renders the promotion
+  cleanliness rule.
+
+Fresh verification:
+
+- `tools/test_promote_rehab_mobile_stitch_frontend.py` -> `6 passed`.
+- Related frontend/release verifier suite:
+  `tools/test_qa_rehab_mobile_l1_frontend.py`,
+  `tools/test_prepare_rehab_mobile_frontend_release.py`,
+  `tools/test_verify_rehab_mobile_frontend_release.py`,
+  `tools/test_verify_rehab_mobile_webview_mirror.py`, and
+  `tools/test_verify_rehab_mobile_apk_webview_assets.py` -> `35 passed`.
+- `tools/test_export_rehab_mobile_stitch_prompt.py` -> `4 passed`.
+
+Refreshed handoff and dry-run evidence:
+
+- Stitch prompt:
+  `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md`.
+- Current v3 candidate promotion dry-run:
+  `docs/qa/rehab-mobile-20260706/stitch-promotion-current-candidate-20260707/stitch-frontend-promotion.json`.
+- Current v3 candidate preflight:
+  `docs/qa/rehab-mobile-20260706/stitch-promotion-current-candidate-20260707/stitch-frontend-l1-preflight.json`.
+
+Current dry-run result:
+
+- Exit code: `2`.
+- `overall = FAIL`.
+- `copied = false`.
+- `package_cleanliness.status = FAIL`.
+- `package_cleanliness.forbidden_patterns` now includes the three debug route
+  names plus QA/report artifact patterns.
+- The current v3 candidate still fails because the source directory contains
+  mixed QA/browser report JSON files and the hardened frontend source preflight
+  is still `FAIL`.
+
+Acceptance boundary:
+
+- No cloud deployment or APK rebuild was performed because no clean Stitch
+  export passed promotion.

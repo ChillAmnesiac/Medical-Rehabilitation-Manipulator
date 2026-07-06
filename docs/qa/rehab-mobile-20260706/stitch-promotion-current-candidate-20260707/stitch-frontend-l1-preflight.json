@@ -2,7 +2,7 @@
   "summary": {
     "overall": "FAIL",
     "failed": 1,
-    "total": 5,
+    "total": 6,
     "web_base": null,
     "source_dir": "artifacts\\stitch\\l1-full-browser-qa-candidate-20260707"
   },
@@ -81,6 +81,21 @@
           "Simulate API response",
           "In real app"
         ],
+        "checked_pages": [
+          "ai-plan.html",
+          "device.html",
+          "home.html",
+          "profile.html"
+        ]
+      }
+    },
+    {
+      "gate": "L1-FRONTEND-PRIVACY-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Frontend source does not hardcode staging credentials, tokens, SMS codes, or API keys.",
+      "detail": {
+        "privacy_hits": [],
         "checked_pages": [
           "ai-plan.html",
           "device.html",

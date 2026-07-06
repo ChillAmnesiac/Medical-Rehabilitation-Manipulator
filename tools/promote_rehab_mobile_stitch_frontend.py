@@ -27,6 +27,9 @@ PREFLIGHT_REPORT = "stitch-frontend-l1-preflight.json"
 PROMOTION_REPORT = "stitch-frontend-promotion.json"
 MIRROR_REPORT = "webview-mirror-verification.json"
 FORBIDDEN_PROMOTION_FILE_PATTERNS = (
+    "bluetooth-debug.html",
+    "legacy-debug.html",
+    "emg.html",
     "frontend-l1-*.json",
     "browser-qa*.json",
     "browser-metrics*.json",

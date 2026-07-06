@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-07T07:10:00Z
+Generated: 2026-07-07T07:40:00Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -57,6 +57,7 @@ The 2026-07-07 four-page entity candidate passed source gates but is still rejec
   Profile must POST phone verification start/confirm requests with method: 'POST', Device must POST /api/rehab-arm/app/v1/devices/bind with method: 'POST', and Ask Therapist must POST /api/rehab-arm/app/v1/agent/messages with method: 'POST'.
 - L1-FRONTEND-PRIVACY-001: Do not hard-code staging email, staging password, Bearer tokens, SMS debug codes, or API keys in generated HTML, JavaScript, comments, or fixtures.
   Read runtime credentials from user input/session storage and read debug_code only from backend responses in staging mode.
+- Promotion cleanliness: Do not include bluetooth-debug.html, emg.html, or legacy-debug.html in the Stitch export package. These engineering routes are blocked before cloud/APK promotion.
 - Candidate screenshots are QA evidence only. Do not treat them as final L1 screenshots until the files are applied to the real App branch, mirrored into the APK WebView assets, deployed, and re-captured at exactly 390x844.
 
 ## Current Status

@@ -39,7 +39,7 @@
   "frontend_l1_preflight": {
     "overall": "FAIL",
     "failed": 1,
-    "total": 5,
+    "total": 6,
     "web_base": null,
     "source_dir": "artifacts\\stitch\\l1-full-browser-qa-candidate-20260707",
     "report_path": "docs\\qa\\rehab-mobile-20260706\\stitch-promotion-current-candidate-20260707\\stitch-frontend-l1-preflight.json"
@@ -61,6 +61,9 @@
       "frontend-l1-source-gate.json"
     ],
     "forbidden_patterns": [
+      "bluetooth-debug.html",
+      "legacy-debug.html",
+      "emg.html",
       "frontend-l1-*.json",
       "browser-qa*.json",
       "browser-metrics*.json",
