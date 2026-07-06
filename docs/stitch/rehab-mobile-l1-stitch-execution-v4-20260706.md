@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-07T03:31:02+08:00
+Generated: 2026-07-07T03:43:16+08:00
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -191,8 +191,8 @@ robocopy apps\web\public\rehab-arm-mobile apps\mobile\rehab-arm-android\www /MIR
 if ($LASTEXITCODE -le 7) { $global:LASTEXITCODE = 0 }
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools/prepare_rehab_mobile_frontend_release.py --source-dir apps/web/public/rehab-arm-mobile --output-dir artifacts/rehab-mobile-frontend-release
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools/verify_rehab_mobile_webview_mirror.py --web-dir apps/web/public/rehab-arm-mobile --android-www-dir apps/mobile/rehab-arm-android/www --output artifacts/rehab-mobile-frontend-release/webview-mirror-verification.json
-.\cloud\rehab-platform\.venv\Scripts\python.exe tools/verify_rehab_mobile_frontend_release.py --manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json --output artifacts/rehab-mobile-frontend-release/frontend-release-verification.json
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_browser_metrics.py --input artifacts/rehab-mobile-frontend-release/browser-metrics-l1-390x844.json --output artifacts/rehab-mobile-frontend-release/browser-metrics-gate.json
+.\cloud\rehab-platform\.venv\Scripts\python.exe tools/verify_rehab_mobile_frontend_release.py --manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json --output artifacts/rehab-mobile-frontend-release/frontend-release-verification.json
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools/deploy_rehab_mobile_frontend_release.py --manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json
 ```
 

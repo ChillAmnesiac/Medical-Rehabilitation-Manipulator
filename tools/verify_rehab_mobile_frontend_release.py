@@ -237,30 +237,54 @@ def _check_browser_evidence(manifest: dict[str, Any]) -> Result:
     )
 
 
-def _check_browser_metrics(manifest: dict[str, Any]) -> Result:
+def _check_browser_metrics(manifest_path: Path, manifest: dict[str, Any]) -> Result:
     verification = manifest.get("verification") if isinstance(manifest.get("verification"), dict) else {}
     commands = verification.get("powershell") if isinstance(verification.get("powershell"), list) else []
     joined_commands = "\n".join(str(command) for command in commands)
     report = verification.get("required_browser_metrics_report")
     output = verification.get("browser_metrics_gate_output")
+    output_path = _resolve_manifest_path(manifest_path, output)
+    detail: dict[str, Any] = {
+        "required_report": REQUIRED_BROWSER_METRICS_REPORT,
+        "actual_report": report,
+        "required_output": REQUIRED_BROWSER_METRICS_GATE_OUTPUT,
+        "actual_output": output,
+        "output_path": str(output_path) if output_path else None,
+        "has_command": "qa_rehab_mobile_browser_metrics.py" in joined_commands,
+    }
+    gate_summary: dict[str, Any] | None = None
+    gate_status = None
+    if output_path and output_path.is_file():
+        gate_payload = _load_json(output_path)
+        raw_summary = gate_payload.get("summary")
+        if isinstance(raw_summary, dict):
+            gate_summary = raw_summary
+            detail["gate_summary"] = gate_summary
+        for result in gate_payload.get("results") or []:
+            if isinstance(result, dict) and result.get("gate") == "L1-BROWSER-METRICS-001":
+                raw_status = result.get("status")
+                gate_status = raw_status if isinstance(raw_status, str) else None
+                detail["gate_status"] = gate_status
+                break
+    else:
+        detail["reason"] = "browser_metrics_gate_output_missing"
+
     ok = (
         report == REQUIRED_BROWSER_METRICS_REPORT
         and output == REQUIRED_BROWSER_METRICS_GATE_OUTPUT
         and "qa_rehab_mobile_browser_metrics.py" in joined_commands
         and f"--input artifacts/rehab-mobile-frontend-release/{REQUIRED_BROWSER_METRICS_REPORT}" in joined_commands
         and f"--output artifacts/rehab-mobile-frontend-release/{REQUIRED_BROWSER_METRICS_GATE_OUTPUT}" in joined_commands
+        and gate_summary is not None
+        and gate_summary.get("overall") == "PASS"
+        and gate_summary.get("failed") == 0
+        and gate_status == "PASS"
     )
     return _result(
         "FRONTEND-RELEASE-BROWSER-METRICS",
         ok,
-        "Release manifest requires the rendered browser metrics gate before L1 acceptance.",
-        {
-            "required_report": REQUIRED_BROWSER_METRICS_REPORT,
-            "actual_report": report,
-            "required_output": REQUIRED_BROWSER_METRICS_GATE_OUTPUT,
-            "actual_output": output,
-            "has_command": "qa_rehab_mobile_browser_metrics.py" in joined_commands,
-        },
+        "Release manifest requires a passing rendered browser metrics gate before L1 acceptance.",
+        detail,
     )
 
 
@@ -274,7 +298,7 @@ def verify_release_manifest(manifest_path: Path) -> dict[str, Any]:
         _check_pages(manifest),
         _check_deployment(manifest),
         _check_browser_evidence(manifest),
-        _check_browser_metrics(manifest),
+        _check_browser_metrics(manifest_path, manifest),
     ]
     failed = [result for result in results if result.status == "FAIL"]
     return {

@@ -257,15 +257,15 @@ def _post_stitch_bundle_section(packet: dict[str, Any]) -> list[str]:
         ),
         (
             ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
-            f"{verifier} "
-            "--manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json "
-            "--output artifacts/rehab-mobile-frontend-release/frontend-release-verification.json"
-        ),
-        (
-            ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
             "tools\\qa_rehab_mobile_browser_metrics.py "
             "--input artifacts/rehab-mobile-frontend-release/browser-metrics-l1-390x844.json "
             "--output artifacts/rehab-mobile-frontend-release/browser-metrics-gate.json"
+        ),
+        (
+            ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "
+            f"{verifier} "
+            "--manifest artifacts/rehab-mobile-frontend-release/rehab-mobile-frontend-release-manifest.json "
+            "--output artifacts/rehab-mobile-frontend-release/frontend-release-verification.json"
         ),
         (
             ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe "

@@ -1754,3 +1754,35 @@ Fresh verification:
 
 No cloud frontend deployment or APK rebuild was made for this tooling-only
 follow-up; the APK URL was still verified separately before commit.
+
+## 2026-07-07 Browser Metrics Deploy Verification Follow-Up
+
+Codex tightened the deployment-preflight chain so a prepared frontend release
+cannot pass verification by only listing the browser metrics command.
+
+Tooling changes:
+
+- `tools/verify_rehab_mobile_frontend_release.py` now opens the declared
+  `browser-metrics-gate.json` next to the release manifest and requires:
+  `summary.overall = PASS`, `summary.failed = 0`, and
+  `L1-BROWSER-METRICS-001.status = PASS`.
+- Missing or failing browser metrics gate output now fails
+  `FRONTEND-RELEASE-BROWSER-METRICS`.
+- `tools/prepare_rehab_mobile_frontend_release.py` now orders post-package
+  commands so `qa_rehab_mobile_browser_metrics.py` runs before
+  `verify_rehab_mobile_frontend_release.py`.
+- The generated V4 Stitch prompt's `After Stitch Hands Back Frontend Files`
+  section uses the same order, preventing a manual release review from checking
+  the manifest before metrics evidence exists.
+
+Fresh verification:
+
+- Red release-verifier tests first failed because missing and failing
+  `browser-metrics-gate.json` files still produced `overall = PASS`.
+- Red release-manifest ordering test first failed because the verifier command
+  came before the metrics command.
+- Red Stitch prompt ordering test first failed for the same old command order.
+- Focused release/prompt tests: `16 passed`.
+
+No cloud frontend deployment or APK rebuild was made for this tooling-only
+follow-up; the APK URL was still verified separately before commit.

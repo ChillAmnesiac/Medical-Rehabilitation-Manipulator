@@ -54,6 +54,34 @@ def _write_l1_ready_frontend(source_dir: Path) -> None:
     )
 
 
+def _write_browser_metrics_gate(output_dir: Path, *, status: str = "PASS") -> None:
+    failed = 0 if status == "PASS" else 1
+    payload = {
+        "summary": {"overall": status, "failed": failed, "total": 1},
+        "results": [
+            {
+                "gate": "L1-BROWSER-METRICS-001",
+                "level": "L1",
+                "status": status,
+                "summary": "Rendered mobile browser QA covers all L1 pages and has no touch/layout blockers.",
+                "detail": {
+                    "checked_pages": ["home", "profile", "device", "ai-plan"],
+                    "missing_pages": [],
+                    "fake_hits": [],
+                    "touch_issues": [] if status == "PASS" else [{"page": "ai-plan", "width": 40, "height": 40}],
+                    "input_issues": [],
+                    "overflow_issues": [],
+                    "vertical_text_issues": [],
+                },
+            }
+        ],
+    }
+    (output_dir / "browser-metrics-gate.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _build_manifest(tmp_path: Path) -> Path:
     prepare = _load_module(PREPARE_MODULE_PATH, "prepare_rehab_mobile_frontend_release")
     source_dir = tmp_path / "rehab-arm-mobile"
@@ -64,6 +92,7 @@ def _build_manifest(tmp_path: Path) -> Path:
         output_dir=output_dir,
         generated_at="2026-07-06T15:00:00Z",
     )
+    _write_browser_metrics_gate(output_dir)
     return Path(manifest["artifact"]["manifest_path"])
 
 
@@ -157,6 +186,34 @@ def test_verify_release_manifest_rejects_missing_browser_metrics_gate(tmp_path):
     assert payload["summary"]["overall"] == "FAIL"
     failed_gates = {result["gate"] for result in payload["results"] if result["status"] == "FAIL"}
     assert failed_gates == {"FRONTEND-RELEASE-BROWSER-METRICS"}
+
+
+def test_verify_release_manifest_rejects_missing_browser_metrics_gate_output(tmp_path):
+    verify = _load_module(VERIFY_MODULE_PATH, "verify_rehab_mobile_frontend_release")
+    manifest_path = _build_manifest(tmp_path)
+    (manifest_path.parent / "browser-metrics-gate.json").unlink()
+
+    payload = verify.verify_release_manifest(manifest_path)
+
+    assert payload["summary"]["overall"] == "FAIL"
+    failed_gates = {result["gate"] for result in payload["results"] if result["status"] == "FAIL"}
+    assert failed_gates == {"FRONTEND-RELEASE-BROWSER-METRICS"}
+    metrics = next(result for result in payload["results"] if result["gate"] == "FRONTEND-RELEASE-BROWSER-METRICS")
+    assert metrics["detail"]["reason"] == "browser_metrics_gate_output_missing"
+
+
+def test_verify_release_manifest_rejects_failed_browser_metrics_gate_output(tmp_path):
+    verify = _load_module(VERIFY_MODULE_PATH, "verify_rehab_mobile_frontend_release")
+    manifest_path = _build_manifest(tmp_path)
+    _write_browser_metrics_gate(manifest_path.parent, status="FAIL")
+
+    payload = verify.verify_release_manifest(manifest_path)
+
+    assert payload["summary"]["overall"] == "FAIL"
+    failed_gates = {result["gate"] for result in payload["results"] if result["status"] == "FAIL"}
+    assert failed_gates == {"FRONTEND-RELEASE-BROWSER-METRICS"}
+    metrics = next(result for result in payload["results"] if result["gate"] == "FRONTEND-RELEASE-BROWSER-METRICS")
+    assert metrics["detail"]["gate_summary"]["overall"] == "FAIL"
 
 
 def test_cli_writes_verification_report_and_returns_nonzero_on_failure(tmp_path):

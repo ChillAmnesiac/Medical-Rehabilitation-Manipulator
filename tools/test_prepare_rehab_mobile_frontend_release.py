@@ -106,6 +106,17 @@ def test_build_release_bundle_validates_pages_and_manifest(tmp_path):
     assert "qa_rehab_mobile_browser_metrics.py" in "\n".join(manifest["verification"]["powershell"])
     assert "browser-metrics-l1-390x844.json" in "\n".join(manifest["verification"]["powershell"])
     assert "browser-metrics-gate.json" in "\n".join(manifest["verification"]["powershell"])
+    verifier_index = next(
+        index
+        for index, command in enumerate(manifest["verification"]["powershell"])
+        if "verify_rehab_mobile_frontend_release.py" in command
+    )
+    metrics_index = next(
+        index
+        for index, command in enumerate(manifest["verification"]["powershell"])
+        if "qa_rehab_mobile_browser_metrics.py" in command
+    )
+    assert metrics_index < verifier_index
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(manifest["verification"]["powershell"])
     assert "scp" in "\n".join(manifest["deploy"]["commands"])
     verification_script = "\n".join(manifest["verification"]["powershell"])
