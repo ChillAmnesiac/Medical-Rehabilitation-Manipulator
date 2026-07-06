@@ -23,6 +23,10 @@ The current deployed frontend does not consume the backend `data.patient_view` c
 5. `05-profile-nav-390.png` - Profile tab after navigation.
 6. `06-profile-resmoke-390.png` - Profile resmoke after git-managed backend QA commits.
 7. `07-home-resmoke-390.png` - Home resmoke after git-managed backend QA commits.
+8. `screenshots/device-binding-home-390.png` - Home browser QA after device-binding deployment.
+9. `screenshots/device-binding-profile-390.png` - Profile browser QA after device-binding deployment.
+10. `screenshots/device-binding-device-390.png` - Device browser QA after device-binding deployment.
+11. `screenshots/device-binding-agent-390.png` - Agent browser QA after device-binding deployment.
 
 All screenshots were opened and inspected before being used as evidence. They show the deployed cloud app, not a blank page or wrong window.
 
@@ -106,6 +110,40 @@ Current production result:
 - Blocking gates: `frontend_l1_gate`
 
 This is now the L1 release decision command. A cloud deployment or APK refresh is not accepted as user-ready unless this command returns exit code `0` with `overall = PASS`.
+
+## 2026-07-06 Device Binding Deployment Resmoke
+
+After deploying `device-binding-hardening-20260706`, the cloud API and APK smoke were rerun.
+
+- Overall: `PASS`
+- P0 failed: `0`
+- Total: `16`
+- Cloud PID: `1449627`
+- Build SHA: `device-binding-hardening-20260706`
+- Build ref: `codex/rehab-mobile-backend-qa-20260706`
+- Build time: `2026-07-06T03:54:50Z`
+- `P0-DEVICE-FLOW-001`: `PASS`
+  - First bind status: `200`
+  - Repeat bind status: `200`
+  - Repeat bind reused the same device record: `true`
+  - Test device: `QA-REHAB-ARM-STAGING-001`
+- APK HEAD: `PASS`, size `4198462`, content type `application/vnd.android.package-archive`
+
+Combined L1 release gate after this deployment:
+
+- Overall: `FAIL`
+- API overall: `PASS`
+- API P0 failed: `0`
+- Frontend overall: `FAIL`
+- Frontend failed: `4`
+- Blocking gates: `frontend_l1_gate`
+
+Browser QA was also run in the in-app browser at `390 x 844`. The screenshots under `screenshots/device-binding-*.png` confirm the deployed frontend still shows patient-facing blockers:
+
+- `home`: false network warning, `setup_required`, `M33`, `M55`, no `问康复师` entry.
+- `profile`: false network warning and `M33`, profile screen still not centered on cloud account/phone.
+- `device`: `M33`, `M55`, `Gatekeeper`, and debug-oriented device content.
+- `agent`: not a normal rehab therapist chat entry; still starts from AI planning workflow and includes `M33`.
 
 ## Findings
 
@@ -193,13 +231,14 @@ Latest API/package acceptance smoke passed:
 
 - Overall: `PASS`
 - P0 failed: `0`
-- Total checks: `15`
-- Cloud PID: `1429532`
+- Total checks: `16`
+- Cloud PID: `1449627`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
-- Build SHA: `phone-verification-hardening-20260706`
-- Build time: `2026-07-06T03:33:43Z`
+- Build SHA: `device-binding-hardening-20260706`
+- Build time: `2026-07-06T03:54:50Z`
 - `P0-PATIENT-VIEW-001`: `PASS`
 - `P0-PHONE-FLOW-001`: `PASS`
+- `P0-DEVICE-FLOW-001`: `PASS`
 - Agent safe answer with `data.model_status`: `PASS`
 - Current Agent model mode: `fallback_rule_based`, reason `external_model_not_configured`
 - Agent unsafe refusal: `PASS`
@@ -273,6 +312,27 @@ Fresh verification:
 - Local backend plus QA suite: `35 passed, 1 warning`.
 - Cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 15`.
 - Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+- APK smoke remained `PASS` with size `4198462` bytes.
+
+## Backend Device Binding Follow-Up
+
+2026-07-06 continuation work hardened device binding ownership:
+
+- Local backend now treats `m33_device_id` as a hardware ownership key.
+- Same signed-in account can bind the same device repeatedly and update metadata without creating duplicates.
+- A different account trying to bind an already-owned `m33_device_id` now receives `409 DEVICE_ALREADY_BOUND`.
+- Acceptance smoke now includes `P0-DEVICE-FLOW-001`, which binds the staging device and repeats the bind to prove idempotency.
+- Cloud deployment patched `app/modules/rehab_arm/app_service.py` on `106.55.62.122`.
+
+Fresh verification:
+
+- Red test first: second account bind returned `200` before the fix, but the test expected `409`.
+- Device focused tests: `5 passed, 1 warning`.
+- Acceptance helper tests: `6 passed`.
+- Local focused combined tests: `11 passed, 1 warning`.
+- Cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 16`.
+- Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+- Browser QA screenshots: `docs/qa/rehab-mobile-20260706/screenshots/device-binding-*.png`.
 - APK smoke remained `PASS` with size `4198462` bytes.
 
 ## Accessibility Risks

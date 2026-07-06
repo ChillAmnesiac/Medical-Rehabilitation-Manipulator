@@ -100,3 +100,54 @@ def test_phone_verification_flow_fails_without_debug_code_for_automated_staging(
 
     assert ok is False
     assert detail["reason"] == "debug_code_missing"
+
+
+def test_device_binding_flow_binds_and_updates_same_device_idempotently():
+    module = _load_module()
+
+    class FakeClient:
+        def __init__(self):
+            self.calls = []
+
+        def request(self, method, path, payload=None, token=None, headers=None):
+            self.calls.append({"method": method, "path": path, "payload": payload, "token": token})
+            if len(self.calls) == 1:
+                return 200, {
+                    "data": {
+                        "id": "device-42",
+                        "m33_device_id": "QA-REHAB-ARM-STAGING-001",
+                        "ble_name": "LingDong Rehab QA",
+                        "trust_status": "trusted",
+                    }
+                }, {}
+            return 200, {
+                "data": {
+                    "id": "device-42",
+                    "m33_device_id": "QA-REHAB-ARM-STAGING-001",
+                    "ble_name": "LingDong Rehab QA Verified",
+                    "trust_status": "trusted",
+                }
+            }, {}
+
+    client = FakeClient()
+    ok, detail = module.run_device_binding_flow(client, "token", "QA-REHAB-ARM-STAGING-001")
+
+    assert ok is True
+    assert detail["device_id"] == "device-42"
+    assert detail["second_bind_same_device"] is True
+    assert client.calls[0]["path"] == "/api/rehab-arm/app/v1/devices/bind"
+    assert client.calls[0]["payload"]["m33_device_id"] == "QA-REHAB-ARM-STAGING-001"
+
+
+def test_device_binding_flow_surfaces_already_bound_conflict():
+    module = _load_module()
+
+    class FakeClient:
+        def request(self, method, path, payload=None, token=None, headers=None):
+            return 409, {"error": {"code": "DEVICE_ALREADY_BOUND", "message": "already bound"}}, {}
+
+    ok, detail = module.run_device_binding_flow(FakeClient(), "token", "QA-REHAB-ARM-STAGING-001")
+
+    assert ok is False
+    assert detail["reason"] == "first_bind_failed"
+    assert detail["error_code"] == "DEVICE_ALREADY_BOUND"

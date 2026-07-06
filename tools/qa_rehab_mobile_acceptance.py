@@ -169,6 +169,63 @@ def run_phone_verification_flow(client: Client, token: str, phone: str) -> tuple
     return confirm_status == 200 and profile.get("phone_verified") is True, detail
 
 
+def run_device_binding_flow(client: Client, token: str, device_id: str) -> tuple[bool, dict[str, Any]]:
+    first_status, first_body, _ = client.request(
+        "POST",
+        "/api/rehab-arm/app/v1/devices/bind",
+        {
+            "m33_device_id": device_id,
+            "ble_name": "LingDong Rehab QA",
+            "trust_status": "trusted",
+            "firmware_version": "qa-smoke-1",
+        },
+        token=token,
+    )
+    first_data = data(first_body)
+    detail: dict[str, Any] = {
+        "first_bind_status_code": first_status,
+        "requested_m33_device_id": device_id,
+        "device_id": first_data.get("id"),
+        "m33_device_id": first_data.get("m33_device_id"),
+        "trust_status": first_data.get("trust_status"),
+    }
+    if first_status != 200:
+        detail["reason"] = "first_bind_failed"
+        if isinstance(first_body, dict):
+            detail["error_code"] = (first_body.get("error") or {}).get("code")
+        return False, detail
+    if not first_data.get("id") or first_data.get("m33_device_id") != device_id:
+        detail["reason"] = "first_bind_payload_invalid"
+        return False, detail
+
+    second_status, second_body, _ = client.request(
+        "POST",
+        "/api/rehab-arm/app/v1/devices/bind",
+        {
+            "m33_device_id": device_id,
+            "ble_name": "LingDong Rehab QA Verified",
+            "trust_status": "trusted",
+            "firmware_version": "qa-smoke-2",
+        },
+        token=token,
+    )
+    second_data = data(second_body)
+    second_bind_same_device = first_data.get("id") == second_data.get("id")
+    detail.update(
+        {
+            "second_bind_status_code": second_status,
+            "second_bind_same_device": second_bind_same_device,
+            "updated_ble_name": second_data.get("ble_name"),
+        }
+    )
+    return (
+        second_status == 200
+        and second_bind_same_device
+        and second_data.get("m33_device_id") == device_id
+        and second_data.get("ble_name") == "LingDong Rehab QA Verified"
+    ), detail
+
+
 def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     client = Client(args.api_base, args.timeout)
     results: list[Result] = []
@@ -279,6 +336,16 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             phone_flow_ok,
             "Staging account can request and confirm a phone verification code.",
             phone_flow_detail,
+        )
+
+        device_flow_ok, device_flow_detail = run_device_binding_flow(client, token, args.device_test_id)
+        add(
+            results,
+            "P0-DEVICE-FLOW-001",
+            "P0",
+            device_flow_ok,
+            "Staging account can bind a rehab device and repeat binding idempotently.",
+            device_flow_detail,
         )
 
         workflow_status, workflow_body, _ = client.request("GET", "/api/rehab-arm/app/v1/me/workflow", token=token)
@@ -423,6 +490,10 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--email", default=os.getenv("REHAB_QA_EMAIL"))
     parser.add_argument("--password", default=os.getenv("REHAB_QA_PASSWORD"))
     parser.add_argument("--phone-test-phone", default=os.getenv("REHAB_QA_PHONE_TEST_PHONE", "+8613800006131"))
+    parser.add_argument(
+        "--device-test-id",
+        default=os.getenv("REHAB_QA_DEVICE_TEST_ID", "QA-REHAB-ARM-STAGING-001"),
+    )
     parser.add_argument("--timeout", type=int, default=int(os.getenv("REHAB_QA_TIMEOUT", "20")))
     return parser.parse_args(argv)
 

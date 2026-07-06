@@ -156,6 +156,32 @@
   - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
   - APK remains reachable: `Content-Length: 4198462`, content type `application/vnd.android.package-archive`.
 
+## 2026-07-06 Device Binding Hardening
+
+- Local backend device binding now enforces hardware ownership by `m33_device_id`:
+  - the same account can re-bind the same device idempotently and update metadata,
+  - another account receives `409 DEVICE_ALREADY_BOUND` for an already-owned hardware ID.
+- Acceptance smoke now includes `P0-DEVICE-FLOW-001`, which binds `QA-REHAB-ARM-STAGING-001` and repeats the bind to verify the same device record is reused.
+- Cloud patch deployed to:
+  - `app/modules/rehab_arm/app_service.py`
+- Cloud backup created:
+  - `app/modules/rehab_arm/app_service.py.bak-device-binding-20260706`
+- Cloud restart:
+  - PID: `1449627`
+  - Explicit database URL: `sqlite:///./ai_collab_server.db`
+  - Build SHA label: `device-binding-hardening-20260706`
+  - Build ref: `codex/rehab-mobile-backend-qa-20260706`
+  - Build time: `2026-07-06T03:54:50Z`
+- Fresh verification:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests\test_devices.py -q` -> `5 passed, 1 warning`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools\test_qa_rehab_mobile_acceptance.py -q` -> `6 passed`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests\test_devices.py tools\test_qa_rehab_mobile_acceptance.py -q` -> `11 passed, 1 warning`
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 16`
+  - `P0-DEVICE-FLOW-001` -> `PASS`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
+  - Browser QA at `390 x 844` captured `docs/qa/rehab-mobile-20260706/screenshots/device-binding-*.png`; frontend still shows false network/error workflow text and raw hardware/debug vocabulary.
+  - APK remains reachable: `Content-Length: 4198462`, content type `application/vnd.android.package-archive`.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

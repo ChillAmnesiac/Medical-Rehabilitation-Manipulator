@@ -59,6 +59,10 @@ The backend exposes the routes already used by `apps/web/public/rehab-arm-mobile
 
 `POST /api/rehab-arm/app/v1/account/phone-verifications` creates a short-lived code for binding the signed-in account to a phone number. Staging can expose `debug_code` for automated QA with `PHONE_VERIFICATION_DEBUG_CODE_ENABLED=true`; production-like deployments should disable it and use a real SMS provider. Wrong-code attempts are capped by `PHONE_VERIFICATION_MAX_ATTEMPTS`.
 
+### Device Binding
+
+`POST /api/rehab-arm/app/v1/devices/bind` treats `m33_device_id` as the hardware ownership key. Repeating the same bind from the signed-in account updates the existing device record and returns the same `id`. If another account already owns that `m33_device_id`, the endpoint returns `409 DEVICE_ALREADY_BOUND` so the app can show a recoverable already-bound state instead of silently claiming the device.
+
 ### Rehab Therapist Agent
 
 `POST /api/rehab-arm/app/v1/agent/messages` uses an OpenAI-compatible chat endpoint when `AGENT_MODEL_API_KEY` is configured. If no external model is configured or the provider is unavailable, the endpoint safely falls back to a rule-based patient answer and always returns `data.model_status`.

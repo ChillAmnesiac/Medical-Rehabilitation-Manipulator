@@ -12,6 +12,7 @@ Required:
 - Auth/session passes.
 - `/api/rehab-arm/app/v1/me` returns `profile` and `patient_view`.
 - Phone binding APIs pass.
+- Device binding APIs pass, including same-account idempotency.
 - Agent safe answer and unsafe refusal pass.
 - CORS passes from deployed web origin.
 - APK URL is reachable.
@@ -76,6 +77,7 @@ Current result: `NOT READY`.
 | Backend API | PASS | `tools/qa_rehab_mobile_acceptance.py`, `overall = PASS`, `p0_failed = 0` |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code end to end |
+| Device binding flow | PASS | `P0-DEVICE-FLOW-001` binds `QA-REHAB-ARM-STAGING-001` and repeats binding against the same record |
 | Agent backend safety | PASS | Safe answer `200` with `model_status`, unsafe direct-control requests `400 UNSAFE_MOTION_REQUEST` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |
 | Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate` |

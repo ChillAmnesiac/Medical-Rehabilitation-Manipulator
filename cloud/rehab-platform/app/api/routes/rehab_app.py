@@ -256,12 +256,22 @@ def bind_device(
     user: User = Depends(require_current_user),
     db: Session = Depends(get_db),
 ):
-    device = db.scalar(
-        select(Device).where(
-            Device.owner_id == user.id,
-            Device.m33_device_id == request.m33_device_id,
-        )
+    devices_with_same_hardware_id = list(
+        db.scalars(
+            select(Device)
+            .where(Device.m33_device_id == request.m33_device_id)
+            .order_by(Device.created_at.asc(), Device.id.asc())
+        ).all()
     )
+    device = next((existing for existing in devices_with_same_hardware_id if existing.owner_id == user.id), None)
+    if device is None and devices_with_same_hardware_id:
+        raise HTTPException(
+            status_code=409,
+            detail={
+                "code": "DEVICE_ALREADY_BOUND",
+                "message": "This rehab device is already bound to another account.",
+            },
+        )
     if device is None:
         device = Device(owner_id=user.id, m33_device_id=request.m33_device_id)
     device.ble_name = request.ble_name or request.m33_device_id
