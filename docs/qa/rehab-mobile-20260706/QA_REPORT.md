@@ -1427,3 +1427,38 @@ Fresh verification:
   `application/vnd.android.package-archive`.
 - No cloud runtime, deployed web frontend, or APK package was changed in this
   follow-up.
+
+## Stitch MCP Generation Attempt Follow-Up
+
+2026-07-07 continuation work verified that the Google Stitch MCP HTTP endpoint
+is reachable from Codex and supports project/screen tools.
+
+Stitch MCP actions:
+
+- Initialized the Stitch MCP endpoint successfully.
+- Listed available tools including `create_project`,
+  `generate_screen_from_text`, and `edit_screens`.
+- Created Stitch project `projects/1542023501541093471`, title
+  `Rehab Mobile L1 Closure`.
+- Generated and iterated mobile screen candidates for `home.html`,
+  `profile.html`, `device.html`, and `ai-plan.html`.
+
+Result:
+
+- The Stitch-generated screens were not accepted for frontend use.
+- Generated HTML avoided raw engineering/debug terms, but failed exact L1 copy
+  requirements:
+  - `home.html`: missing `查看康复师建议`, `问康复师`.
+  - `profile.html`: missing `我的康复档案`, `绑定手机号`, `验证码`.
+  - `device.html`: missing `绑定设备`, `打开康复设备电源`.
+  - `ai-plan.html`: missing `问康复师`.
+- No Stitch-generated HTML was copied into
+  `apps/web/public/rehab-arm-mobile/` or
+  `apps/mobile/rehab-arm-android/www/`.
+- Detailed attempt record:
+  `docs/stitch/rehab-mobile-l1-stitch-mcp-attempt-20260707.md`.
+
+Fresh live gate after this attempt:
+
+- `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, blocker
+  `frontend_l1_gate` only.
