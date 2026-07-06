@@ -29,6 +29,7 @@ The current deployed frontend does not consume the backend `data.patient_view` c
 11. `screenshots/device-binding-agent-390.png` - Agent browser QA after device-binding deployment.
 12. `screenshots/sms-readiness-device-390.png` - Device page browser QA after SMS readiness deployment.
 13. `screenshots/sms-webhook-device-390.png` - Device page browser QA after SMS webhook deployment.
+14. `screenshots/phone-cooldown-profile-390.png` - Profile page browser QA after phone resend cooldown deployment.
 
 All screenshots were opened and inspected before being used as evidence. They show the deployed cloud app, not a blank page or wrong window.
 
@@ -45,6 +46,7 @@ All screenshots were opened and inspected before being used as evidence. They sh
 | 7 | Home resmoke on current production frontend | FAIL | `07-home-resmoke-390.png` |
 | 8 | Device page after SMS readiness deployment | FAIL | `screenshots/sms-readiness-device-390.png` |
 | 9 | Device page after SMS webhook deployment | FAIL | `screenshots/sms-webhook-device-390.png` |
+| 10 | Profile page after phone resend cooldown deployment | FAIL | `screenshots/phone-cooldown-profile-390.png` |
 
 ## 2026-07-06 L1 Resmoke
 
@@ -244,13 +246,14 @@ Latest API/package acceptance smoke passed after the SMS webhook deployment:
 
 - Overall: `PASS`
 - P0 failed: `0`
-- Total checks: `19`
-- Cloud PID: `1620444`
+- Total checks: `20`
+- Cloud PID: `1639678`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
 - Build SHA: `unknown`
 - Build time: `unknown`
 - `P0-PATIENT-VIEW-001`: `PASS`
 - `P0-PHONE-FLOW-001`: `PASS`
+- `P1-PHONE-RESEND-001`: `PASS`
 - `P0-DEVICE-FLOW-001`: `PASS`
 - `P0-DEVICE-CONFLICT-001`: `PASS`
 - Agent safe answer with `data.model_status`: `PASS`
@@ -439,6 +442,44 @@ Fresh verification:
 - APK smoke remained `PASS` with size `4198462` bytes and content type `application/vnd.android.package-archive`.
 - Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
 - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/sms-webhook-device-390.png`; the device page still shows `setup_required`, `M33`, `M55`, `Gatekeeper`, and debug-oriented device content.
+
+## Backend Phone Verification Resend Cooldown Follow-Up
+
+2026-07-06 continuation work added resend throttling so a user cannot repeatedly trigger phone verification sends by tapping too quickly:
+
+- Local backend setting: `PHONE_VERIFICATION_RESEND_COOLDOWN_SECONDS`, default `60`.
+- Cloud setting: `rehab_arm_phone_verification_resend_cooldown_seconds`, default `60`.
+- `GET /api/rehab-arm/app/v1/public-config` now exposes `data.phone_verification.resend_cooldown_seconds`.
+- Immediate repeat requests for the same signed-in user, phone, and purpose now return `429 PHONE_CODE_RESEND_TOO_SOON`.
+- Local error responses preserve `retry_after`; cloud AppError responses expose it under `error.details.retry_after`.
+- Acceptance smoke now includes `P1-PHONE-RESEND-001`.
+- Cloud deployment patched:
+  - `app/settings.py`
+  - `app/modules/rehab_arm/app_router.py`
+  - `app/modules/rehab_arm/app_service.py`
+- Cloud backups:
+  - `app/settings.py.bak-phone-cooldown-20260706`
+  - `app/modules/rehab_arm/app_router.py.bak-phone-cooldown-20260706`
+  - `app/modules/rehab_arm/app_service.py.bak-phone-cooldown-20260706`
+- Cloud restart:
+  - PID: `1639678`
+  - API: `http://106.55.62.122:8011`
+
+Fresh verification:
+
+- Red test first: immediate resend returned `200` before cooldown enforcement.
+- Intermediate root cause: local error wrapping initially dropped `retry_after`; `cloud/rehab-platform/app/main.py` now preserves controlled extra error fields.
+- Focused phone backend tests: `9 passed, 1 warning`.
+- Acceptance helper tests: `14 passed`.
+- Full local backend plus QA suite: `51 passed, 1 warning`.
+- Remote compile: `.venv/bin/python -m py_compile app/settings.py app/modules/rehab_arm/app_router.py app/modules/rehab_arm/app_service.py`.
+- Cloud public-config shows `resend_cooldown_seconds = 60`.
+- Manual cloud resend smoke: second request returned `429 PHONE_CODE_RESEND_TOO_SOON` with `retry_after`.
+- Cloud acceptance: `overall = PASS`, `p0_failed = 0`, `total = 20`.
+- `P1-PHONE-RESEND-001` -> `PASS`.
+- APK smoke remained `PASS` with size `4198462` bytes and content type `application/vnd.android.package-archive`.
+- Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+- Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/phone-cooldown-profile-390.png`; the profile page still misses the phone field and shows demo/engineering content, so Stitch must consume the phone contract before L1 can pass.
 
 ## Accessibility Risks
 

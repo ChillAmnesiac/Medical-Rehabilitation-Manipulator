@@ -57,7 +57,7 @@ The backend exposes the routes already used by `apps/web/public/rehab-arm-mobile
 
 ### Phone Verification
 
-`POST /api/rehab-arm/app/v1/account/phone-verifications` creates a short-lived code for binding the signed-in account to a phone number. Staging can expose `debug_code` for automated QA with `PHONE_VERIFICATION_DEBUG_CODE_ENABLED=true`; production-like deployments should disable it and use a real SMS provider. Wrong-code attempts are capped by `PHONE_VERIFICATION_MAX_ATTEMPTS`.
+`POST /api/rehab-arm/app/v1/account/phone-verifications` creates a short-lived code for binding the signed-in account to a phone number. Staging can expose `debug_code` for automated QA with `PHONE_VERIFICATION_DEBUG_CODE_ENABLED=true`; production-like deployments should disable it and use a real SMS provider. Wrong-code attempts are capped by `PHONE_VERIFICATION_MAX_ATTEMPTS`, and immediate resend is throttled by `PHONE_VERIFICATION_RESEND_COOLDOWN_SECONDS`. A throttled resend returns `429 PHONE_CODE_RESEND_TOO_SOON` with `retry_after` seconds for the app countdown.
 
 ### Device Binding
 

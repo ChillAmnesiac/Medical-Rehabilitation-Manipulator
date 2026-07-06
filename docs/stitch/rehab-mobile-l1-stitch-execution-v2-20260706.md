@@ -178,6 +178,8 @@ Fix 6 - Phone verification:
 - Read public delivery status from:
   GET /api/rehab-arm/app/v1/public-config
   Path: data.phone_verification.delivery_status
+- Also read resend cooldown from:
+  data.phone_verification.resend_cooldown_seconds
 - If delivery_status.mode = debug_sms, show staging/test helper copy only. Do not imply a production SMS provider is connected.
 - If delivery_status.mode = sms, show normal "验证码已发送" copy.
 - If delivery_status.mode = sms_unconfigured, show a calm unavailable state and ask the user to retry later or contact support.
@@ -194,6 +196,8 @@ Fix 6 - Phone verification:
   "验证码服务暂未开启，请稍后重试或联系康复师。"
 - If start returns `PHONE_SMS_DELIVERY_FAILED`, show:
   "验证码发送未成功，请检查手机号或稍后重试。"
+- If start returns `PHONE_CODE_RESEND_TOO_SOON`, read `error.retry_after` or `error.details.retry_after`, disable resend, and show:
+  "验证码已发送，请 {retry_after} 秒后再试。"
 - Wrong code copy:
   "验证码不正确或已过期，请重新输入。"
 - Attempt limit copy:
@@ -238,4 +242,5 @@ Current failure evidence:
 - docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png
 - docs/qa/rehab-mobile-20260706/screenshots/sms-readiness-device-390.png
 - docs/qa/rehab-mobile-20260706/screenshots/sms-webhook-device-390.png
+- docs/qa/rehab-mobile-20260706/screenshots/phone-cooldown-profile-390.png
 ```

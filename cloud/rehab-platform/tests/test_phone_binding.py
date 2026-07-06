@@ -70,6 +70,22 @@ def test_phone_verification_rejects_wrong_code_without_binding_phone():
     assert me["profile"]["phone_verified"] is False
 
 
+def test_phone_verification_rate_limits_immediate_resend(monkeypatch):
+    monkeypatch.setenv("PHONE_VERIFICATION_RESEND_COOLDOWN_SECONDS", "60")
+    client = TestClient(create_app(database_url="sqlite+pysqlite:///:memory:"))
+    headers = _auth_headers(client)
+    payload = {"phone": "+15550106666", "purpose": "bind_account"}
+
+    first = client.post("/api/rehab-arm/app/v1/account/phone-verifications", headers=headers, json=payload)
+    second = client.post("/api/rehab-arm/app/v1/account/phone-verifications", headers=headers, json=payload)
+
+    assert first.status_code == 200
+    assert second.status_code == 429
+    error = second.json()["error"]
+    assert error["code"] == "PHONE_CODE_RESEND_TOO_SOON"
+    assert 1 <= error["retry_after"] <= 60
+
+
 def test_phone_verification_delivers_via_webhook_when_debug_sms_disabled(monkeypatch):
     deliveries = []
 
@@ -199,6 +215,7 @@ def test_public_config_exposes_phone_delivery_readiness_without_secret(monkeypat
     assert response.status_code == 200
     phone_verification = response.json()["data"]["phone_verification"]
     assert phone_verification["start_endpoint"] == "/api/rehab-arm/app/v1/account/phone-verifications"
+    assert phone_verification["resend_cooldown_seconds"] == 60
     delivery_status = phone_verification["delivery_status"]
     assert delivery_status == {
         "mode": "sms",

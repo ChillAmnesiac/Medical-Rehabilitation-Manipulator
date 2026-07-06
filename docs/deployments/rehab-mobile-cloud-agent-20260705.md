@@ -280,6 +280,45 @@
   - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/sms-webhook-device-390.png`.
   - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
 
+## 2026-07-06 Phone Verification Resend Cooldown
+
+- Added resend throttling for phone verification:
+  - Local setting: `PHONE_VERIFICATION_RESEND_COOLDOWN_SECONDS`
+  - Cloud setting: `rehab_arm_phone_verification_resend_cooldown_seconds`
+  - Default: `60` seconds
+- Behavior:
+  - First code request for a user/phone/purpose is allowed.
+  - An immediate repeat request returns `429 PHONE_CODE_RESEND_TOO_SOON`.
+  - Local error payload preserves `retry_after`; cloud error payload exposes `error.details.retry_after`.
+  - `GET /api/rehab-arm/app/v1/public-config` exposes `data.phone_verification.resend_cooldown_seconds`.
+- Acceptance gate added:
+  - `P1-PHONE-RESEND-001`
+- Cloud patch deployed to:
+  - `app/settings.py`
+  - `app/modules/rehab_arm/app_router.py`
+  - `app/modules/rehab_arm/app_service.py`
+- Cloud backups created:
+  - `app/settings.py.bak-phone-cooldown-20260706`
+  - `app/modules/rehab_arm/app_router.py.bak-phone-cooldown-20260706`
+  - `app/modules/rehab_arm/app_service.py.bak-phone-cooldown-20260706`
+- Cloud restart:
+  - PID: `1639678`
+  - API: `http://106.55.62.122:8011`
+  - Database URL: `sqlite:///./ai_collab_server.db`
+- Fresh verification:
+  - Red backend test first showed immediate resend still returned `200`.
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests\test_phone_binding.py -q` -> `9 passed, 1 warning`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools\test_qa_rehab_mobile_acceptance.py -q` -> `14 passed`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests tools\test_qa_rehab_mobile_acceptance.py tools\test_qa_rehab_mobile_l1_frontend.py tools\test_qa_rehab_mobile_l1_release.py -q` -> `51 passed, 1 warning`
+  - Remote `.venv/bin/python -m py_compile app/settings.py app/modules/rehab_arm/app_router.py app/modules/rehab_arm/app_service.py` passed.
+  - Cloud public-config returned `resend_cooldown_seconds: 60`.
+  - Manual cloud smoke returned `429 PHONE_CODE_RESEND_TOO_SOON` with `retry_after` on immediate resend.
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 20`
+  - `P1-PHONE-RESEND-001` -> `PASS`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
+  - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/phone-cooldown-profile-390.png`.
+  - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

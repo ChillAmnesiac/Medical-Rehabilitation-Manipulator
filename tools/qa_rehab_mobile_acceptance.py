@@ -12,6 +12,7 @@ import argparse
 import json
 import os
 import sys
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -254,6 +255,47 @@ def run_phone_verification_flow(client: Client, token: str, phone: str) -> tuple
     return confirm_status == 200 and profile.get("phone_verified") is True, detail
 
 
+def run_phone_resend_cooldown_flow(
+    client: Client,
+    token: str,
+    phone: str | None = None,
+) -> tuple[bool, dict[str, Any]]:
+    test_phone = phone or f"+15559{int(time.time() * 1000) % 1_000_000:06d}"
+    payload = {"phone": test_phone, "purpose": "bind_account"}
+    first_status, first_body, _ = client.request(
+        "POST",
+        "/api/rehab-arm/app/v1/account/phone-verifications",
+        payload,
+        token=token,
+    )
+    second_status, second_body, _ = client.request(
+        "POST",
+        "/api/rehab-arm/app/v1/account/phone-verifications",
+        payload,
+        token=token,
+    )
+    second_error = second_body.get("error") if isinstance(second_body, dict) else {}
+    if not isinstance(second_error, dict):
+        second_error = {}
+    second_details = second_error.get("details") if isinstance(second_error.get("details"), dict) else {}
+    retry_after = second_error.get("retry_after") or second_details.get("retry_after")
+    detail: dict[str, Any] = {
+        "phone": test_phone,
+        "first_status_code": first_status,
+        "second_status_code": second_status,
+        "second_error_code": second_error.get("code"),
+        "retry_after": retry_after,
+        "first_delivery_channel": data(first_body).get("delivery_channel"),
+    }
+    return (
+        first_status == 200
+        and second_status == 429
+        and second_error.get("code") == "PHONE_CODE_RESEND_TOO_SOON"
+        and isinstance(retry_after, int)
+        and retry_after > 0
+    ), detail
+
+
 def run_device_binding_flow(client: Client, token: str, device_id: str) -> tuple[bool, dict[str, Any]]:
     first_status, first_body, _ = client.request(
         "POST",
@@ -491,6 +533,19 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             "Staging account can request and confirm a phone verification code.",
             phone_flow_detail,
         )
+        phone_resend_ok, phone_resend_detail = run_phone_resend_cooldown_flow(
+            client,
+            token,
+            args.phone_cooldown_test_phone,
+        )
+        add(
+            results,
+            "P1-PHONE-RESEND-001",
+            "P1",
+            phone_resend_ok,
+            "Phone verification immediate resend is throttled with a retry_after countdown.",
+            phone_resend_detail,
+        )
 
         device_flow_ok, device_flow_detail = run_device_binding_flow(client, token, args.device_test_id)
         add(
@@ -687,6 +742,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--email", default=os.getenv("REHAB_QA_EMAIL"))
     parser.add_argument("--password", default=os.getenv("REHAB_QA_PASSWORD"))
     parser.add_argument("--phone-test-phone", default=os.getenv("REHAB_QA_PHONE_TEST_PHONE", "+8613800006131"))
+    parser.add_argument("--phone-cooldown-test-phone", default=os.getenv("REHAB_QA_PHONE_COOLDOWN_TEST_PHONE"))
     parser.add_argument(
         "--device-test-id",
         default=os.getenv("REHAB_QA_DEVICE_TEST_ID", "QA-REHAB-ARM-STAGING-001"),

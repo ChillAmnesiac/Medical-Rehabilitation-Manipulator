@@ -144,6 +144,52 @@ def test_phone_verification_flow_fails_without_debug_code_for_automated_staging(
     assert detail["reason"] == "debug_code_missing"
 
 
+def test_phone_resend_cooldown_accepts_retry_after_in_details():
+    module = _load_module()
+
+    class FakeClient:
+        def __init__(self):
+            self.calls = []
+
+        def request(self, method, path, payload=None, token=None, headers=None):
+            self.calls.append({"method": method, "path": path, "payload": payload, "token": token})
+            if len(self.calls) == 1:
+                return 200, {"data": {"delivery_channel": "debug_sms"}}, {}
+            return 429, {
+                "error": {
+                    "code": "PHONE_CODE_RESEND_TOO_SOON",
+                    "message": "too soon",
+                    "details": {"retry_after": 42},
+                }
+            }, {}
+
+    ok, detail = module.run_phone_resend_cooldown_flow(FakeClient(), "token", "+15550107777")
+
+    assert ok is True
+    assert detail["second_status_code"] == 429
+    assert detail["second_error_code"] == "PHONE_CODE_RESEND_TOO_SOON"
+    assert detail["retry_after"] == 42
+
+
+def test_phone_resend_cooldown_accepts_retry_after_on_error_root():
+    module = _load_module()
+
+    class FakeClient:
+        def __init__(self):
+            self.calls = 0
+
+        def request(self, method, path, payload=None, token=None, headers=None):
+            self.calls += 1
+            if self.calls == 1:
+                return 200, {"data": {"delivery_channel": "debug_sms"}}, {}
+            return 429, {"error": {"code": "PHONE_CODE_RESEND_TOO_SOON", "retry_after": 30}}, {}
+
+    ok, detail = module.run_phone_resend_cooldown_flow(FakeClient(), "token", "+15550107778")
+
+    assert ok is True
+    assert detail["retry_after"] == 30
+
+
 def test_phone_delivery_readiness_reports_real_sms_ready():
     module = _load_module()
 

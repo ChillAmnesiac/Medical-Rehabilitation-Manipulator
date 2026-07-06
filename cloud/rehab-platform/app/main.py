@@ -37,9 +37,13 @@ def create_app(database_url: str | None = None) -> FastAPI:
         detail = exc.detail if isinstance(exc.detail, dict) else {}
         code = detail.get("code", "HTTP_ERROR")
         message = detail.get("message", str(exc.detail))
+        error = {"code": code, "message": message}
+        for key, value in detail.items():
+            if key not in error:
+                error[key] = value
         return JSONResponse(
             status_code=exc.status_code,
-            content={"error": {"code": code, "message": message}},
+            content={"error": error},
         )
 
     @app.get("/health")

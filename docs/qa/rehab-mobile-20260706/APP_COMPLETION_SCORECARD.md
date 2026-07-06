@@ -11,7 +11,7 @@ Required:
 - Cloud health passes.
 - Auth/session passes.
 - `/api/rehab-arm/app/v1/me` returns `profile` and `patient_view`.
-- Phone binding APIs pass.
+- Phone binding APIs pass, including immediate resend throttling.
 - Phone SMS delivery readiness is visible; webhook delivery is implemented; staging warns when still using debug SMS codes.
 - Device binding APIs pass, including same-account idempotency and cross-account already-bound conflict.
 - Agent safe answer and unsafe refusal pass.
@@ -79,7 +79,7 @@ Current result: `NOT READY`.
 | --- | --- | --- |
 | Backend API | PASS | `tools/qa_rehab_mobile_acceptance.py`, `overall = PASS`, `p0_failed = 0` |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
-| Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code end to end |
+| Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code; `P1-PHONE-RESEND-001` rejects immediate resend with `retry_after` |
 | Phone SMS delivery readiness | WARN | Webhook delivery path is implemented and covered locally; `P1-PHONE-SMS-001` still warns because current staging mode is `debug_sms`, reason `debug_code_enabled` |
 | Device binding flow | PASS | `P0-DEVICE-FLOW-001` repeats binding against the same record; `P0-DEVICE-CONFLICT-001` rejects a second account with `DEVICE_ALREADY_BOUND` |
 | Agent backend safety | PASS | Safe answer `200` with `model_status`, unsafe direct-control requests `400 UNSAFE_MOTION_REQUEST` |

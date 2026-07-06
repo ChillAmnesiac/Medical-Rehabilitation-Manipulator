@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     phone_verification_debug_code_enabled: bool = True
     phone_verification_ttl_seconds: int = 300
     phone_verification_max_attempts: int = 5
+    phone_verification_resend_cooldown_seconds: int = 60
     phone_verification_sms_provider: str | None = None
     phone_verification_sms_webhook_url: str | None = None
     phone_verification_sms_webhook_token: str | None = None

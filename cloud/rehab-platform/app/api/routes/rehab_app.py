@@ -2,6 +2,7 @@ import json
 import urllib.error
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from math import ceil
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
@@ -136,6 +137,47 @@ def _phone_delivery_payload(
     }
 
 
+def _enforce_phone_resend_cooldown(
+    db: Session,
+    *,
+    owner_id: int,
+    phone: str,
+    purpose: str,
+    settings: Settings,
+) -> None:
+    cooldown_seconds = settings.phone_verification_resend_cooldown_seconds
+    if cooldown_seconds <= 0:
+        return
+    latest = db.scalar(
+        select(PhoneVerification)
+        .where(
+            PhoneVerification.owner_id == owner_id,
+            PhoneVerification.phone == phone,
+            PhoneVerification.purpose == purpose,
+            PhoneVerification.consumed_at.is_(None),
+        )
+        .order_by(PhoneVerification.created_at.desc(), PhoneVerification.id.desc())
+        .limit(1)
+    )
+    if latest is None:
+        return
+    now = utcnow()
+    if _as_aware_utc(latest.expires_at) <= now:
+        return
+    cooldown_until = _as_aware_utc(latest.created_at) + timedelta(seconds=cooldown_seconds)
+    if cooldown_until <= now:
+        return
+    retry_after = max(1, ceil((cooldown_until - now).total_seconds()))
+    raise HTTPException(
+        status_code=429,
+        detail={
+            "code": "PHONE_CODE_RESEND_TOO_SOON",
+            "message": "Phone verification code was requested too recently.",
+            "retry_after": retry_after,
+        },
+    )
+
+
 @router.get("/public-config")
 def get_public_config(settings: Settings = Depends(get_settings)):
     return {
@@ -151,6 +193,7 @@ def get_public_config(settings: Settings = Depends(get_settings)):
                 "confirm_endpoint_template": (
                     "/api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm"
                 ),
+                "resend_cooldown_seconds": settings.phone_verification_resend_cooldown_seconds,
                 "delivery_status": _phone_delivery_status(settings),
             },
             "m33_legacy_spp_profile": _m33_legacy_spp_profile(),
@@ -263,6 +306,13 @@ def start_phone_verification(
             status_code=400,
             detail={"code": "PHONE_PURPOSE_UNSUPPORTED", "message": "Unsupported phone verification purpose"},
         )
+    _enforce_phone_resend_cooldown(
+        db,
+        owner_id=user.id,
+        phone=phone,
+        purpose=purpose,
+        settings=settings,
+    )
     code = _debug_phone_code(phone)
     verification = PhoneVerification(
         owner_id=user.id,
