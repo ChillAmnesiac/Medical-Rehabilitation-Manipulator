@@ -34,6 +34,7 @@ BROWSER_EVIDENCE_FILES = {
 
 EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS = {"width": 390, "height": 844}
 MIN_BROWSER_SCREENSHOT_BYTES = 1024
+REQUIRED_BROWSER_METRICS_PAGES = ["ai-plan", "device", "home", "profile"]
 DEFAULT_BROWSER_METRICS_JSON = Path(
     "docs/qa/rehab-mobile-20260706/browser-metrics-clean-candidate-live-strict-20260707.json"
 )
@@ -120,6 +121,7 @@ def browser_metrics_status(metrics_path: Path) -> tuple[bool, dict[str, Any]]:
     summary = payload.get("summary") if isinstance(payload, dict) else {}
     gate_status = None
     checked_pages: list[str] = []
+    declared_missing_pages: list[str] = []
     if isinstance(payload, dict):
         for result in payload.get("results") or []:
             if isinstance(result, dict) and result.get("gate") == "L1-BROWSER-METRICS-001":
@@ -130,15 +132,28 @@ def browser_metrics_status(metrics_path: Path) -> tuple[bool, dict[str, Any]]:
                     raw_pages = result_detail.get("checked_pages")
                     if isinstance(raw_pages, list):
                         checked_pages = [str(page) for page in raw_pages]
+                    raw_missing_pages = result_detail.get("missing_pages")
+                    if isinstance(raw_missing_pages, list):
+                        declared_missing_pages = [str(page) for page in raw_missing_pages]
                 break
 
     status = gate_status or (summary.get("overall") if isinstance(summary, dict) else None) or "MISSING_GATE"
-    ok = status == "PASS" and isinstance(summary, dict) and summary.get("overall") == "PASS"
+    normalized_checked_pages = {page.replace(".html", "").strip().lower() for page in checked_pages}
+    missing_pages = [page for page in REQUIRED_BROWSER_METRICS_PAGES if page not in normalized_checked_pages]
+    missing_pages = sorted(set(missing_pages + declared_missing_pages))
+    ok = (
+        status == "PASS"
+        and isinstance(summary, dict)
+        and summary.get("overall") == "PASS"
+        and not missing_pages
+    )
     return ok, {
         **detail,
-        "status": status,
+        "status": status if not missing_pages else "FAIL",
         "summary": summary if isinstance(summary, dict) else {},
         "checked_pages": checked_pages,
+        "required_pages": REQUIRED_BROWSER_METRICS_PAGES,
+        "missing_pages": missing_pages,
     }
 
 

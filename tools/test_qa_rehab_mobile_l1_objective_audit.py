@@ -1,4 +1,5 @@
 import importlib.util
+import json
 import sys
 from pathlib import Path
 
@@ -45,13 +46,22 @@ def _write_jpeg_screenshot(path, width=390, height=844):
         handle.write(b"\x00" * 4096)
 
 
-def _write_browser_metrics_gate(path, status="PASS"):
+def _write_browser_metrics_gate(path, status="PASS", checked_pages=None):
+    pages = checked_pages or ["home", "profile", "device", "ai-plan"]
     path.write_text(
-        (
-            '{"summary":{"overall":"%s","failed":%d,"total":1},'
-            '"results":[{"gate":"L1-BROWSER-METRICS-001","status":"%s","detail":{"checked_pages":["home"]}}]}'
-        )
-        % (status, 0 if status == "PASS" else 1, status),
+        json.dumps(
+            {
+                "summary": {"overall": status, "failed": 0 if status == "PASS" else 1, "total": 1},
+                "results": [
+                    {
+                        "gate": "L1-BROWSER-METRICS-001",
+                        "status": status,
+                        "detail": {"checked_pages": pages, "missing_pages": []},
+                    }
+                ],
+            },
+            ensure_ascii=False,
+        ),
         encoding="utf-8",
     )
 
@@ -187,6 +197,29 @@ def test_objective_audit_fails_when_browser_metrics_gate_fails(tmp_path):
         item["evidence"] for item in payload["requirements"] if item["requirement"] == "browser_qa_evidence"
     )
     assert browser_evidence["browser_metrics"]["status"] == "FAIL"
+
+
+def test_objective_audit_fails_when_browser_metrics_pass_but_pages_are_missing(tmp_path):
+    module = _load_module()
+    for name in (
+        "l1-home-390.png",
+        "l1-ask-therapist-chat-390.png",
+        "l1-unsafe-agent-refusal-390.png",
+        "l1-device-binding-wizard-390.png",
+        "l1-profile-phone-medical-390.png",
+    ):
+        _write_png_screenshot(tmp_path / name, 390, 844)
+    metrics_path = tmp_path / "browser-metrics-gate.json"
+    _write_browser_metrics_gate(metrics_path, "PASS", checked_pages=["home"])
+
+    payload = module.audit_objective(_release_payload(), tmp_path, metrics_path)
+
+    assert payload["summary"]["overall"] == "FAIL"
+    browser_evidence = next(
+        item["evidence"] for item in payload["requirements"] if item["requirement"] == "browser_qa_evidence"
+    )
+    assert browser_evidence["browser_metrics"]["status"] == "FAIL"
+    assert browser_evidence["browser_metrics"]["missing_pages"] == ["ai-plan", "device", "profile"]
 
 
 def test_browser_evidence_does_not_count_agent_page_as_device_wizard(tmp_path):

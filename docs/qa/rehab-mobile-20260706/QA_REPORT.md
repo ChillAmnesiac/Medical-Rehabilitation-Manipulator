@@ -1755,6 +1755,33 @@ Fresh verification:
 No cloud frontend deployment or APK rebuild was made for this tooling-only
 follow-up; the APK URL was still verified separately before commit.
 
+## 2026-07-07 Browser Metrics Consumer Coverage Follow-Up
+
+Codex tightened the consumers of browser metrics evidence, not only the metrics
+producer.
+
+Tooling changes:
+
+- `tools/qa_rehab_mobile_l1_objective_audit.py` now independently requires the
+  saved metrics gate to cover `home`, `profile`, `device`, and `ai-plan`.
+- `tools/verify_rehab_mobile_frontend_release.py` now performs the same
+  independent coverage check before cloud deployment.
+- A hand-written metrics file with `summary.overall = PASS` and
+  `L1-BROWSER-METRICS-001.status = PASS` is still rejected when
+  `checked_pages` does not cover all required L1 pages or `missing_pages` is
+  non-empty.
+
+Fresh verification:
+
+- Red objective-audit test first failed because a `PASS` metrics file covering
+  only `home` still cleared `browser_qa_evidence`.
+- Red release-verifier test first failed because the same incomplete metrics
+  gate still cleared `FRONTEND-RELEASE-BROWSER-METRICS`.
+- Focused objective/verifier tests: `19 passed`.
+
+No cloud frontend deployment or APK rebuild was made for this tooling-only
+follow-up; the APK URL was still verified separately before commit.
+
 ## 2026-07-07 Browser Screenshot Evidence Hardening Follow-Up
 
 Codex tightened the final browser screenshot evidence gate so an L1 audit cannot

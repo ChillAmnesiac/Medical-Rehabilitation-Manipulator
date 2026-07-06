@@ -23,6 +23,7 @@ REQUIRED_BROWSER_SCREENSHOTS = (
 )
 REQUIRED_BROWSER_METRICS_REPORT = "browser-metrics-l1-390x844.json"
 REQUIRED_BROWSER_METRICS_GATE_OUTPUT = "browser-metrics-gate.json"
+REQUIRED_BROWSER_METRICS_PAGES = ["ai-plan", "device", "home", "profile"]
 
 
 @dataclass
@@ -254,6 +255,8 @@ def _check_browser_metrics(manifest_path: Path, manifest: dict[str, Any]) -> Res
     }
     gate_summary: dict[str, Any] | None = None
     gate_status = None
+    checked_pages: list[str] = []
+    declared_missing_pages: list[str] = []
     if output_path and output_path.is_file():
         gate_payload = _load_json(output_path)
         raw_summary = gate_payload.get("summary")
@@ -265,9 +268,24 @@ def _check_browser_metrics(manifest_path: Path, manifest: dict[str, Any]) -> Res
                 raw_status = result.get("status")
                 gate_status = raw_status if isinstance(raw_status, str) else None
                 detail["gate_status"] = gate_status
+                result_detail = result.get("detail")
+                if isinstance(result_detail, dict):
+                    raw_checked_pages = result_detail.get("checked_pages")
+                    if isinstance(raw_checked_pages, list):
+                        checked_pages = [str(page) for page in raw_checked_pages]
+                    raw_missing_pages = result_detail.get("missing_pages")
+                    if isinstance(raw_missing_pages, list):
+                        declared_missing_pages = [str(page) for page in raw_missing_pages]
                 break
     else:
         detail["reason"] = "browser_metrics_gate_output_missing"
+
+    normalized_checked_pages = {page.replace(".html", "").strip().lower() for page in checked_pages}
+    missing_pages = [page for page in REQUIRED_BROWSER_METRICS_PAGES if page not in normalized_checked_pages]
+    missing_pages = sorted(set(missing_pages + declared_missing_pages))
+    detail["required_pages"] = REQUIRED_BROWSER_METRICS_PAGES
+    detail["checked_pages"] = checked_pages
+    detail["missing_pages"] = missing_pages
 
     ok = (
         report == REQUIRED_BROWSER_METRICS_REPORT
@@ -279,6 +297,7 @@ def _check_browser_metrics(manifest_path: Path, manifest: dict[str, Any]) -> Res
         and gate_summary.get("overall") == "PASS"
         and gate_summary.get("failed") == 0
         and gate_status == "PASS"
+        and not missing_pages
     )
     return _result(
         "FRONTEND-RELEASE-BROWSER-METRICS",

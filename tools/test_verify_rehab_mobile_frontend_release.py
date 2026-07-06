@@ -54,8 +54,10 @@ def _write_l1_ready_frontend(source_dir: Path) -> None:
     )
 
 
-def _write_browser_metrics_gate(output_dir: Path, *, status: str = "PASS") -> None:
+def _write_browser_metrics_gate(output_dir: Path, *, status: str = "PASS", checked_pages=None) -> None:
     failed = 0 if status == "PASS" else 1
+    pages = checked_pages or ["home", "profile", "device", "ai-plan"]
+    missing_pages = [page for page in ["ai-plan", "device", "home", "profile"] if page not in pages]
     payload = {
         "summary": {"overall": status, "failed": failed, "total": 1},
         "results": [
@@ -65,8 +67,8 @@ def _write_browser_metrics_gate(output_dir: Path, *, status: str = "PASS") -> No
                 "status": status,
                 "summary": "Rendered mobile browser QA covers all L1 pages and has no touch/layout blockers.",
                 "detail": {
-                    "checked_pages": ["home", "profile", "device", "ai-plan"],
-                    "missing_pages": [],
+                    "checked_pages": pages,
+                    "missing_pages": missing_pages,
                     "fake_hits": [],
                     "touch_issues": [] if status == "PASS" else [{"page": "ai-plan", "width": 40, "height": 40}],
                     "input_issues": [],
@@ -214,6 +216,20 @@ def test_verify_release_manifest_rejects_failed_browser_metrics_gate_output(tmp_
     assert failed_gates == {"FRONTEND-RELEASE-BROWSER-METRICS"}
     metrics = next(result for result in payload["results"] if result["gate"] == "FRONTEND-RELEASE-BROWSER-METRICS")
     assert metrics["detail"]["gate_summary"]["overall"] == "FAIL"
+
+
+def test_verify_release_manifest_rejects_pass_browser_metrics_with_missing_pages(tmp_path):
+    verify = _load_module(VERIFY_MODULE_PATH, "verify_rehab_mobile_frontend_release")
+    manifest_path = _build_manifest(tmp_path)
+    _write_browser_metrics_gate(manifest_path.parent, status="PASS", checked_pages=["home"])
+
+    payload = verify.verify_release_manifest(manifest_path)
+
+    assert payload["summary"]["overall"] == "FAIL"
+    failed_gates = {result["gate"] for result in payload["results"] if result["status"] == "FAIL"}
+    assert failed_gates == {"FRONTEND-RELEASE-BROWSER-METRICS"}
+    metrics = next(result for result in payload["results"] if result["gate"] == "FRONTEND-RELEASE-BROWSER-METRICS")
+    assert metrics["detail"]["missing_pages"] == ["ai-plan", "device", "profile"]
 
 
 def test_cli_writes_verification_report_and_returns_nonzero_on_failure(tmp_path):
