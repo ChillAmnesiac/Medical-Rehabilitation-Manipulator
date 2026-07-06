@@ -2132,3 +2132,29 @@ Fresh verification:
 - Stitch `list_screens` on project `323711356322969905` still returns
   `401 invalid authentication credentials`, so no new frontend candidate was
   generated or deployed in this pass.
+
+## 2026-07-07 Post-Deploy Objective Audit Evidence Path Hardening
+
+Codex tightened the frontend release manifest post-deploy commands so the
+objective audit uses the browser metrics gate generated during the same release
+instead of relying on the objective audit default path.
+
+Tooling change:
+
+- `tools/prepare_rehab_mobile_frontend_release.py` now emits:
+  `tools\qa_rehab_mobile_l1_objective_audit.py --browser-metrics-json artifacts/rehab-mobile-frontend-release/browser-metrics-gate.json`.
+- `tools/test_prepare_rehab_mobile_frontend_release.py` and
+  `tools/test_deploy_rehab_mobile_frontend_release.py` now require that command
+  in the release manifest and deploy plan.
+
+Fresh verification:
+
+- Red tests first failed because the release manifest only called
+  `qa_rehab_mobile_l1_objective_audit.py` without `--browser-metrics-json`.
+- Focused tests passed after implementation.
+- Release/verify/deploy suite: `20 passed`.
+- Frontend/prompt/repair packet suite: `23 passed`.
+- APK HEAD still returns `200 OK`, content length `4198462`.
+
+No cloud deploy or APK rebuild was performed because this pass changed only
+QA/release tooling and documentation, not frontend runtime assets.

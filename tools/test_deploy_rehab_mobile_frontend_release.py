@@ -113,6 +113,10 @@ def test_plan_deployment_verifies_manifest_and_preserves_post_checks(tmp_path):
     assert "qa_rehab_mobile_browser_metrics.py" in "\n".join(plan["post_deploy_verification"]["commands"])
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(plan["post_deploy_verification"]["commands"])
     assert "qa_rehab_mobile_l1_objective_audit.py" in "\n".join(plan["post_deploy_verification"]["commands"])
+    assert (
+        "qa_rehab_mobile_l1_objective_audit.py --browser-metrics-json "
+        "artifacts/rehab-mobile-frontend-release/browser-metrics-gate.json"
+    ) in "\n".join(plan["post_deploy_verification"]["commands"])
     assert "curl.exe -I -sS" in "\n".join(plan["post_deploy_verification"]["commands"])
 
 
