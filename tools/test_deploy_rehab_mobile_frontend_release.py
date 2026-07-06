@@ -58,6 +58,34 @@ def _write_l1_ready_frontend(source_dir: Path) -> None:
     )
 
 
+def _write_browser_metrics_gate(output_dir: Path, *, status: str = "PASS") -> None:
+    failed = 0 if status == "PASS" else 1
+    payload = {
+        "summary": {"overall": status, "failed": failed, "total": 1},
+        "results": [
+            {
+                "gate": "L1-BROWSER-METRICS-001",
+                "level": "L1",
+                "status": status,
+                "summary": "Rendered mobile browser QA covers all L1 pages and has no touch/layout blockers.",
+                "detail": {
+                    "checked_pages": ["home", "profile", "device", "ai-plan"],
+                    "missing_pages": [],
+                    "fake_hits": [],
+                    "touch_issues": [] if status == "PASS" else [{"page": "ai-plan", "width": 40, "height": 40}],
+                    "input_issues": [],
+                    "overflow_issues": [],
+                    "vertical_text_issues": [],
+                },
+            }
+        ],
+    }
+    (output_dir / "browser-metrics-gate.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 def _build_manifest(tmp_path: Path) -> Path:
     prepare = _load_module(PREPARE_MODULE_PATH, "prepare_rehab_mobile_frontend_release")
     source_dir = tmp_path / "rehab-arm-mobile"
@@ -68,6 +96,7 @@ def _build_manifest(tmp_path: Path) -> Path:
         output_dir=output_dir,
         generated_at="2026-07-06T16:00:00Z",
     )
+    _write_browser_metrics_gate(output_dir)
     return Path(manifest["artifact"]["manifest_path"])
 
 
@@ -81,6 +110,7 @@ def test_plan_deployment_verifies_manifest_and_preserves_post_checks(tmp_path):
     assert plan["remote_web_root"].endswith("/rehab-arm-mobile")
     assert any(command.startswith("scp ") for command in plan["deploy_commands"])
     assert any(command.startswith("ssh ") for command in plan["deploy_commands"])
+    assert "qa_rehab_mobile_browser_metrics.py" in "\n".join(plan["post_deploy_verification"]["commands"])
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(plan["post_deploy_verification"]["commands"])
     assert "qa_rehab_mobile_l1_objective_audit.py" in "\n".join(plan["post_deploy_verification"]["commands"])
     assert "curl.exe -I -sS" in "\n".join(plan["post_deploy_verification"]["commands"])
@@ -127,6 +157,23 @@ def test_failed_manifest_blocks_deployment(tmp_path):
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest["verification"]["required_browser_screenshots"] = []
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    calls = []
+
+    exit_code, summary = module.run(
+        ["--manifest", str(manifest_path), "--execute"],
+        command_runner=calls.append,
+    )
+
+    assert exit_code == 2
+    assert summary["manifest_verification"]["overall"] == "FAIL"
+    assert summary["executed"] == []
+    assert calls == []
+
+
+def test_missing_browser_metrics_gate_output_blocks_deployment(tmp_path):
+    module = _load_deploy_module()
+    manifest_path = _build_manifest(tmp_path)
+    (manifest_path.parent / "browser-metrics-gate.json").unlink()
     calls = []
 
     exit_code, summary = module.run(
