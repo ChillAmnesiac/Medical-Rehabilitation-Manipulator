@@ -33,7 +33,13 @@ def test_release_summary_fails_when_frontend_gate_fails():
 def test_release_summary_passes_when_api_and_frontend_pass():
     module = _load_module()
 
-    api_payload = {"summary": {"overall": "PASS", "p0_failed": 0, "total": 14}}
+    api_payload = {
+        "summary": {"overall": "PASS", "p0_failed": 0, "total": 14},
+        "results": [
+            {"gate": "P1-AGENT-CONFIG-001", "status": "PASS"},
+            {"gate": "P1-AGENT-MODEL-001", "status": "PASS"},
+        ],
+    }
     frontend_payload = {"summary": {"overall": "PASS", "failed": 0, "total": 4}}
 
     exit_code, payload = module.summarize_release(api_payload, frontend_payload)
@@ -41,3 +47,22 @@ def test_release_summary_passes_when_api_and_frontend_pass():
     assert exit_code == 0
     assert payload["summary"]["overall"] == "PASS"
     assert payload["summary"]["blocking_gates"] == []
+
+
+def test_release_summary_blocks_l1_when_rehab_agent_uses_fallback_rules():
+    module = _load_module()
+
+    api_payload = {
+        "summary": {"overall": "PASS", "p0_failed": 0, "total": 22},
+        "results": [
+            {"gate": "P1-AGENT-CONFIG-001", "status": "WARN"},
+            {"gate": "P1-AGENT-MODEL-001", "status": "WARN"},
+        ],
+    }
+    frontend_payload = {"summary": {"overall": "PASS", "failed": 0, "total": 5}}
+
+    exit_code, payload = module.summarize_release(api_payload, frontend_payload)
+
+    assert exit_code == 1
+    assert payload["summary"]["overall"] == "FAIL"
+    assert "agent_cloud_model" in payload["summary"]["blocking_gates"]

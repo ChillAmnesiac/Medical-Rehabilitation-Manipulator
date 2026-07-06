@@ -24,6 +24,20 @@ import qa_rehab_mobile_acceptance  # noqa: E402
 import qa_rehab_mobile_l1_frontend  # noqa: E402
 
 
+L1_REQUIRED_API_GATES = {
+    "P1-AGENT-CONFIG-001": "agent_cloud_model",
+    "P1-AGENT-MODEL-001": "agent_cloud_model",
+}
+
+
+def api_gate_status(api_payload: dict[str, Any], gate: str) -> str | None:
+    for result in api_payload.get("results") or []:
+        if isinstance(result, dict) and result.get("gate") == gate:
+            status = result.get("status")
+            return status if isinstance(status, str) else None
+    return None
+
+
 def summarize_release(api_payload: dict[str, Any], frontend_payload: dict[str, Any]) -> tuple[int, dict[str, Any]]:
     api_summary = api_payload.get("summary") or {}
     frontend_summary = frontend_payload.get("summary") or {}
@@ -34,6 +48,9 @@ def summarize_release(api_payload: dict[str, Any], frontend_payload: dict[str, A
         blocking_gates.append("api_smoke")
     if not frontend_ok:
         blocking_gates.append("frontend_l1_gate")
+    for gate, blocker in L1_REQUIRED_API_GATES.items():
+        if api_gate_status(api_payload, gate) != "PASS" and blocker not in blocking_gates:
+            blocking_gates.append(blocker)
     payload = {
         "summary": {
             "overall": "PASS" if not blocking_gates else "FAIL",

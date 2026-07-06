@@ -127,6 +127,9 @@ Required combined result:
 - `summary.api_overall = PASS`
 - `summary.frontend_overall = PASS`
 - `summary.blocking_gates = []`
+- `P1-AGENT-CONFIG-001 = PASS`
+- `P1-AGENT-MODEL-001 = PASS`
+- `agent_cloud_model` is not listed in `summary.blocking_gates`.
 - `L1-FRONTEND-INTEGRATION-001` has no missing API contract requirements.
 
 If this combined gate fails, inspect the nested `api` and `frontend` sections. Do not accept the frontend build, cloud deployment, or refreshed APK as L1 user-ready while `frontend_l1_gate` or `api_smoke` is listed as a blocker.

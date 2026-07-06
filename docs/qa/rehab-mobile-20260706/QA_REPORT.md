@@ -123,6 +123,18 @@ This gate is intentionally strict and should remain failing until Stitch convert
 - Current cloud integration gate missing: `patient_view_home`, `patient_view_profile`, `patient_view_device`, `patient_view_agent`, `phone_verification_start`, `phone_verification_confirm`, and `agent_messages`.
 - Cloud API/APK acceptance remained `overall = PASS`, `p0_failed = 0`, `total = 22`.
 
+2026-07-06 continuation tightened the combined L1 release gate so `闂悍澶嶅笀` cannot be accepted as L1 while it is still running safe fallback rules instead of a configured cloud model:
+
+- New L1 blocker: `agent_cloud_model`.
+- Required API gates for L1:
+  - `P1-AGENT-CONFIG-001 = PASS`
+  - `P1-AGENT-MODEL-001 = PASS`
+- Red test first: the release summary returned `PASS` when API P0 and frontend passed even though both Agent model gates were `WARN`.
+- Focused release tests after implementation: `3 passed`.
+- Full local backend plus QA suite: `66 passed, 1 warning`.
+- Current cloud combined L1 gate: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Current cloud Agent state remains `fallback_rule_based`, reason `external_model_not_configured`; configure cloud-model relay credentials before calling the Agent L1 user-ready.
+
 ## 2026-07-06 L1 Combined Release Gate
 
 Added a single release gate that runs backend/API/APK smoke and frontend L1 checks together:
@@ -140,7 +152,7 @@ Current production result:
 - API P0 failed: `0`
 - Frontend overall: `FAIL`
 - Frontend failed: `5`
-- Blocking gates: `frontend_l1_gate`
+- Blocking gates: `frontend_l1_gate`, `agent_cloud_model`
 
 This is now the L1 release decision command. A cloud deployment or APK refresh is not accepted as user-ready unless this command returns exit code `0` with `overall = PASS`.
 

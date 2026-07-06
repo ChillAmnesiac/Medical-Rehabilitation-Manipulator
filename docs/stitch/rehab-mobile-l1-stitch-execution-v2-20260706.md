@@ -263,6 +263,9 @@ The build is not L1 user-ready until:
 - summary.api_overall = PASS
 - summary.frontend_overall = PASS
 - summary.blocking_gates = []
+- P1-AGENT-CONFIG-001 = PASS
+- P1-AGENT-MODEL-001 = PASS
+- `agent_cloud_model` is not listed in blocking_gates.
 - L1-PROFILE-STATIC-001 no longer reports missing `绑定手机号` or `验证码`.
 - L1-DEVICE-STATIC-001 no longer reports missing `绑定设备` or `打开康复设备电源`.
 
