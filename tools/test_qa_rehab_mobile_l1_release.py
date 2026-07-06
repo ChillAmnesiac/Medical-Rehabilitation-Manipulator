@@ -41,12 +41,14 @@ def test_release_summary_passes_when_api_and_frontend_pass():
         ],
     }
     frontend_payload = {"summary": {"overall": "PASS", "failed": 0, "total": 4}}
+    apk_webview_payload = {"summary": {"overall": "PASS", "failed": 0, "total": 3}}
 
-    exit_code, payload = module.summarize_release(api_payload, frontend_payload)
+    exit_code, payload = module.summarize_release(api_payload, frontend_payload, apk_webview_payload)
 
     assert exit_code == 0
     assert payload["summary"]["overall"] == "PASS"
     assert payload["summary"]["blocking_gates"] == []
+    assert payload["summary"]["apk_webview_assets_overall"] == "PASS"
 
 
 def test_release_summary_blocks_l1_when_rehab_agent_uses_fallback_rules():
@@ -60,9 +62,52 @@ def test_release_summary_blocks_l1_when_rehab_agent_uses_fallback_rules():
         ],
     }
     frontend_payload = {"summary": {"overall": "PASS", "failed": 0, "total": 5}}
+    apk_webview_payload = {"summary": {"overall": "PASS", "failed": 0, "total": 3}}
+
+    exit_code, payload = module.summarize_release(api_payload, frontend_payload, apk_webview_payload)
+
+    assert exit_code == 1
+    assert payload["summary"]["overall"] == "FAIL"
+    assert "agent_cloud_model" in payload["summary"]["blocking_gates"]
+
+
+def test_release_summary_blocks_l1_when_apk_webview_assets_fail():
+    module = _load_module()
+
+    api_payload = {
+        "summary": {"overall": "PASS", "p0_failed": 0, "total": 22},
+        "results": [
+            {"gate": "P1-AGENT-CONFIG-001", "status": "PASS"},
+            {"gate": "P1-AGENT-MODEL-001", "status": "PASS"},
+        ],
+    }
+    frontend_payload = {"summary": {"overall": "PASS", "failed": 0, "total": 5}}
+    apk_webview_payload = {"summary": {"overall": "FAIL", "failed": 3, "total": 3}}
+
+    exit_code, payload = module.summarize_release(api_payload, frontend_payload, apk_webview_payload)
+
+    assert exit_code == 1
+    assert payload["summary"]["overall"] == "FAIL"
+    assert payload["summary"]["apk_webview_assets_overall"] == "FAIL"
+    assert "apk_webview_assets" in payload["summary"]["blocking_gates"]
+    assert payload["apk_webview_assets"] == apk_webview_payload
+
+
+def test_release_summary_blocks_l1_without_apk_webview_assets_evidence():
+    module = _load_module()
+
+    api_payload = {
+        "summary": {"overall": "PASS", "p0_failed": 0, "total": 22},
+        "results": [
+            {"gate": "P1-AGENT-CONFIG-001", "status": "PASS"},
+            {"gate": "P1-AGENT-MODEL-001", "status": "PASS"},
+        ],
+    }
+    frontend_payload = {"summary": {"overall": "PASS", "failed": 0, "total": 5}}
 
     exit_code, payload = module.summarize_release(api_payload, frontend_payload)
 
     assert exit_code == 1
     assert payload["summary"]["overall"] == "FAIL"
-    assert "agent_cloud_model" in payload["summary"]["blocking_gates"]
+    assert payload["summary"]["apk_webview_assets_overall"] is None
+    assert "apk_webview_assets" in payload["summary"]["blocking_gates"]

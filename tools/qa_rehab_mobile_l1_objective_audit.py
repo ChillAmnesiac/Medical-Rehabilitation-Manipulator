@@ -49,7 +49,11 @@ class Requirement:
 
 
 def _gate_status(payload: dict[str, Any], gate: str) -> str | None:
-    sections = (payload.get("api") or {}, payload.get("frontend") or {})
+    sections = (
+        payload.get("api") or {},
+        payload.get("frontend") or {},
+        payload.get("apk_webview_assets") or {},
+    )
     for section in sections:
         for result in section.get("results") or []:
             if isinstance(result, dict) and result.get("gate") == gate:
@@ -292,6 +296,22 @@ def audit_objective(
             {"required_gates": ["P0-APK-001"]},
         ),
         _requirement(
+            "apk_webview_assets",
+            _all_gates_pass(
+                release_payload,
+                ["APK-WEBVIEW-INPUTS", "APK-WEBVIEW-REQUIRED-PAGES", "APK-WEBVIEW-FILE-PARITY"],
+            ),
+            "APK bundles the accepted Android WebView assets without stale or changed files.",
+            {
+                "required_gates": [
+                    "APK-WEBVIEW-INPUTS",
+                    "APK-WEBVIEW-REQUIRED-PAGES",
+                    "APK-WEBVIEW-FILE-PARITY",
+                ],
+                "apk_webview_assets_summary": (release_payload.get("apk_webview_assets") or {}).get("summary"),
+            },
+        ),
+        _requirement(
             "browser_qa_evidence",
             browser_ok,
             "Browser QA screenshots cover home, Ask Therapist, unsafe refusal, device wizard, and profile.",
@@ -332,6 +352,17 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--email", default=os.getenv("REHAB_QA_EMAIL"))
     parser.add_argument("--password", default=os.getenv("REHAB_QA_PASSWORD"))
+    parser.add_argument(
+        "--apk-file",
+        type=Path,
+        default=Path(os.getenv("REHAB_QA_APK_FILE", "apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk")),
+    )
+    parser.add_argument(
+        "--android-www-dir",
+        type=Path,
+        default=Path(os.getenv("REHAB_QA_ANDROID_WWW_DIR", "apps/mobile/rehab-arm-android/www")),
+    )
+    parser.add_argument("--apk-asset-prefix", default=os.getenv("REHAB_QA_APK_ASSET_PREFIX", "assets/public"))
     parser.add_argument("--timeout", type=int, default=int(os.getenv("REHAB_QA_TIMEOUT", "20")))
     return parser.parse_args(argv)
 
@@ -350,6 +381,12 @@ def main(argv: list[str]) -> int:
             args.apk_url,
             "--timeout",
             str(args.timeout),
+            "--apk-file",
+            str(args.apk_file),
+            "--android-www-dir",
+            str(args.android_www_dir),
+            "--apk-asset-prefix",
+            args.apk_asset_prefix,
         ]
         + (["--email", args.email] if args.email else [])
         + (["--password", args.password] if args.password else [])

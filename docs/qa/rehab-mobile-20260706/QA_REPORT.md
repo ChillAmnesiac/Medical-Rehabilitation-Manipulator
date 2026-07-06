@@ -2301,3 +2301,66 @@ Acceptance boundary:
 - No cloud deployment or APK rebuild was performed in this pass because this
   work only adds release verification tooling and records that the current APK
   does not yet satisfy the new package-level asset gate.
+
+## 2026-07-07 L1 Release Gate APK Asset Integration
+
+Codex connected the APK WebView asset verifier to the actual L1 decision path,
+not just the release manifest.
+
+Tooling changes:
+
+- `tools/qa_rehab_mobile_l1_release.py` now imports
+  `tools/verify_rehab_mobile_apk_webview_assets.py` and includes its result in
+  the combined L1 payload under `apk_webview_assets`.
+- The release summary now includes:
+  `apk_webview_assets_overall`, `apk_webview_assets_failed`, and blocker
+  `apk_webview_assets`.
+- New release gate CLI args:
+  `--apk-file`, `--android-www-dir`, and `--apk-asset-prefix`, with matching
+  environment-variable fallbacks.
+- `tools/qa_rehab_mobile_l1_objective_audit.py` now adds an explicit
+  `apk_webview_assets` objective requirement requiring
+  `APK-WEBVIEW-INPUTS`, `APK-WEBVIEW-REQUIRED-PAGES`, and
+  `APK-WEBVIEW-FILE-PARITY` to pass.
+- The objective audit CLI forwards `--apk-file`, `--android-www-dir`, and
+  `--apk-asset-prefix` into the release gate.
+
+Fresh verification:
+
+- Red release summary tests first failed because `summarize_release()` accepted
+  only API and frontend payloads and could still pass without APK asset
+  evidence.
+- Red objective-audit test first failed because a release with
+  `apk_webview_assets` blocker only reported `combined_l1_release`, not an
+  explicit APK asset requirement.
+- Focused release tests:
+  `tools/test_qa_rehab_mobile_l1_release.py` -> `5 passed`.
+- Focused objective audit tests:
+  `tools/test_qa_rehab_mobile_l1_objective_audit.py` -> `11 passed`.
+
+Current L1 evidence with staging credentials supplied from the local
+environment:
+
+- Release gate:
+  `docs/qa/rehab-mobile-20260706/l1-release-current-with-apk-assets-20260707.json`.
+- Result: `overall = FAIL`.
+- API: `PASS`, `p0_failed = 0`.
+- Frontend: `FAIL`, `failed = 5`.
+- APK WebView assets: `FAIL`, `failed = 3`.
+- Blocking gates: `frontend_l1_gate`, `apk_webview_assets`.
+
+Current objective audit:
+
+- Evidence:
+  `docs/qa/rehab-mobile-20260706/objective-audit-current-with-apk-assets-20260707.json`.
+- Result: `overall = FAIL`, `8 / 12` requirements failing.
+- Blocking requirements:
+  `home_next_step`, `phone_binding`, `device_binding`,
+  `ask_therapist_safety`, `profile_no_fake_debug`, `apk_webview_assets`,
+  `browser_qa_evidence`, and `combined_l1_release`.
+
+Acceptance boundary:
+
+- No cloud deployment or APK rebuild was performed in this pass because this
+  work changes release/audit tooling and records the current APK as failing the
+  new L1 gate.

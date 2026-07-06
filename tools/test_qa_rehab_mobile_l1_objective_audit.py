@@ -84,6 +84,8 @@ def _release_payload(*, overall="PASS", frontend="PASS", blockers=None):
             "api_p0_failed": 0,
             "frontend_overall": frontend,
             "frontend_failed": 0 if frontend == "PASS" else 5,
+            "apk_webview_assets_overall": "PASS",
+            "apk_webview_assets_failed": 0,
             "blocking_gates": blockers,
         },
         "api": {
@@ -111,6 +113,14 @@ def _release_payload(*, overall="PASS", frontend="PASS", blockers=None):
                 {"gate": "L1-AGENT-STATIC-001", "status": frontend},
                 {"gate": "L1-FRONTEND-INTEGRATION-001", "status": frontend},
             ]
+        },
+        "apk_webview_assets": {
+            "summary": {"overall": "PASS", "failed": 0, "total": 3},
+            "results": [
+                {"gate": "APK-WEBVIEW-INPUTS", "status": "PASS"},
+                {"gate": "APK-WEBVIEW-REQUIRED-PAGES", "status": "PASS"},
+                {"gate": "APK-WEBVIEW-FILE-PARITY", "status": "PASS"},
+            ],
         },
     }
 
@@ -220,6 +230,39 @@ def test_objective_audit_fails_when_browser_metrics_pass_but_pages_are_missing(t
     )
     assert browser_evidence["browser_metrics"]["status"] == "FAIL"
     assert browser_evidence["browser_metrics"]["missing_pages"] == ["ai-plan", "device", "profile"]
+
+
+def test_objective_audit_requires_apk_webview_asset_parity(tmp_path):
+    module = _load_module()
+    release = _release_payload(overall="FAIL", blockers=["apk_webview_assets"])
+    release["summary"]["apk_webview_assets_overall"] = "FAIL"
+    release["summary"]["apk_webview_assets_failed"] = 3
+    release["apk_webview_assets"]["summary"] = {"overall": "FAIL", "failed": 3, "total": 3}
+    for result in release["apk_webview_assets"]["results"]:
+        result["status"] = "FAIL"
+    for name in (
+        "l1-home-390.png",
+        "l1-ask-therapist-chat-390.png",
+        "l1-unsafe-agent-refusal-390.png",
+        "l1-device-binding-wizard-390.png",
+        "l1-profile-phone-medical-390.png",
+    ):
+        _write_png_screenshot(tmp_path / name, 390, 844)
+    metrics_path = tmp_path / "browser-metrics-gate.json"
+    _write_browser_metrics_gate(metrics_path, "PASS")
+
+    payload = module.audit_objective(release, tmp_path, metrics_path)
+
+    assert payload["summary"]["overall"] == "FAIL"
+    assert "apk_webview_assets" in payload["summary"]["blocking_requirements"]
+    requirement = next(
+        item for item in payload["requirements"] if item["requirement"] == "apk_webview_assets"
+    )
+    assert requirement["evidence"]["required_gates"] == [
+        "APK-WEBVIEW-INPUTS",
+        "APK-WEBVIEW-REQUIRED-PAGES",
+        "APK-WEBVIEW-FILE-PARITY",
+    ]
 
 
 def test_browser_evidence_does_not_count_agent_page_as_device_wizard(tmp_path):
