@@ -80,13 +80,14 @@ Current result: `NOT READY`.
 | Area | Status | Evidence |
 | --- | --- | --- |
 | Backend API | PASS | `tools/qa_rehab_mobile_acceptance.py`, `overall = PASS`, `p0_failed = 0` |
-| Deployment metadata | PASS | `P1-DEPLOY-META-001`: health exposes build SHA `b925e316`, ref `codex/rehab-mobile-backend-qa-20260706`, build time, and `app_env=staging` |
+| Deployment metadata | PASS | `P1-DEPLOY-META-001`: health exposes build SHA `8e17a51d`, ref `codex/rehab-mobile-backend-qa-20260706`, build time, and `app_env=staging` |
 | Stitch API fixture | PASS | `docs/stitch/rehab-mobile-l1-api-fixture-20260706.json` exported from live cloud API with tokens, codes, ids, email, and phone masked |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code; `P1-PHONE-RESEND-001` rejects immediate resend with `retry_after` |
 | Phone SMS delivery readiness | WARN | Webhook delivery path is implemented and covered locally; `P1-PHONE-SMS-001` still warns because current staging mode is `debug_sms`, reason `debug_code_enabled` |
 | Device binding flow | PASS | `P0-DEVICE-FLOW-001` repeats binding against the same record; `P0-DEVICE-CONFLICT-001` rejects a second account with `DEVICE_ALREADY_BOUND` |
 | Agent backend safety | PASS | Safe answer `200` with `model_status`, unsafe direct-control requests `400 UNSAFE_MOTION_REQUEST` |
+| Agent draft patient copy | PASS | AI training draft risk notes now use patient-facing Chinese and cloud smoke found no `M33`, `preflight`, `m33_accepted`, `CAN`, or `Stop` in `risk_notes` |
 | Agent public config readiness | WARN | `P1-AGENT-CONFIG-001`: public-config exposes `data.agent.model_readiness`; current staging mode is `fallback_rule_based`, reason `external_model_not_configured` |
 | Agent cloud model readiness | FAIL | L1 release now blocks on `agent_cloud_model` until `P1-AGENT-CONFIG-001` and `P1-AGENT-MODEL-001` are `PASS`; current staging is `fallback_rule_based`, reason `external_model_not_configured` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |

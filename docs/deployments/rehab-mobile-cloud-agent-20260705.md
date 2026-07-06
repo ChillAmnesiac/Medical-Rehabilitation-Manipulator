@@ -387,6 +387,35 @@
   - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
 - In-app browser QA attempt for this metadata-only backend deployment reached the browser but screenshot capture timed out; no new screenshot was accepted for this pass.
 
+## 2026-07-06 Agent Draft Patient Copy
+
+- Removed user-visible engineering vocabulary from AI training draft copy:
+  - local `cloud/rehab-platform/app/services/agent.py` returns Chinese patient-facing title/goal/risk notes;
+  - cloud `app/modules/rehab_arm/app_service.py` no longer exposes `M33`, `preflight`, or `m33_accepted` in AI draft risk notes and timeline copy touched by this pass.
+- Cloud patch deployed to:
+  - `app/modules/rehab_arm/app_service.py`
+- Cloud backup created:
+  - `app/modules/rehab_arm/app_service.py.bak-agent-draft-copy-20260706`
+- Cloud restart:
+  - PID: `1916595`
+  - API: `http://106.55.62.122:8011`
+  - Database URL: `sqlite:///./ai_collab_server.db`
+  - `APP_ENV=staging`
+  - `AI_COLLAB_BUILD_SHA=8e17a51d`
+  - `AI_COLLAB_BUILD_REF=codex/rehab-mobile-backend-qa-20260706`
+  - `AI_COLLAB_BUILD_TIME=2026-07-06T11:59:30Z`
+- Fresh verification:
+  - Red regression first showed `AI rehab draft` and `M33 safety acceptance and preflight`.
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests\test_agent.py::test_ai_training_draft_uses_profile_and_recent_session_context -q` -> `1 passed, 1 warning`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests\test_agent.py -q` -> `8 passed, 1 warning`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools\test_qa_rehab_mobile_acceptance.py tools\test_qa_rehab_mobile_l1_release.py -q` -> `22 passed`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud/rehab-platform/tests tools/test_qa_rehab_mobile_acceptance.py tools/test_qa_rehab_mobile_l1_frontend.py tools/test_qa_rehab_mobile_l1_release.py tools/test_export_rehab_mobile_stitch_fixture.py -q` -> `66 passed, 1 warning`
+  - Remote `.venv/bin/python -m py_compile app/modules/rehab_arm/app_service.py` passed.
+  - Cloud AI draft smoke returned risk notes with no `M33`, `preflight`, `m33_accepted`, `CAN`, or `Stop`.
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 22`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`
+  - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

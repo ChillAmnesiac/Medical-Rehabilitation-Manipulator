@@ -291,15 +291,15 @@ Expected:
 
 ## Backend/API Evidence
 
-Latest API/package acceptance smoke passed after the deployment metadata gate:
+Latest API/package acceptance smoke passed after the Agent draft patient-copy deployment:
 
 - Overall: `PASS`
 - P0 failed: `0`
 - Total checks: `22`
-- Cloud PID: `1677646`
+- Cloud PID: `1916595`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
-- Build SHA: `b925e316`
-- Build time: `2026-07-06T07:50:07Z`
+- Build SHA: `8e17a51d`
+- Build time: `2026-07-06T11:59:30Z`
 - `P0-PATIENT-VIEW-001`: `PASS`
 - `P1-DEPLOY-META-001`: `PASS`
 - `P0-PHONE-FLOW-001`: `PASS`
@@ -316,6 +316,38 @@ Latest API/package acceptance smoke passed after the deployment metadata gate:
 - APK HEAD: `PASS`, size over 1 MB
 
 The remaining blocker is frontend rendering and interaction.
+
+## Backend Agent Draft Patient-Copy Follow-Up
+
+2026-07-06 continuation work removed engineering vocabulary from the user-visible AI training draft copy:
+
+- Local source: `cloud/rehab-platform/app/services/agent.py`.
+- Local regression: `cloud/rehab-platform/tests/test_agent.py::test_ai_training_draft_uses_profile_and_recent_session_context`.
+- User-visible generated plan title changed from English `AI rehab draft` to Chinese patient copy.
+- User-visible risk notes now say the user must complete device safety confirmation before real training, instead of exposing `M33`, `preflight`, or `m33_accepted`.
+- Cloud patch deployed to `app/modules/rehab_arm/app_service.py` on `106.55.62.122`.
+- Cloud backup: `app/modules/rehab_arm/app_service.py.bak-agent-draft-copy-20260706`.
+- Cloud restart:
+  - PID: `1916595`
+  - API: `http://106.55.62.122:8011`
+  - `APP_ENV = staging`
+  - `AI_COLLAB_BUILD_SHA = 8e17a51d`
+  - `AI_COLLAB_BUILD_REF = codex/rehab-mobile-backend-qa-20260706`
+  - `AI_COLLAB_BUILD_TIME = 2026-07-06T11:59:30Z`
+
+Fresh verification:
+
+- Red test first failed because the draft title was `AI rehab draft` and risk notes still contained `M33 safety acceptance and preflight`.
+- Focused regression after implementation: `1 passed, 1 warning`.
+- Agent suite: `8 passed, 1 warning`.
+- Acceptance and release helper tests: `22 passed`.
+- Full local backend plus QA suite: `66 passed, 1 warning`.
+- Remote compile: `.venv/bin/python -m py_compile app/modules/rehab_arm/app_service.py`.
+- Cloud health returned build SHA `8e17a51d`.
+- Cloud AI draft smoke found no `M33`, `preflight`, `m33_accepted`, `CAN`, or `Stop` in `risk_notes`.
+- Cloud acceptance: `overall = PASS`, `p0_failed = 0`, `total = 22`.
+- Total L1 release gate: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- APK HEAD: `200`, size `4198462` bytes, content type `application/vnd.android.package-archive`.
 
 ## Backend Deployment Metadata Follow-Up
 
