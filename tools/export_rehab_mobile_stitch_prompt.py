@@ -159,8 +159,12 @@ def _browser_candidate_blockers_section() -> list[str]:
         "The 2026-07-07 four-page entity candidate passed source gates but is still rejected until browser QA blockers are fixed:",
         "- Do not use fake/demo personal names, patient IDs, or mock identities on normal patient screens.",
         "  Do not show 李先生, 张先生, 王女士, 患者A, ID: 8829, or equivalent placeholders. Use neutral 您好 or the authenticated cloud account state only.",
-        "- The Ask Therapist / 问康复师 entry must be an actual button or link with an aria-label and a minimum 44px touch target in both width and height.",
-        "  The candidate header action measured 64x24 in browser QA, which is too small and is rejected.",
+        "- Every interactive element must render at least 48px wide and 48px high at the 390x844 mobile viewport.",
+        "  This includes button, a, input, textarea, and any element with role=\"button\".",
+        "- Back buttons must render at least 48px by 48px, not icon-size plus small padding.",
+        "- Each bottom navigation item must render at least 64px wide and 48px high; do not let links shrink to label/icon content width.",
+        "- The Ask Therapist / 问康复师 entry must be an actual button or link with an aria-label and a minimum 48px touch target in both width and height.",
+        "  Rejected candidate measurements included a 64x24 header action, a 40x40 back button, and 28x48 bottom-nav links.",
         "- Candidate screenshots are QA evidence only. Do not treat them as final L1 screenshots until the files are applied to the real App branch, mirrored into the APK WebView assets, deployed, and re-captured at exactly 390x844.",
     ]
 

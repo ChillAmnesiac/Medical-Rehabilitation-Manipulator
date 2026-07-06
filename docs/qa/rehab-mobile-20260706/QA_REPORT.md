@@ -1622,6 +1622,55 @@ Prompt hardening added after browser QA:
 - The prompt explicitly rejects fake/demo identities such as `李先生`,
   `张先生`, `王女士`, `患者A`, and `ID: 8829`.
 - The prompt requires the `问康复师` entry to be a real button or link with
-  `aria-label` and a minimum `44px` touch target in both width and height.
+  `aria-label` and a minimum `48px` touch target in both width and height.
 - `tools/qa_rehab_mobile_l1_frontend.py` now rejects common fake/demo
   identities (`李先生`, `张先生`, `王女士`, `患者A`) in normal user screens.
+
+## 2026-07-07 Stitch Clean Candidate Strict Browser Gate
+
+Codex generated and served a cleaner four-page Stitch candidate from
+`artifacts/stitch/l1-clean-candidate-20260707/`.
+
+Source gate:
+
+- Command:
+  `tools/qa_rehab_mobile_l1_frontend.py --source-dir artifacts/stitch/l1-clean-candidate-20260707 --output artifacts/stitch/l1-clean-candidate-20260707/frontend-l1-source-gate.json`.
+- Result: `overall = PASS`, `failed = 0`, `total = 5`.
+- Screenshots captured at `390 x 844`:
+  - `screenshots/stitch-clean-pass-home-20260707-390x844.png`.
+  - `screenshots/stitch-clean-pass-profile-20260707-390x844.png`.
+  - `screenshots/stitch-clean-pass-device-20260707-390x844.png`.
+  - `screenshots/stitch-clean-pass-ai-plan-20260707-390x844.png`.
+
+Strict browser gate:
+
+- New tool:
+  `tools/qa_rehab_mobile_browser_metrics.py`.
+- Strict metrics input:
+  `artifacts/stitch/l1-clean-candidate-20260707/browser-qa-live-strict-390x844.json`.
+- Gate output:
+  `artifacts/stitch/l1-clean-candidate-20260707/browser-metrics-gate-live-strict-390x844.json`.
+- Committed summary:
+  `docs/qa/rehab-mobile-20260706/browser-metrics-clean-candidate-live-strict-20260707.json`.
+- Result: `overall = FAIL`.
+- Blocking issue: `ai-plan.html` still has undersized interactive targets:
+  back button `40 x 40`, plus bottom-nav links at `28 x 48`.
+- Failure screenshot:
+  `screenshots/stitch-clean-candidate-ai-plan-touch-fail-20260707-390x844.png`.
+
+Stitch execution status:
+
+- `tools/list` remains reachable from the Stitch MCP endpoint.
+- `generate_screen_from_text` and `edit_screens` currently return `401` with a
+  service message requiring OAuth/login credentials, so Codex could not generate
+  the v4 touch-target fix in this pass.
+- No generated clean candidate was copied into the real App branch, mirrored
+  into Android WebView assets, deployed to cloud, or packaged into a new APK.
+
+Prompt/tooling hardening:
+
+- `tools/qa_rehab_mobile_browser_metrics.py` now makes browser metric failures
+  machine-readable instead of relying on visual inspection alone.
+- The V4 Stitch prompt now requires every interactive element to render at least
+  `48 x 48`, every back button at least `48 x 48`, and every bottom navigation
+  item at least `64 x 48`.

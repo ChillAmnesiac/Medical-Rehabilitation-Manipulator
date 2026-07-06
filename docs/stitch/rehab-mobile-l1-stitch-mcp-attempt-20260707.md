@@ -197,6 +197,52 @@ Browser result: `REJECTED`.
   real frontend branch, mirrored into Android WebView assets, cloud-deployed,
   or packaged into a new APK.
 
+## 2026-07-07 Clean Candidate Strict Browser QA
+
+Codex generated a cleaner four-page local Stitch candidate in
+`artifacts/stitch/l1-clean-candidate-20260707/`.
+
+Source gate result:
+
+- Command:
+  `tools/qa_rehab_mobile_l1_frontend.py --source-dir artifacts/stitch/l1-clean-candidate-20260707 --output artifacts/stitch/l1-clean-candidate-20260707/frontend-l1-source-gate.json`
+- Result: `overall = PASS`, `failed = 0`, `total = 5`.
+- The candidate removed the earlier fake/demo identity blocker and preserved the
+  required home, profile, device, Agent, and frontend integration strings.
+
+Browser QA result: `REJECTED`.
+
+- In-app browser viewport: `390 x 844`.
+- Strict browser metrics:
+  `artifacts/stitch/l1-clean-candidate-20260707/browser-qa-live-strict-390x844.json`.
+- New browser metrics gate:
+  `tools/qa_rehab_mobile_browser_metrics.py --input artifacts/stitch/l1-clean-candidate-20260707/browser-qa-live-strict-390x844.json --output artifacts/stitch/l1-clean-candidate-20260707/browser-metrics-gate-live-strict-390x844.json`.
+- Gate result: `overall = FAIL`.
+- Blocking issue: `ai-plan.html` has undersized interactive targets:
+  back button `40 x 40`, and bottom-nav links for `首页`, `训练`, `社区`, and `我的`
+  at `28 x 48`.
+- Failure screenshot:
+  `docs/qa/rehab-mobile-20260706/screenshots/stitch-clean-candidate-ai-plan-touch-fail-20260707-390x844.png`.
+
+Stitch MCP tool status:
+
+- `tools/list` remains reachable with the configured API key.
+- `generate_screen_from_text` and `edit_screens` currently return `401`
+  with the service message that valid OAuth/login credentials are required for
+  generation. No new v4 `ai-plan` screen could be generated from Codex in this
+  pass.
+
+Follow-up hardening:
+
+- Added `tools/qa_rehab_mobile_browser_metrics.py` so rendered browser metrics
+  fail on fake copy, small touch targets, input overlap, horizontal overflow,
+  or vertical text.
+- Updated the V4 Stitch execution prompt so every interactive element must
+  render at least `48 x 48`, back buttons must be at least `48 x 48`, and each
+  bottom navigation item must render at least `64 x 48`.
+- This candidate was not applied to the real App branch, mirrored into Android
+  WebView assets, deployed to cloud, or packaged into a new APK.
+
 ## Next Stitch Prompt Delta
 
 The next Stitch iteration should be even more constrained:
@@ -216,8 +262,10 @@ for these required strings.
 Do not use fake/demo patient names or IDs such as 李先生, 张先生, 王女士, 患者A,
 or ID: 8829. Use neutral 您好 or the authenticated cloud account state.
 
+Every interactive target must render at least 48px by 48px at 390x844.
+Every bottom navigation item must render at least 64px by 48px.
 Every 问康复师 entry must be a real button or link with aria-label and a minimum
-44px touch target in both width and height.
+48px touch target in both width and height.
 ```
 
 After Stitch produces passing HTML, Codex should run:

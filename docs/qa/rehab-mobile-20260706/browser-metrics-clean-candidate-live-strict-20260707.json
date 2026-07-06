@@ -1,0 +1,74 @@
+{
+  "summary": {
+    "overall": "FAIL",
+    "failed": 1,
+    "total": 1
+  },
+  "results": [
+    {
+      "gate": "L1-BROWSER-METRICS-001",
+      "level": "L1",
+      "status": "FAIL",
+      "summary": "Rendered mobile browser QA has no fake copy, small touch targets, input overlap, overflow, or vertical text.",
+      "detail": {
+        "checked_pages": [
+          "home",
+          "profile",
+          "device",
+          "ai-plan"
+        ],
+        "fake_hits": [],
+        "touch_issues": [
+          {
+            "page": "ai-plan",
+            "height": 40,
+            "tag": "BUTTON",
+            "text": "arrow_back",
+            "width": 40,
+            "x": 20,
+            "y": 4
+          },
+          {
+            "page": "ai-plan",
+            "height": 48,
+            "tag": "A",
+            "text": "home\n首页",
+            "width": 28,
+            "x": 27,
+            "y": 780
+          },
+          {
+            "page": "ai-plan",
+            "height": 48,
+            "tag": "A",
+            "text": "fitness_center\n训练",
+            "width": 28,
+            "x": 92,
+            "y": 780
+          },
+          {
+            "page": "ai-plan",
+            "height": 48,
+            "tag": "A",
+            "text": "group\n社区",
+            "width": 28,
+            "x": 157,
+            "y": 780
+          },
+          {
+            "page": "ai-plan",
+            "height": 48,
+            "tag": "A",
+            "text": "person\n我的",
+            "width": 28,
+            "x": 320,
+            "y": 780
+          }
+        ],
+        "input_issues": [],
+        "overflow_issues": [],
+        "vertical_text_issues": []
+      }
+    }
+  ]
+}

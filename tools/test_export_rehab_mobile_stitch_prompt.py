@@ -172,7 +172,9 @@ def test_render_prompt_hardens_browser_candidate_copy_and_touch_targets():
     assert "\u674e\u5148\u751f" in prompt
     assert "\u5f20\u5148\u751f" in prompt
     assert "\u60a3\u8005A" in prompt
-    assert "minimum 44px touch target" in prompt
+    assert "Every interactive element must render at least 48px wide and 48px high" in prompt
+    assert "bottom navigation item must render at least 64px wide and 48px high" in prompt
+    assert "Back buttons must render at least 48px by 48px" in prompt
     assert "aria-label" in prompt
 
 
