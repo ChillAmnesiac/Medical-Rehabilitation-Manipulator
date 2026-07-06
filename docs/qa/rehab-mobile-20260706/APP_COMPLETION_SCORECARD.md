@@ -89,7 +89,7 @@ Current result: `NOT READY`.
 | L1 release evidence bundle | PASS | `tools/export_rehab_mobile_l1_evidence.py` exports one JSON snapshot with cloud health, git HEAD, combined L1 release gate, objective audit, browser evidence status, APK HEAD, and required follow-up artifacts |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code; `P1-PHONE-RESEND-001` rejects immediate resend with `retry_after` |
-| Phone SMS delivery readiness | WARN | Webhook delivery path is implemented and covered locally; `P1-PHONE-SMS-001` still warns because current staging mode is `debug_sms`, reason `debug_code_enabled` |
+| Phone SMS delivery readiness | READY, PROVIDER BLOCKED | Webhook delivery path is implemented and covered locally; `tools/smoke_rehab_sms_provider.py` and `tools/configure_rehab_sms_delivery.py` now provide the preflight/configuration path. `P1-PHONE-SMS-001` still warns because current staging mode is `debug_sms`, reason `debug_code_enabled`. Runbook: `docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md` |
 | Device binding flow | PASS | `P0-DEVICE-FLOW-001` repeats binding against the same record; `P0-DEVICE-CONFLICT-001` rejects a second account with `DEVICE_ALREADY_BOUND` |
 | Agent backend safety | PASS | Safe answer `200` with `model_status`, unsafe direct-control requests `400 UNSAFE_MOTION_REQUEST` |
 | Agent draft patient copy | PASS | AI training draft risk notes now use patient-facing Chinese and cloud smoke found no `M33`, `preflight`, `m33_accepted`, `CAN`, or `Stop` in `risk_notes` |

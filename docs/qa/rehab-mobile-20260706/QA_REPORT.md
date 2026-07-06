@@ -1185,3 +1185,34 @@ Fresh verification:
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - The exporter returns exit code `0` by default so it can preserve failure evidence when L1 is blocked; release jobs can add `--fail-on-l1-fail`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
+
+## SMS Delivery Ops Follow-Up
+
+2026-07-06 continuation work closed the ops gap between the existing backend SMS webhook path and a safe staging configuration process:
+
+- New provider preflight: `tools/smoke_rehab_sms_provider.py`
+- New guarded config tool: `tools/configure_rehab_sms_delivery.py`
+- New tests: `tools/test_smoke_rehab_sms_provider.py`, `tools/test_configure_rehab_sms_delivery.py`
+- New runbook: `docs/deployments/rehab-mobile-sms-delivery-runbook-20260706.md`
+- `.gitignore` now excludes `cloud/rehab-platform/.env` so real SMS tokens are not committed.
+
+Behavior:
+
+- The smoke tool POSTs the exact backend webhook payload shape: `phone`, `code`, `purpose`, `verification_id`, and `expires_in`.
+- Smoke output redacts the webhook token, verification code, and full phone number.
+- The config tool requires a passing preflight JSON for the same provider and webhook URL before it writes SMS settings.
+- Default mode is dry-run; `--execute` is required before `.env` is written.
+- The generated settings disable `PHONE_VERIFICATION_DEBUG_CODE_ENABLED` and configure `PHONE_VERIFICATION_SMS_PROVIDER`, `PHONE_VERIFICATION_SMS_WEBHOOK_URL`, and optional `PHONE_VERIFICATION_SMS_WEBHOOK_TOKEN`.
+
+Fresh verification:
+
+- Red tests first: both SMS ops tools were missing.
+- Focused SMS ops tests: `8 passed`.
+- Phone binding plus SMS ops focused suite: `36 passed, 1 warning`.
+- Full related backend/QA suite: `116 passed, 1 warning`.
+- Cloud API/APK acceptance remained `overall = PASS`, `p0_failed = 0`, `total = 22`; `P1-PHONE-SMS-001` still warns because staging is in `debug_sms` mode until a real provider is supplied.
+- Live L1 release remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live objective audit remains `FAIL`: `8 / 11` failing, including phone UI wiring, device UI, Ask Therapist UI, profile cleanup, browser success evidence, and cloud model.
+- L1 evidence export wrote `artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence-20260706-sms-ops.json`; summary `health_ok = true`, `apk_ok = true`, and no staging password in the JSON.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- Current staging remains `debug_sms` because no real SMS provider endpoint/token has been supplied.
