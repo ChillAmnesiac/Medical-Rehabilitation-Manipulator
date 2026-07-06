@@ -1556,14 +1556,20 @@ Source-dir gate:
 
 - Command:
   `tools/qa_rehab_mobile_l1_frontend.py --source-dir artifacts/stitch/l1-full-entity-candidate-20260707 --output artifacts/stitch/l1-full-entity-candidate-20260707/frontend-l1-source-gate.json`
-- Result: `overall = PASS`, `failed = 0`, `total = 5`.
-- Page gates: home `PASS`, profile `PASS`, device `PASS`, Agent `PASS`.
-- Integration gate: `PASS`, no missing requirements.
+- Initial result before fake/demo identity hardening: `overall = PASS`,
+  `failed = 0`, `total = 5`.
+- Current hardened result after browser QA: `overall = FAIL`, `failed = 1`,
+  `total = 5`.
+- Current blocking gate: `L1-HOME-STATIC-001`, forbidden hit `李先生`.
+- Current non-blocking candidate gates: profile `PASS`, device `PASS`, Agent
+  `PASS`, integration `PASS`.
 
 Result:
 
-- This is the first Stitch-generated four-page artifact candidate that passes
-  Codex's local L1 frontend source gate.
+- This was the first Stitch-generated four-page artifact candidate that passed
+  Codex's earlier local L1 frontend source gate.
+- It is now rejected by the hardened source gate because patient-facing screens
+  may not show fake/demo names.
 - It was not deployed and no APK was rebuilt because the candidate has not been
   applied to the actual `app/rehab-arm-mobile-stitch` frontend branch, mirrored
   into the Android WebView bundle, or browser-QA verified.
@@ -1576,3 +1582,46 @@ Prompt hardening:
   hexadecimal HTML entity fallback snippets. The device candidate showed that
   hexadecimal entities are safer for Stitch than decimal entities for the
   `绑定设备` label.
+
+## 2026-07-07 Stitch Entity Candidate Browser QA
+
+Codex opened the four-page Stitch entity candidate through the in-app browser
+from local preview `http://127.0.0.1:4187/` and re-captured the pages with an
+explicit `390 x 844` screenshot clip.
+
+Candidate screenshots:
+
+- `screenshots/stitch-entity-candidate-home-20260707-390x844.png`: `390 x 844`.
+- `screenshots/stitch-entity-candidate-profile-20260707-390x844.png`: `390 x 844`.
+- `screenshots/stitch-entity-candidate-device-20260707-390x844.png`: `390 x 844`.
+- `screenshots/stitch-entity-candidate-ai-plan-20260707-390x844.png`: `390 x 844`.
+
+Browser QA result: `REJECTED`.
+
+- `home.html` still shows fake/demo identity copy: `李先生`.
+- `home.html` primary actions are usable sizes: `查看康复师建议` measured
+  `335 x 56`, and `问康复师` measured `335 x 48`.
+- `profile.html` had no fake/debug hits in this browser pass; `绑定手机号`
+  measured `119 x 50`.
+- `device.html` had no fake/debug hits in this browser pass; `绑定设备` measured
+  `285 x 56`.
+- `ai-plan.html` had no fake/debug hits, but the header `问康复师` action
+  measured only `64 x 24`, below the required `44px` minimum touch height.
+- No horizontal overflow was found in the sampled first viewport checks.
+
+This candidate remains useful because it proves the entity-copy approach can
+preserve the exact required labels, but it is still not accepted for deployment.
+The current hardened source gate also fails it for `李先生`. It has not been
+applied to the real `app/rehab-arm-mobile-stitch` branch, mirrored into the
+Android WebView assets, deployed to cloud, or packaged into a new APK.
+
+Prompt hardening added after browser QA:
+
+- The Stitch V4 prompt now includes a `Stitch Browser Candidate QA Blockers`
+  section.
+- The prompt explicitly rejects fake/demo identities such as `李先生`,
+  `张先生`, `王女士`, `患者A`, and `ID: 8829`.
+- The prompt requires the `问康复师` entry to be a real button or link with
+  `aria-label` and a minimum `44px` touch target in both width and height.
+- `tools/qa_rehab_mobile_l1_frontend.py` now rejects common fake/demo
+  identities (`李先生`, `张先生`, `王女士`, `患者A`) in normal user screens.

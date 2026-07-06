@@ -162,6 +162,20 @@ def test_render_prompt_omits_resolved_agent_cloud_model_blocker():
     assert "phone_sms_delivery" in prompt
 
 
+def test_render_prompt_hardens_browser_candidate_copy_and_touch_targets():
+    module = _load_module()
+
+    prompt = module.render_prompt(_packet(), generated_at="2026-07-07T03:10:00Z")
+
+    assert "Stitch Browser Candidate QA Blockers" in prompt
+    assert "Do not use fake/demo personal names" in prompt
+    assert "\u674e\u5148\u751f" in prompt
+    assert "\u5f20\u5148\u751f" in prompt
+    assert "\u60a3\u8005A" in prompt
+    assert "minimum 44px touch target" in prompt
+    assert "aria-label" in prompt
+
+
 def test_cli_writes_prompt_from_repair_packet(tmp_path):
     module = _load_module()
     packet_path = tmp_path / "repair-packet.json"

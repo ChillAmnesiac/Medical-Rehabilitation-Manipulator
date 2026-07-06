@@ -1,6 +1,6 @@
 # Stitch Execution Prompt V4 - Rehab Mobile L1 Closure
 
-Generated: 2026-07-07T02:25:00Z
+Generated: 2026-07-07T03:10:00Z
 
 Repository: https://github.com/wenjunyong666/ai-
 Branch: app/rehab-arm-mobile-stitch
@@ -40,6 +40,14 @@ Use these snippets when Stitch starts rewriting Chinese labels. Browser-visible 
   - `<span>&#x6253;&#x5F00;&#x5EB7;&#x590D;&#x8BBE;&#x5907;&#x7535;&#x6E90;</span>`
 - ai-plan.html:
   - `<button type="button" aria-label="&#x95EE;&#x5EB7;&#x590D;&#x5E08;">&#x95EE;&#x5EB7;&#x590D;&#x5E08;</button>`
+
+## Stitch Browser Candidate QA Blockers
+The 2026-07-07 four-page entity candidate passed source gates but is still rejected until browser QA blockers are fixed:
+- Do not use fake/demo personal names, patient IDs, or mock identities on normal patient screens.
+  Do not show 李先生, 张先生, 王女士, 患者A, ID: 8829, or equivalent placeholders. Use neutral 您好 or the authenticated cloud account state only.
+- The Ask Therapist / 问康复师 entry must be an actual button or link with an aria-label and a minimum 44px touch target in both width and height.
+  The candidate header action measured 64x24 in browser QA, which is too small and is rejected.
+- Candidate screenshots are QA evidence only. Do not treat them as final L1 screenshots until the files are applied to the real App branch, mirrored into the APK WebView assets, deployed, and re-captured at exactly 390x844.
 
 ## Current Status
 - Stitch blockers: home_next_step, phone_binding, device_binding, ask_therapist_safety, profile_no_fake_debug, browser_qa_evidence, frontend_l1_gate

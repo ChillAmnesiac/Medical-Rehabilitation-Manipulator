@@ -197,6 +197,29 @@ def test_engineering_page_with_raw_terms_fails_gate():
     assert "M33" in result.detail["forbidden_hits"]
 
 
+def test_patient_page_with_demo_identity_fails_gate():
+    module = _load_module()
+
+    page = "\n".join(
+        [
+            "下午好，李先生",
+            "今天感觉如何？",
+            "查看康复师建议",
+            "问康复师",
+        ]
+    )
+
+    result = module.check_page(
+        "home",
+        page,
+        required_terms=module.PAGE_GATES["home.html"]["required_terms"],
+        forbidden_terms=module.L1_FORBIDDEN_TERMS,
+    )
+
+    assert result.status == "FAIL"
+    assert "李先生" in result.detail["forbidden_hits"]
+
+
 def test_profile_gate_requires_phone_binding_and_code_copy():
     module = _load_module()
 

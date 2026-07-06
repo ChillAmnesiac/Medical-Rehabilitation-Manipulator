@@ -42,6 +42,10 @@ L1_FORBIDDEN_TERMS = (
     "患者 A",
     "ID: 8829",
     "避免过度伸展",
+    "李先生",
+    "张先生",
+    "王女士",
+    "患者A",
     "RoboRehab Controller",
 )
 

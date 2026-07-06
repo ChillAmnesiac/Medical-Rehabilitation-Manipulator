@@ -150,12 +150,21 @@ $env:PYTHONIOENCODING='utf-8'
 .\cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_frontend.py --source-dir artifacts\stitch\l1-full-entity-candidate-20260707 --output artifacts\stitch\l1-full-entity-candidate-20260707\frontend-l1-source-gate.json
 ```
 
-Result: `overall = PASS`, `failed = 0`, `total = 5`.
+Initial result before browser QA hardening: `overall = PASS`, `failed = 0`,
+`total = 5`.
+
+Current result after adding fake/demo identity checks:
+
+- `overall = FAIL`, `failed = 1`, `total = 5`.
+- Blocking gate: `L1-HOME-STATIC-001`.
+- Forbidden hit: `李先生`.
 
 Notes:
 
-- This is the first Stitch-generated four-page candidate to pass the local L1
-  source gate.
+- This was the first Stitch-generated four-page candidate to pass the earlier
+  local L1 source gate.
+- It is now rejected by the hardened source gate because patient-facing screens
+  may not contain fake/demo identities.
 - It is not accepted as the deployed frontend because the files are still only
   Stitch artifacts, not changes applied to the real frontend branch.
 - It has not been mirrored into `apps/mobile/rehab-arm-android/www/`.
@@ -164,6 +173,29 @@ Notes:
 - The home candidate still includes demo-like wording such as `李先生`, so the
   next Stitch pass should replace any personal demo names with neutral text
   before deployment.
+
+## 2026-07-07 Four-Page Candidate Browser QA
+
+Codex opened the candidate in the in-app browser from
+`http://127.0.0.1:4187/` and captured first-viewport screenshots with an
+explicit `390 x 844` clip:
+
+- `docs/qa/rehab-mobile-20260706/screenshots/stitch-entity-candidate-home-20260707-390x844.png`
+- `docs/qa/rehab-mobile-20260706/screenshots/stitch-entity-candidate-profile-20260707-390x844.png`
+- `docs/qa/rehab-mobile-20260706/screenshots/stitch-entity-candidate-device-20260707-390x844.png`
+- `docs/qa/rehab-mobile-20260706/screenshots/stitch-entity-candidate-ai-plan-20260707-390x844.png`
+
+Browser result: `REJECTED`.
+
+- `home.html` still shows fake/demo identity copy: `李先生`.
+- `ai-plan.html` exposes a `问康复师` header action with `aria-label`, but the
+  visible target measured only `64 x 24`, below the required `44px` minimum
+  touch height.
+- `profile.html` and `device.html` did not show fake/debug terms in this pass,
+  and their primary binding buttons measured at least `44px` high.
+- The candidate remains a source-gate artifact only. It was not copied into the
+  real frontend branch, mirrored into Android WebView assets, cloud-deployed,
+  or packaged into a new APK.
 
 ## Next Stitch Prompt Delta
 
@@ -180,6 +212,12 @@ ai-plan.html: 问康复师
 
 Do not substitute 康复助手, 咨询治疗师, 开始康复训练, 个人中心, or 设备连接
 for these required strings.
+
+Do not use fake/demo patient names or IDs such as 李先生, 张先生, 王女士, 患者A,
+or ID: 8829. Use neutral 您好 or the authenticated cloud account state.
+
+Every 问康复师 entry must be a real button or link with aria-label and a minimum
+44px touch target in both width and height.
 ```
 
 After Stitch produces passing HTML, Codex should run:

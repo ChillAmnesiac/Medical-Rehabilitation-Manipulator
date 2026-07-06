@@ -153,6 +153,18 @@ def _required_browser_qa_section(packet: dict[str, Any]) -> list[str]:
     return lines
 
 
+def _browser_candidate_blockers_section() -> list[str]:
+    return [
+        "## Stitch Browser Candidate QA Blockers",
+        "The 2026-07-07 four-page entity candidate passed source gates but is still rejected until browser QA blockers are fixed:",
+        "- Do not use fake/demo personal names, patient IDs, or mock identities on normal patient screens.",
+        "  Do not show 李先生, 张先生, 王女士, 患者A, ID: 8829, or equivalent placeholders. Use neutral 您好 or the authenticated cloud account state only.",
+        "- The Ask Therapist / 问康复师 entry must be an actual button or link with an aria-label and a minimum 44px touch target in both width and height.",
+        "  The candidate header action measured 64x24 in browser QA, which is too small and is rejected.",
+        "- Candidate screenshots are QA evidence only. Do not treat them as final L1 screenshots until the files are applied to the real App branch, mirrored into the APK WebView assets, deployed, and re-captured at exactly 390x844.",
+    ]
+
+
 def _verification_section(packet: dict[str, Any]) -> list[str]:
     lines = ["## Codex Verification Commands"]
     lines.append("Codex will reject the frontend until these pass:")
@@ -277,6 +289,8 @@ def render_prompt(packet: dict[str, Any], *, generated_at: str | None = None) ->
         "",
     ]
     lines.extend(_exact_visible_copy_section())
+    lines.append("")
+    lines.extend(_browser_candidate_blockers_section())
     lines.extend(
         [
             "",
