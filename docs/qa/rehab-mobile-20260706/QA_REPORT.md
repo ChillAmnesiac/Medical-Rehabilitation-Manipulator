@@ -2158,3 +2158,68 @@ Fresh verification:
 
 No cloud deploy or APK rebuild was performed because this pass changed only
 QA/release tooling and documentation, not frontend runtime assets.
+
+## 2026-07-07 Stitch Frontend Promotion Gate
+
+Codex added a conservative promotion gate between Stitch output and the real App
+branch so a visual candidate cannot be copied into production web assets or the
+Android WebView bundle unless it first passes the local L1 source gate.
+
+Tooling changes:
+
+- Added `tools/promote_rehab_mobile_stitch_frontend.py`.
+- The tool requires an explicit `--stitch-source-dir`, runs
+  `tools/qa_rehab_mobile_l1_frontend.py --source-dir` first, and writes
+  `stitch-frontend-l1-preflight.json`.
+- Dry-run is the default. It writes `stitch-frontend-promotion.json` with the
+  files that would be promoted, but does not copy anything.
+- `--execute` is only allowed after the preflight passes. It replaces both
+  `apps/web/public/rehab-arm-mobile/` and `apps/mobile/rehab-arm-android/www/`
+  from the accepted Stitch source, then writes
+  `webview-mirror-verification.json` from
+  `tools/verify_rehab_mobile_webview_mirror.py`.
+- Unsafe cases are blocked before copying, including failing L1 preflight,
+  filesystem-root targets, targets inside the Stitch source, and output
+  directories inside replace targets.
+
+Fresh verification:
+
+- Red test first failed because
+  `tools/promote_rehab_mobile_stitch_frontend.py` did not exist.
+- Red dry-run test then failed because a passing Stitch source still returned
+  `passing_source_promotion_not_implemented`.
+- Red execute test then failed because accepted source files were not copied or
+  mirrored.
+- Red safety test then failed because `--execute` with `--output-dir` inside a
+  replace target raised an exception after the tool had already started writing
+  reports; the check now runs before any filesystem write.
+- Focused promotion tests:
+  `tools/test_promote_rehab_mobile_stitch_frontend.py` -> `4 passed`.
+- Related frontend/release chain:
+  `tools/test_promote_rehab_mobile_stitch_frontend.py`,
+  `tools/test_qa_rehab_mobile_l1_frontend.py`,
+  `tools/test_qa_rehab_mobile_l1_frontend_local_source.py`,
+  `tools/test_verify_rehab_mobile_webview_mirror.py`,
+  `tools/test_prepare_rehab_mobile_frontend_release.py`, and
+  `tools/test_deploy_rehab_mobile_frontend_release.py` -> `34 passed`.
+
+Current Stitch candidate dry-run:
+
+- Command:
+  `tools/promote_rehab_mobile_stitch_frontend.py --stitch-source-dir artifacts/stitch/l1-full-browser-qa-candidate-20260707 --web-dir artifacts/external/rehab-arm-mobile-stitch/apps/web/public/rehab-arm-mobile --android-www-dir artifacts/external/rehab-arm-mobile-stitch/apps/mobile/rehab-arm-android/www --output-dir docs/qa/rehab-mobile-20260706/stitch-promotion-current-candidate-20260707`
+- Result: `overall = FAIL`, `copied = false`.
+- Committed evidence:
+  `docs/qa/rehab-mobile-20260706/stitch-promotion-current-candidate-20260707/stitch-frontend-l1-preflight.json`
+  and
+  `docs/qa/rehab-mobile-20260706/stitch-promotion-current-candidate-20260707/stitch-frontend-promotion.json`.
+- Remaining source blockers: `no_mock_api_behavior`,
+  `phone_verification_start_post`, `phone_verification_confirm_post`,
+  `device_bind_post`, and `agent_messages_post`, with forbidden source hits
+  `mockData`, `Simulate API response`, and `In real app`.
+
+Acceptance boundary:
+
+- No frontend assets were copied into the real App checkout.
+- No cloud deployment or APK rebuild was performed in this pass because the only
+  runtime candidate was rejected and the committed work is QA/release tooling
+  plus evidence.

@@ -1,0 +1,47 @@
+{
+  "schema": "rehab-mobile-stitch-frontend-promotion/v1",
+  "summary": {
+    "overall": "FAIL",
+    "dry_run": true,
+    "copied": false
+  },
+  "source": {
+    "stitch_source_dir": "artifacts\\stitch\\l1-full-browser-qa-candidate-20260707"
+  },
+  "targets": {
+    "web_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\rehab-arm-mobile",
+    "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www"
+  },
+  "plan": {
+    "files_to_promote": [
+      "ai-plan.html",
+      "browser-metrics-gate-live-390x844.json",
+      "browser-metrics-gate-live-v3-390x844.json",
+      "browser-metrics-gate-live-v3-final-390x844.json",
+      "browser-qa-live-390x844.json",
+      "browser-qa-live-v3-390x844.json",
+      "device.html",
+      "frontend-l1-source-gate-v2.json",
+      "frontend-l1-source-gate-v3-final.json",
+      "frontend-l1-source-gate-v3-hardened.json",
+      "frontend-l1-source-gate-v3-post-hardened-final.json",
+      "frontend-l1-source-gate-v3-post-hardened.json",
+      "frontend-l1-source-gate-v3.json",
+      "frontend-l1-source-gate.json",
+      "home.html",
+      "profile.html"
+    ],
+    "replace_targets": [
+      "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\rehab-arm-mobile",
+      "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www"
+    ]
+  },
+  "frontend_l1_preflight": {
+    "overall": "FAIL",
+    "failed": 1,
+    "total": 5,
+    "web_base": null,
+    "source_dir": "artifacts\\stitch\\l1-full-browser-qa-candidate-20260707",
+    "report_path": "docs\\qa\\rehab-mobile-20260706\\stitch-promotion-current-candidate-20260707\\stitch-frontend-l1-preflight.json"
+  }
+}
