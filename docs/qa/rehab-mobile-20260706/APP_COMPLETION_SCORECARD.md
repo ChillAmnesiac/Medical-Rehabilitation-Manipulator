@@ -86,6 +86,7 @@ Current result: `NOT READY`.
 | Frontend release packaging | PASS | `tools/qa_rehab_mobile_l1_frontend.py --source-dir --output` preflights Stitch output locally and preserves JSON evidence; `tools/prepare_rehab_mobile_frontend_release.py` refuses failing frontend sources, writes a deployable zip, and records manifest deploy/verification commands before cloud copy |
 | Frontend release package verification | PASS | `tools/verify_rehab_mobile_frontend_release.py` validates the generated manifest schema, zip sha256, preflight report, required page artifacts, guarded deploy executor command, and exact browser QA screenshot checklist before cloud deployment |
 | Frontend release deployment guard | PASS | `tools/deploy_rehab_mobile_frontend_release.py` verifies the manifest again, defaults to dry-run, refuses unsafe remote roots, and requires `--execute --run-post-verify` before cloud copy plus post-deploy checks |
+| L1 release evidence bundle | PASS | `tools/export_rehab_mobile_l1_evidence.py` exports one JSON snapshot with cloud health, git HEAD, combined L1 release gate, objective audit, browser evidence status, APK HEAD, and required follow-up artifacts |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code; `P1-PHONE-RESEND-001` rejects immediate resend with `retry_after` |
 | Phone SMS delivery readiness | WARN | Webhook delivery path is implemented and covered locally; `P1-PHONE-SMS-001` still warns because current staging mode is `debug_sms`, reason `debug_code_enabled` |
@@ -119,13 +120,14 @@ Current result: `NOT READY`.
 10. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
 11. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
 12. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
-13. Browser QA at exactly `390 x 844`:
+13. Export the L1 evidence bundle with `tools/export_rehab_mobile_l1_evidence.py`; use `--fail-on-l1-fail` in CI/release jobs.
+14. Browser QA at exactly `390 x 844`:
    - Home first screen.
    - `问康复师` chat open.
    - Unsafe Agent refusal.
    - Device binding wizard.
    - Profile account/phone/medical empty state.
-14. Update this scorecard after every large task.
+15. Update this scorecard after every large task.
 
 ## Git Discipline
 

@@ -1154,3 +1154,34 @@ Fresh verification:
 - Live objective audit remains `FAIL`: `8 / 11` failing, including all five exact L1 success screenshots missing.
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
+
+## L1 Evidence Bundle Follow-Up
+
+2026-07-06 continuation work added a single export command for the evidence package expected after every large task:
+
+- New script: `tools/export_rehab_mobile_l1_evidence.py`
+- New tests: `tools/test_export_rehab_mobile_l1_evidence.py`
+- Default output: `artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence.json`
+
+The evidence bundle records:
+
+- Cloud `/health` status and deployment metadata.
+- Git branch, HEAD, and dirty status.
+- Combined L1 release gate summary and payload.
+- Objective-level L1 audit summary and payload.
+- Browser evidence status, including missing exact `390 x 844` screenshots.
+- APK HEAD status, size, and content type.
+- Required scorecard, runbook, Stitch prompt, repair packet, frontend release, and model relay artifacts.
+
+Fresh verification:
+
+- Red test first: `tools/export_rehab_mobile_l1_evidence.py` did not exist.
+- Follow-up red test first: `required_artifacts` did not identify the evidence exporter or default evidence output.
+- Focused evidence exporter tests: `2 passed`.
+- Full related backend/QA suite: `108 passed, 1 warning`.
+- Live evidence export wrote `artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence-20260706.json`.
+- Live evidence summary: `overall = FAIL`, release `FAIL`, objective `FAIL`, `health_ok = true`, `apk_ok = true`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Live evidence confirms all five exact L1 success screenshots are still missing and the exported JSON does not contain the staging password.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- The exporter returns exit code `0` by default so it can preserve failure evidence when L1 is blocked; release jobs can add `--fail-on-l1-fail`.
+- No cloud runtime deployment was made for this QA/tooling-only change.

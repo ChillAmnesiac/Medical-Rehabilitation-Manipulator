@@ -179,6 +179,7 @@ $env:REHAB_QA_EMAIL='<staging email>'
 $env:REHAB_QA_PASSWORD='<staging password>'
 cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_release.py
 cloud\rehab-platform\.venv\Scripts\python.exe tools\qa_rehab_mobile_l1_objective_audit.py
+cloud\rehab-platform\.venv\Scripts\python.exe tools\export_rehab_mobile_l1_evidence.py --output artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence.json
 ```
 
 Required combined result:
@@ -194,10 +195,13 @@ Required combined result:
 - `L1-FRONTEND-INTEGRATION-001` has no missing API contract requirements.
 - Objective audit `summary.overall = PASS`
 - Objective audit `summary.blocking_requirements = []`
+- L1 evidence bundle `summary.overall = PASS`
 
 If this combined gate fails, inspect the nested `api` and `frontend` sections. Do not accept the frontend build, cloud deployment, or refreshed APK as L1 user-ready while `frontend_l1_gate` or `api_smoke` is listed as a blocker.
 
 If the objective audit fails, inspect the `requirements` section. Do not call the app L1 user-ready while any user-facing requirement such as `home_next_step`, `phone_binding`, `device_binding`, `ask_therapist_safety`, `profile_no_fake_debug`, or `browser_qa_evidence` is still failing.
+
+The L1 evidence bundle is the handoff artifact after every large task. It records cloud health and deployment metadata, current git branch/HEAD, APK HEAD status, the combined release payload, objective audit payload, browser evidence status, and the Stitch/backend artifacts needed for the next fix cycle. Use `--fail-on-l1-fail` for CI or a release job that must stop when L1 is not ready.
 
 Then Codex must capture browser screenshots at exactly `390 x 844`:
 
@@ -215,9 +219,10 @@ Then Codex must:
 
 1. Update `docs/qa/rehab-mobile-20260706/QA_REPORT.md`.
 2. Update `docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md`.
-3. Verify APK URL still returns `200`, APK content type, and size over 1 MB.
-4. Stage only task-relevant files.
-5. Commit with a focused message.
+3. Export the L1 evidence bundle with `tools/export_rehab_mobile_l1_evidence.py`.
+4. Verify APK URL still returns `200`, APK content type, and size over 1 MB.
+5. Stage only task-relevant files.
+6. Commit with a focused message.
 
 ## Current Next Action
 
