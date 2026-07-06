@@ -2384,6 +2384,8 @@ Tooling changes:
 - Default local APK/WebView paths now point at the real App checkout under
   `artifacts/external/rehab-arm-mobile-stitch/`, matching the branch
   `app/rehab-arm-mobile-stitch`.
+- The evidence bundle now includes an `app_git` section for the real App
+  checkout, separate from the main QA/tooling repository `git` section.
 
 Fresh verification:
 
@@ -2397,6 +2399,9 @@ Fresh verification:
   `tools/test_qa_rehab_mobile_l1_release.py`,
   `tools/test_qa_rehab_mobile_l1_objective_audit.py`, and
   `tools/test_verify_rehab_mobile_apk_webview_assets.py` -> `23 passed`.
+- Follow-up red exporter tests first failed because `app_git_getter` and
+  `target.app_checkout_dir` did not exist; focused exporter tests now pass with
+  `5 passed`.
 
 Current evidence bundle:
 
@@ -2405,6 +2410,8 @@ Current evidence bundle:
 - Result: `overall = FAIL`.
 - Health: `health_ok = true`.
 - APK URL: `apk_ok = true`.
+- App checkout: `app/rehab-arm-mobile-stitch`,
+  `eaa08a40cdd3e1e62827809111f2323e7f92556f`, `dirty = false`.
 - Release blockers: `frontend_l1_gate`, `apk_webview_assets`.
 - Objective blockers:
   `home_next_step`, `phone_binding`, `device_binding`,

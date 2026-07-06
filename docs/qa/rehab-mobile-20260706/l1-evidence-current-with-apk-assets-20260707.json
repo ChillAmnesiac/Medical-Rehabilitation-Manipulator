@@ -1,11 +1,12 @@
 {
   "schema": "rehab-mobile-l1-evidence/v1",
-  "generated_at": "2026-07-06T22:14:22Z",
+  "generated_at": "2026-07-06T22:18:30Z",
   "target": {
     "api_base": "http://106.55.62.122:8011",
     "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
     "web_origin": "http://106.55.62.122:3001",
     "apk_url": "http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk",
+    "app_checkout_dir": "artifacts/external/rehab-arm-mobile-stitch",
     "apk_file": "artifacts/external/rehab-arm-mobile-stitch/apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk",
     "android_www_dir": "artifacts/external/rehab-arm-mobile-stitch/apps/mobile/rehab-arm-android/www",
     "apk_asset_prefix": "assets/public",
@@ -36,9 +37,11 @@
     ]
   },
   "git": {
+    "path": "F:/RT-ThreadStudio/workspace/Edgi_Talk_M33_Blink_LED",
+    "available": true,
     "branch": "codex/rehab-mobile-backend-qa-20260706",
-    "head": "d701884f251fd2a6493fb0726425dbd1c5517178",
-    "head_short": "d701884f",
+    "head": "5752036a5867d1f4bb97255b41671f7b3aeaa238",
+    "head_short": "5752036a",
     "dirty": true,
     "status_short": [
       "M .cproject",
@@ -49,8 +52,6 @@
       " M applications/control/control_layer_cfg.h",
       " M applications/m33/m55_model_bridge.c",
       " M applications/main.c",
-      " M docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md",
-      " M docs/qa/rehab-mobile-20260706/QA_REPORT.md",
       " M \"docs/\\346\\226\\207\\346\\241\\243\\345\\257\\274\\350\\210\\252.md\"",
       " M tools/export_rehab_mobile_l1_evidence.py",
       " M tools/test_export_rehab_mobile_l1_evidence.py",
@@ -64,7 +65,6 @@
       "?? \"docs/Nanopi\\344\\270\\216F103\\350\\201\\224\\350\\260\\203\\350\\260\\203\\350\\257\\225\\345\\210\\206\\346\\236\\220_20260707.md\"",
       "?? docs/REPORT_SOFTWARE_LAYERED_SECTION_20260705.md",
       "?? docs/embedded_competition_report_software_layered.docx",
-      "?? docs/qa/rehab-mobile-20260706/l1-evidence-current-with-apk-assets-20260707.json",
       "?? docs/qa/rehab-mobile-20260706/screenshots/stitch-clean-candidate-ai-plan-20260707-390x844.png",
       "?? docs/qa/rehab-mobile-20260706/screenshots/stitch-clean-candidate-device-20260707-390x844.png",
       "?? docs/qa/rehab-mobile-20260706/screenshots/stitch-clean-candidate-home-20260707-390x844.png",
@@ -78,6 +78,15 @@
       "?? tools/calibrate_motor_zero_offset.py",
       "?? tools/test_calibrate_motor_zero_offset.py"
     ]
+  },
+  "app_git": {
+    "path": "artifacts/external/rehab-arm-mobile-stitch",
+    "available": true,
+    "branch": "app/rehab-arm-mobile-stitch",
+    "head": "eaa08a40cdd3e1e62827809111f2323e7f92556f",
+    "head_short": "eaa08a4",
+    "dirty": false,
+    "status_short": []
   },
   "health": {
     "url": "http://106.55.62.122:8011/health",
@@ -120,16 +129,16 @@
         ]
       },
       "meta": {
-        "request_id": "5059c019696f4d238e2bfacca70384d9"
+        "request_id": "f79bb7342e7b43979e68ebe48d89c568"
       }
     },
     "headers": {
       "Connection": "close",
       "Content-Length": "538",
       "Content-Type": "application/json",
-      "Date": "Mon, 06 Jul 2026 22:14:23 GMT",
+      "Date": "Mon, 06 Jul 2026 22:18:29 GMT",
       "Server": "uvicorn",
-      "X-Request-Id": "5059c019696f4d238e2bfacca70384d9"
+      "X-Request-Id": "f79bb7342e7b43979e68ebe48d89c568"
     }
   },
   "apk_head": {
@@ -143,7 +152,7 @@
       "Accept-Ranges": "bytes",
       "Cache-Control": "public, max-age=0",
       "Content-Type": "application/vnd.android.package-archive",
-      "Date": "Mon, 06 Jul 2026 22:14:23 GMT",
+      "Date": "Mon, 06 Jul 2026 22:18:30 GMT",
       "Etag": "W/\"40103e-19f2ec7ac72\"",
       "Last-Modified": "Sat, 04 Jul 2026 20:17:45 GMT"
     }
@@ -232,7 +241,7 @@
                   ]
                 },
                 "meta": {
-                  "request_id": "2f5a1d0941e2496782bcbe770dbb0cf0"
+                  "request_id": "3124f94632d04437960b005abe1716db"
                 }
               }
             }
@@ -322,7 +331,7 @@
               "device_first_step": "打开康复设备电源",
               "profile_phone": {
                 "label": "手机号",
-                "value": "+155****6199",
+                "value": "+155****0522",
                 "verified": true,
                 "status_text": "手机号已验证",
                 "action_label": "更换手机号"
@@ -347,7 +356,7 @@
             "summary": "Staging account can request and confirm a phone verification code.",
             "detail": {
               "start_status_code": 200,
-              "masked_phone": "+155****0522",
+              "masked_phone": "+155****7936",
               "delivery_channel": "debug_sms",
               "expires_in": 300,
               "confirm_status_code": 200,
@@ -360,11 +369,11 @@
             "status": "PASS",
             "summary": "Phone verification immediate resend is throttled with a retry_after countdown.",
             "detail": {
-              "phone": "+15559010653",
+              "phone": "+15559258035",
               "first_status_code": 200,
               "second_status_code": 429,
               "second_error_code": "PHONE_CODE_RESEND_TOO_SOON",
-              "retry_after": 60,
+              "retry_after": 59,
               "first_delivery_channel": "debug_sms"
             }
           },
@@ -425,7 +434,7 @@
             "detail": {
               "status_code": 200,
               "technical_terms": [],
-              "answer": "手臂轻微酸胀在早期主动康复阶段较常见，属于正常反应。  \n✅ 若酸胀程度 ≤3分（0–10分），无刺痛、麻木或关节不适，可继续训练，建议：  \n• 降低单次训练强度（如减少重复次数或阻力）  \n• 增加热身与放松时间（如轻柔肩肘活动+5分钟温敷）  \n• 训练后做轻度拉伸与冰敷（如酸胀明显）  \n\n⚠️ 若出现疼痛加重、放射性不适或活动受限，请暂停并记录症状，我们可帮您调整方案。需要我为您生成今日简化版训练提示吗？",
+              "answer": "手臂轻微酸胀（尤其在早期主动阶段）是常见反应，说明肌肉正在适应训练。  \n✅ 若酸胀程度 ≤3分（无刺痛、麻木或关节不适），可继续训练，但建议：  \n- 降低单次训练强度（如减少重复次数或阻力）  \n- 增加热身与放松时间  \n- 训练后轻柔拉伸和冷敷（如需要）  \n\n⚠️ 若出现疼痛加重、肿胀、活动受限或麻木，请暂停训练并及时反馈。  \n需要我帮你调整今天的训练计划吗？",
               "model_status": {
                 "mode": "cloud_model",
                 "configured": true,

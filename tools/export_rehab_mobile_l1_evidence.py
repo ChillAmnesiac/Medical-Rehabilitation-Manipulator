@@ -28,10 +28,9 @@ DEFAULT_API_BASE = "http://106.55.62.122:8011"
 DEFAULT_WEB_BASE = "http://106.55.62.122:3001/rehab-arm-mobile"
 DEFAULT_WEB_ORIGIN = "http://106.55.62.122:3001"
 DEFAULT_APK_URL = "http://106.55.62.122:3001/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"
-DEFAULT_APK_FILE = Path(
-    "artifacts/external/rehab-arm-mobile-stitch/apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"
-)
-DEFAULT_ANDROID_WWW_DIR = Path("artifacts/external/rehab-arm-mobile-stitch/apps/mobile/rehab-arm-android/www")
+DEFAULT_APP_CHECKOUT_DIR = Path("artifacts/external/rehab-arm-mobile-stitch")
+DEFAULT_APK_FILE = DEFAULT_APP_CHECKOUT_DIR / "apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"
+DEFAULT_ANDROID_WWW_DIR = DEFAULT_APP_CHECKOUT_DIR / "apps/mobile/rehab-arm-android/www"
 DEFAULT_APK_ASSET_PREFIX = "assets/public"
 DEFAULT_OUTPUT = Path("artifacts/rehab-mobile-l1-evidence/rehab-mobile-l1-evidence.json")
 
@@ -40,6 +39,7 @@ ObjectiveRunner = Callable[[dict[str, Any], Path], dict[str, Any]]
 HealthGetter = Callable[[str, int], dict[str, Any]]
 ApkHeadGetter = Callable[[str, int], dict[str, Any]]
 GitGetter = Callable[[], dict[str, Any]]
+AppGitGetter = Callable[[Path], dict[str, Any]]
 
 
 def _utc_now() -> str:
@@ -143,10 +143,10 @@ def head_apk(url: str, timeout: int) -> dict[str, Any]:
         }
 
 
-def _git(args: list[str]) -> str | None:
+def _git(args: list[str], cwd: Path | None = None) -> str | None:
     result = subprocess.run(
         ["git", *args],
-        cwd=Path.cwd(),
+        cwd=cwd or Path.cwd(),
         check=False,
         capture_output=True,
         text=True,
@@ -158,15 +158,34 @@ def _git(args: list[str]) -> str | None:
     return result.stdout.strip()
 
 
-def git_info() -> dict[str, Any]:
-    status = _git(["status", "--short"]) or ""
+def git_info(cwd: Path | None = None) -> dict[str, Any]:
+    repo_cwd = cwd or Path.cwd()
+    if not repo_cwd.exists():
+        return {
+            "path": _display_path(repo_cwd),
+            "available": False,
+            "branch": None,
+            "head": None,
+            "head_short": None,
+            "dirty": None,
+            "status_short": [],
+            "error": "path_missing",
+        }
+    status = _git(["status", "--short"], repo_cwd) or ""
+    head = _git(["rev-parse", "HEAD"], repo_cwd)
     return {
-        "branch": _git(["rev-parse", "--abbrev-ref", "HEAD"]),
-        "head": _git(["rev-parse", "HEAD"]),
-        "head_short": _git(["rev-parse", "--short", "HEAD"]),
+        "path": _display_path(repo_cwd),
+        "available": bool(head),
+        "branch": _git(["rev-parse", "--abbrev-ref", "HEAD"], repo_cwd),
+        "head": head,
+        "head_short": _git(["rev-parse", "--short", "HEAD"], repo_cwd),
         "dirty": bool(status),
         "status_short": status.splitlines(),
     }
+
+
+def app_git_info(app_checkout_dir: Path) -> dict[str, Any]:
+    return git_info(app_checkout_dir)
 
 
 def _run_release_gate(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
@@ -261,11 +280,13 @@ def build_evidence(
     health_getter: HealthGetter | None = None,
     apk_head_getter: ApkHeadGetter | None = None,
     git_getter: GitGetter | None = None,
+    app_git_getter: AppGitGetter | None = None,
 ) -> dict[str, Any]:
     active_release_runner = release_runner or _run_release_gate
     active_health_getter = health_getter or fetch_health
     active_apk_head_getter = apk_head_getter or head_apk
     active_git_getter = git_getter or git_info
+    active_app_git_getter = app_git_getter or app_git_info
 
     release_exit_code, release_payload = active_release_runner(args)
     objective_payload = (
@@ -283,6 +304,7 @@ def build_evidence(
             "web_base": args.web_base,
             "web_origin": args.web_origin,
             "apk_url": args.apk_url,
+            "app_checkout_dir": _display_path(args.app_checkout_dir),
             "apk_file": _display_path(args.apk_file),
             "android_www_dir": _display_path(args.android_www_dir),
             "apk_asset_prefix": args.apk_asset_prefix,
@@ -291,6 +313,7 @@ def build_evidence(
         },
         "summary": _summary(release_payload, objective_payload, health, apk_head_payload),
         "git": active_git_getter(),
+        "app_git": active_app_git_getter(args.app_checkout_dir),
         "health": health,
         "apk_head": apk_head_payload,
         "release": {"exit_code": release_exit_code, "summary": release_payload.get("summary") or {}, "payload": release_payload},
@@ -317,6 +340,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--web-base", default=os.getenv("REHAB_QA_WEB_BASE", DEFAULT_WEB_BASE))
     parser.add_argument("--web-origin", default=os.getenv("REHAB_QA_WEB_ORIGIN", DEFAULT_WEB_ORIGIN))
     parser.add_argument("--apk-url", default=os.getenv("REHAB_QA_APK_URL", DEFAULT_APK_URL))
+    parser.add_argument(
+        "--app-checkout-dir",
+        type=Path,
+        default=Path(os.getenv("REHAB_QA_APP_CHECKOUT_DIR", str(DEFAULT_APP_CHECKOUT_DIR))),
+    )
     parser.add_argument("--apk-file", type=Path, default=Path(os.getenv("REHAB_QA_APK_FILE", str(DEFAULT_APK_FILE))))
     parser.add_argument(
         "--android-www-dir",

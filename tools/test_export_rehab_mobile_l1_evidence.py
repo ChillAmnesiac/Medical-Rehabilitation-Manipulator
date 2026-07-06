@@ -74,6 +74,7 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
         web_base="http://web.example/rehab-arm-mobile",
         web_origin="http://web.example",
         apk_url="http://web.example/app.apk",
+        app_checkout_dir=Path("app-checkout"),
         apk_file=Path("app-checkout/apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk"),
         android_www_dir=Path("app-checkout/apps/mobile/rehab-arm-android/www"),
         apk_asset_prefix="assets/public",
@@ -100,10 +101,16 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
             "headers": {"Content-Length": "4198462"},
         },
         git_getter=lambda: {"branch": "codex/rehab-mobile-backend-qa-20260706", "head": "abc5678"},
+        app_git_getter=lambda _path: {
+            "branch": "app/rehab-arm-mobile-stitch",
+            "head": "eaa08a40cdd3e1e62827809111f2323e7f92556f",
+            "dirty": False,
+        },
     )
 
     assert evidence["schema"] == "rehab-mobile-l1-evidence/v1"
     assert evidence["generated_at"] == "2026-07-06T16:00:00Z"
+    assert evidence["target"]["app_checkout_dir"] == "app-checkout"
     assert evidence["target"]["browser_metrics_json"].endswith("browser-metrics-gate.json")
     assert evidence["target"]["apk_file"].endswith("lingdong-rehab-arm-debug.apk")
     assert evidence["target"]["android_www_dir"].endswith("apps/mobile/rehab-arm-android/www")
@@ -125,6 +132,9 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
     assert evidence["apk_head"]["content_length"] == 4198462
     assert evidence["health"]["body"]["data"]["deployment"]["build_sha"] == "d2f81c92"
     assert evidence["git"]["branch"] == "codex/rehab-mobile-backend-qa-20260706"
+    assert evidence["app_git"]["branch"] == "app/rehab-arm-mobile-stitch"
+    assert evidence["app_git"]["head"].startswith("eaa08a40")
+    assert evidence["app_git"]["dirty"] is False
     assert evidence["required_artifacts"]["scorecard"].endswith("APP_COMPLETION_SCORECARD.md")
     assert evidence["required_artifacts"]["l1_evidence_exporter"].endswith("export_rehab_mobile_l1_evidence.py")
     assert evidence["required_artifacts"]["webview_mirror_verifier"].endswith(
@@ -132,6 +142,16 @@ def test_build_evidence_includes_l1_gates_browser_apk_health_and_git():
     )
     assert evidence["required_artifacts"]["l1_evidence_default_output"].endswith("rehab-mobile-l1-evidence.json")
     assert "1234" not in json.dumps(evidence, ensure_ascii=False)
+
+
+def test_parse_args_defaults_to_real_app_checkout():
+    module = _load_module()
+
+    args = module.parse_args([])
+
+    assert args.app_checkout_dir.as_posix().endswith("artifacts/external/rehab-arm-mobile-stitch")
+    assert args.apk_file.as_posix().endswith("apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk")
+    assert args.android_www_dir.as_posix().endswith("apps/mobile/rehab-arm-android/www")
 
 
 def test_release_gate_receives_apk_webview_asset_targets(monkeypatch):
@@ -177,7 +197,7 @@ def test_release_gate_receives_apk_webview_asset_targets(monkeypatch):
 def test_main_writes_evidence_and_only_fails_l1_when_requested(tmp_path, monkeypatch):
     module = _load_module()
     output_path = tmp_path / "evidence.json"
-    calls = {"release": 0, "health": 0, "apk": 0, "git": 0}
+    calls = {"release": 0, "health": 0, "apk": 0, "git": 0, "app_git": 0}
 
     def fake_release(_args):
         calls["release"] += 1
@@ -199,6 +219,10 @@ def test_main_writes_evidence_and_only_fails_l1_when_requested(tmp_path, monkeyp
         calls["git"] += 1
         return {"branch": "codex/test", "head": "abc1234"}
 
+    def fake_app_git(_app_checkout_dir):
+        calls["app_git"] += 1
+        return {"branch": "app/rehab-arm-mobile-stitch", "head": "eaa08a40", "dirty": False}
+
     monkeypatch.setattr(module, "_run_release_gate", fake_release)
     monkeypatch.setattr(
         module.qa_rehab_mobile_l1_objective_audit,
@@ -216,6 +240,7 @@ def test_main_writes_evidence_and_only_fails_l1_when_requested(tmp_path, monkeyp
         fake_apk,
     )
     monkeypatch.setattr(module, "git_info", fake_git)
+    monkeypatch.setattr(module, "app_git_info", fake_app_git)
 
     exit_code = module.main(["--output", str(output_path), "--generated-at", "2026-07-06T16:00:00Z"])
 
@@ -223,6 +248,7 @@ def test_main_writes_evidence_and_only_fails_l1_when_requested(tmp_path, monkeyp
     payload = json.loads(output_path.read_text(encoding="utf-8"))
     assert payload["summary"]["overall"] == "FAIL"
     assert payload["release"]["exit_code"] == 1
+    assert payload["app_git"]["branch"] == "app/rehab-arm-mobile-stitch"
 
     fail_code = module.main(
         [
@@ -235,7 +261,7 @@ def test_main_writes_evidence_and_only_fails_l1_when_requested(tmp_path, monkeyp
     )
 
     assert fail_code == 1
-    assert calls == {"release": 2, "health": 2, "apk": 2, "git": 2}
+    assert calls == {"release": 2, "health": 2, "apk": 2, "git": 2, "app_git": 2}
 
 
 def test_load_json_accepts_utf16_saved_payload(tmp_path):
