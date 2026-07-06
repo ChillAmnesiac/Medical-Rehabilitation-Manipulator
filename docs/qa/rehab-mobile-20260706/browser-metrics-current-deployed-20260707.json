@@ -1,0 +1,140 @@
+{
+  "summary": {
+    "overall": "FAIL",
+    "failed": 1,
+    "total": 1
+  },
+  "results": [
+    {
+      "gate": "L1-BROWSER-METRICS-001",
+      "level": "L1",
+      "status": "FAIL",
+      "summary": "Rendered mobile browser QA covers all L1 pages and has no fake copy, small touch targets, input overlap, overflow, or vertical text.",
+      "detail": {
+        "checked_pages": [
+          "home",
+          "profile",
+          "device",
+          "ai-plan"
+        ],
+        "missing_pages": [],
+        "fake_hits": [
+          {
+            "page": "home",
+            "term": "M33"
+          },
+          {
+            "page": "home",
+            "term": "M55"
+          },
+          {
+            "page": "profile",
+            "term": "M33"
+          },
+          {
+            "page": "profile",
+            "term": "M55"
+          },
+          {
+            "page": "device",
+            "term": "M33"
+          },
+          {
+            "page": "device",
+            "term": "M55"
+          },
+          {
+            "page": "device",
+            "term": "Gatekeeper"
+          }
+        ],
+        "touch_issues": [
+          {
+            "page": "home",
+            "height": 38,
+            "tag": "BUTTON",
+            "text": "clinical_notes",
+            "width": 38,
+            "x": 17,
+            "y": 13
+          },
+          {
+            "page": "home",
+            "height": 40,
+            "tag": "BUTTON",
+            "text": "smart_toy",
+            "width": 40,
+            "x": 319,
+            "y": 12
+          },
+          {
+            "page": "home",
+            "height": 37,
+            "tag": "BUTTON",
+            "text": "emergency 急停已就绪",
+            "width": 307,
+            "x": 36,
+            "y": 794
+          },
+          {
+            "page": "profile",
+            "height": 48,
+            "tag": "BUTTON",
+            "text": "clinical_notes",
+            "width": 40,
+            "x": 16,
+            "y": 8
+          },
+          {
+            "page": "profile",
+            "height": 48,
+            "tag": "BUTTON",
+            "text": "smart_toy",
+            "width": 40,
+            "x": 319,
+            "y": 8
+          },
+          {
+            "page": "profile",
+            "height": 41,
+            "tag": "BUTTON",
+            "text": "add 配对新设备",
+            "width": 293,
+            "x": 41,
+            "y": 714
+          },
+          {
+            "page": "device",
+            "height": 44,
+            "tag": "BUTTON",
+            "text": "smart_toy",
+            "width": 44,
+            "x": 315,
+            "y": 10
+          },
+          {
+            "page": "ai-plan",
+            "height": 4,
+            "tag": "INPUT",
+            "text": "2",
+            "width": 325,
+            "x": 33,
+            "y": 438
+          },
+          {
+            "page": "ai-plan",
+            "height": 44,
+            "tag": "SELECT",
+            "text": "轻微 中等 明显疲劳",
+            "width": 325,
+            "x": 33,
+            "y": 486
+          }
+        ],
+        "input_issues": [],
+        "overflow_issues": [],
+        "vertical_text_issues": []
+      }
+    }
+  ]
+}

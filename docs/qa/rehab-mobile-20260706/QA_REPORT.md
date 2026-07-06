@@ -2423,3 +2423,55 @@ Acceptance boundary:
 - No cloud deployment or APK rebuild was performed in this pass because this
   work changes QA/evidence tooling only and the generated evidence still shows
   current L1 failure.
+
+## 2026-07-07 Current Deployed Browser QA Refresh
+
+Codex re-ran browser QA against the deployed cloud frontend at
+`http://106.55.62.122:3001/rehab-arm-mobile/` using the in-app browser.
+
+Artifacts:
+
+- Raw browser metrics:
+  `docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707-raw.json`.
+- Standard browser metrics gate:
+  `docs/qa/rehab-mobile-20260706/browser-metrics-current-deployed-20260707.json`.
+- Objective audit using current deployed browser metrics:
+  `docs/qa/rehab-mobile-20260706/objective-audit-current-deployed-browser-20260707.json`.
+- Refreshed L1 evidence bundle:
+  `docs/qa/rehab-mobile-20260706/l1-evidence-current-with-apk-assets-20260707.json`.
+
+Screenshots captured in the in-app browser:
+
+- Home:
+  `docs/qa/rehab-mobile-20260706/screenshots/current-deployed-home-20260707-375x812.jpg`.
+- Profile:
+  `docs/qa/rehab-mobile-20260706/screenshots/current-deployed-profile-20260707-375x812.jpg`.
+- Device:
+  `docs/qa/rehab-mobile-20260706/screenshots/current-deployed-device-20260707-375x812.jpg`.
+- Ask Therapist / AI plan:
+  `docs/qa/rehab-mobile-20260706/screenshots/current-deployed-ai-plan-20260707-390x844.jpg`.
+
+Current browser metrics result:
+
+- `L1-BROWSER-METRICS-001 = FAIL`.
+- Checked pages: `home`, `profile`, `device`, `ai-plan`.
+- Missing pages: none.
+- Engineering/debug copy still visible:
+  `M33` and `M55` on home/profile/device; `Gatekeeper` on device.
+- Touch target issues remain on home/profile/device/ai-plan, including the
+  header icon buttons and AI plan input/select controls below the 48 px minimum.
+- No overflow, input-overlap, or vertical-text issues were detected in this
+  pass.
+
+Current objective audit with deployed browser metrics:
+
+- Result: `overall = FAIL`, `8 / 12` requirements failing.
+- Blocking requirements:
+  `home_next_step`, `phone_binding`, `device_binding`,
+  `ask_therapist_safety`, `profile_no_fake_debug`, `apk_webview_assets`,
+  `browser_qa_evidence`, and `combined_l1_release`.
+
+Acceptance boundary:
+
+- No cloud deployment or APK rebuild was performed in this pass because this
+  work captures the current deployed failure state only.

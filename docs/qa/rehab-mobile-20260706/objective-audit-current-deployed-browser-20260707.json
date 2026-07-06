@@ -1,0 +1,204 @@
+{
+  "summary": {
+    "overall": "FAIL",
+    "failed": 8,
+    "total": 12,
+    "blocking_requirements": [
+      "home_next_step",
+      "phone_binding",
+      "device_binding",
+      "ask_therapist_safety",
+      "profile_no_fake_debug",
+      "apk_webview_assets",
+      "browser_qa_evidence",
+      "combined_l1_release"
+    ]
+  },
+  "requirements": [
+    {
+      "requirement": "cloud_deployment",
+      "status": "PASS",
+      "summary": "Cloud API is healthy and exposes traceable deployment metadata.",
+      "evidence": {
+        "required_gates": [
+          "P0-CLOUD-001",
+          "P1-DEPLOY-META-001"
+        ]
+      }
+    },
+    {
+      "requirement": "login",
+      "status": "PASS",
+      "summary": "Staging user can log in and receive a bearer token.",
+      "evidence": {
+        "required_gates": [
+          "P0-AUTH-001"
+        ]
+      }
+    },
+    {
+      "requirement": "home_next_step",
+      "status": "FAIL",
+      "summary": "Home shows a clear next action and no normal-screen debug terms.",
+      "evidence": {
+        "required_gates": [
+          "L1-HOME-STATIC-001"
+        ]
+      }
+    },
+    {
+      "requirement": "phone_binding",
+      "status": "FAIL",
+      "summary": "Phone is bound in API and the profile UI exposes the phone verification path.",
+      "evidence": {
+        "required_gates": [
+          "P0-PHONE-001",
+          "P0-PHONE-FLOW-001",
+          "L1-PROFILE-STATIC-001",
+          "L1-FRONTEND-INTEGRATION-001"
+        ]
+      }
+    },
+    {
+      "requirement": "device_binding",
+      "status": "FAIL",
+      "summary": "Device binding and already-bound conflict work in API and the device UI shows a patient wizard.",
+      "evidence": {
+        "required_gates": [
+          "P0-DEVICE-FLOW-001",
+          "P0-DEVICE-CONFLICT-001",
+          "L1-DEVICE-STATIC-001",
+          "L1-FRONTEND-INTEGRATION-001"
+        ]
+      }
+    },
+    {
+      "requirement": "ask_therapist_safety",
+      "status": "FAIL",
+      "summary": "Ask Therapist answers safe questions, refuses unsafe control, and is reachable in the UI.",
+      "evidence": {
+        "required_gates": [
+          "P0-AGENT-001",
+          "P0-AGENT-002",
+          "L1-AGENT-STATIC-001",
+          "L1-FRONTEND-INTEGRATION-001"
+        ]
+      }
+    },
+    {
+      "requirement": "agent_cloud_model",
+      "status": "PASS",
+      "summary": "Agent is backed by a configured cloud model, not only safe fallback rules.",
+      "evidence": {
+        "required_gates": [
+          "P1-AGENT-CONFIG-001",
+          "P1-AGENT-MODEL-001"
+        ]
+      }
+    },
+    {
+      "requirement": "profile_no_fake_debug",
+      "status": "FAIL",
+      "summary": "Profile does not show fake patient data or engineering debug fields.",
+      "evidence": {
+        "required_gates": [
+          "L1-PROFILE-STATIC-001"
+        ]
+      }
+    },
+    {
+      "requirement": "apk_delivery",
+      "status": "PASS",
+      "summary": "Installable APK is reachable and has a valid APK content type.",
+      "evidence": {
+        "required_gates": [
+          "P0-APK-001"
+        ]
+      }
+    },
+    {
+      "requirement": "apk_webview_assets",
+      "status": "FAIL",
+      "summary": "APK bundles the accepted Android WebView assets without stale or changed files.",
+      "evidence": {
+        "required_gates": [
+          "APK-WEBVIEW-INPUTS",
+          "APK-WEBVIEW-REQUIRED-PAGES",
+          "APK-WEBVIEW-FILE-PARITY"
+        ],
+        "apk_webview_assets_summary": {
+          "overall": "FAIL",
+          "failed": 3,
+          "total": 3,
+          "android_file_count": 0,
+          "apk_webview_file_count": 20
+        }
+      }
+    },
+    {
+      "requirement": "browser_qa_evidence",
+      "status": "FAIL",
+      "summary": "Browser QA screenshots cover home, Ask Therapist, unsafe refusal, device wizard, and profile.",
+      "evidence": {
+        "screenshot_dir": "docs\\qa\\rehab-mobile-20260706\\screenshots",
+        "matched": {},
+        "missing": [
+          "home_first_screen",
+          "ask_therapist_chat",
+          "unsafe_agent_refusal",
+          "device_binding_wizard",
+          "profile_phone_medical"
+        ],
+        "invalid_dimensions": {},
+        "invalid_files": {},
+        "expected_dimensions": {
+          "width": 390,
+          "height": 844
+        },
+        "minimum_screenshot_bytes": 1024,
+        "browser_metrics": {
+          "path": "docs\\qa\\rehab-mobile-20260706\\browser-metrics-current-deployed-20260707.json",
+          "status": "FAIL",
+          "summary": {
+            "overall": "FAIL",
+            "failed": 1,
+            "total": 1
+          },
+          "checked_pages": [
+            "home",
+            "profile",
+            "device",
+            "ai-plan"
+          ],
+          "required_pages": [
+            "ai-plan",
+            "device",
+            "home",
+            "profile"
+          ],
+          "missing_pages": []
+        }
+      }
+    },
+    {
+      "requirement": "combined_l1_release",
+      "status": "FAIL",
+      "summary": "Combined L1 release gate is green with no blockers.",
+      "evidence": {
+        "release_summary": {
+          "overall": "FAIL",
+          "api_overall": "PASS",
+          "api_p0_failed": 0,
+          "frontend_overall": "FAIL",
+          "frontend_failed": 5,
+          "apk_webview_assets_overall": "FAIL",
+          "apk_webview_assets_failed": 3,
+          "blocking_gates": [
+            "frontend_l1_gate",
+            "apk_webview_assets"
+          ]
+        }
+      }
+    }
+  ]
+}

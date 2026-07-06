@@ -1,0 +1,166 @@
+{
+  "generated_at": "2026-07-06T22:24:52.203Z",
+  "source": "http://106.55.62.122:3001/rehab-arm-mobile",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "pages": [
+    {
+      "metrics": {
+        "fakeHits": [
+          {
+            "term": "M33"
+          },
+          {
+            "term": "M55"
+          }
+        ],
+        "inputIssues": [],
+        "overflows": [],
+        "touchIssues": [
+          {
+            "height": 38,
+            "tag": "BUTTON",
+            "text": "clinical_notes",
+            "width": 38,
+            "x": 17,
+            "y": 13
+          },
+          {
+            "height": 40,
+            "tag": "BUTTON",
+            "text": "smart_toy",
+            "width": 40,
+            "x": 319,
+            "y": 12
+          },
+          {
+            "height": 37,
+            "tag": "BUTTON",
+            "text": "emergency 急停已就绪",
+            "width": 307,
+            "x": 36,
+            "y": 794
+          }
+        ],
+        "verticalTextIssues": []
+      },
+      "page": "home",
+      "textPreview": "网络未连接，请检查后端服务 clinical_notes RoboRehab Controller smart_toy 晚上好，今天适合做轻量屈肘训练 medical_information 康复阶段：亚急性期 front_hand 患侧：左侧 timer 今日目标：30 分钟 M33 ACTIVE 今日目标动作 屈肘训练 时长 20 mins 强度 低 进度 45% play_arrow 开始训练 (需 M33 授权) verified_user 状态：M33 已允许执行 emergency 急停已就绪 设备状态 bluetooth M33 BLE 已连接 sensors M55 EMG 激活 precision_manufacturing Arm 安全 cloud_sync Cloud 已同步 最近训练结果快照 完成度 95% 肌肉疲劳 低 psychiatry AI 建议 \"动作稳定性极佳，建议维持当前强度\" robot_2 home_health 首页 exercise 训练 monitoring 肌电 precision_manufacturing 设备 person 我的",
+      "title": "RoboRehab Controller",
+      "url": "http://106.55.62.122:3001/rehab-arm-mobile/home.html",
+      "screenshot": "docs/qa/rehab-mobile-20260706/screenshots/current-deployed-home-20260707-375x812.jpg"
+    },
+    {
+      "metrics": {
+        "fakeHits": [
+          {
+            "term": "M33"
+          },
+          {
+            "term": "M55"
+          }
+        ],
+        "inputIssues": [],
+        "overflows": [],
+        "touchIssues": [
+          {
+            "height": 48,
+            "tag": "BUTTON",
+            "text": "clinical_notes",
+            "width": 40,
+            "x": 16,
+            "y": 8
+          },
+          {
+            "height": 48,
+            "tag": "BUTTON",
+            "text": "smart_toy",
+            "width": 40,
+            "x": 319,
+            "y": 8
+          },
+          {
+            "height": 41,
+            "tag": "BUTTON",
+            "text": "add 配对新设备",
+            "width": 293,
+            "x": 41,
+            "y": 714
+          }
+        ],
+        "verticalTextIssues": []
+      },
+      "page": "profile",
+      "textPreview": "网络未连接，请检查后端服务 clinical_notes RoboRehab Controller System OK smart_toy 患者 A ID: 8829 relax 第二阶段康复中 warning 医疗约束 避免过度伸展 > 120° 已连接设备 settings_input_component precision_manufacturing M33 康复机械臂 EXO-L-01 激活 sensors M55 肌电传感器 EMG-PATCH 激活 add 配对新设备 calendar_month 训练活动 同步后显示 登录后同步真实训练记录。 暂无本周训练记录 查看日志 cloud_sync 云端平台 同步中 record_voice_over 小智语音 已开启 supervisor_account 权限管理 康复师/家属 shield_lock 数据隐私与通知 home_health 首页 exercise 训练 monitoring 肌电 precision_manufacturing 设备 person 我的",
+      "title": "RoboRehab Controller - My Profile",
+      "url": "http://106.55.62.122:3001/rehab-arm-mobile/profile.html",
+      "screenshot": "docs/qa/rehab-mobile-20260706/screenshots/current-deployed-profile-20260707-375x812.jpg"
+    },
+    {
+      "metrics": {
+        "fakeHits": [
+          {
+            "term": "M33"
+          },
+          {
+            "term": "M55"
+          },
+          {
+            "term": "Gatekeeper"
+          }
+        ],
+        "inputIssues": [],
+        "overflows": [],
+        "touchIssues": [
+          {
+            "height": 44,
+            "tag": "BUTTON",
+            "text": "smart_toy",
+            "width": 44,
+            "x": 315,
+            "y": 10
+          }
+        ],
+        "verticalTextIssues": []
+      },
+      "page": "device",
+      "textPreview": "网络未连接，请检查后端服务 clinical_notes RoboRehab 控制器 smart_toy check_circle 系统状态 M33 状态：准备就绪，允许安全训练 系统架构图 smartphone 手机 APP hub 安全门控 (Gatekeeper) memory M55 dns NanoPi precision_manufacturing 机械臂 当前连接 已扫描蓝牙 bluetooth_connected M33 康复机械臂 已连接 monitor_heart 心跳状态 M33: 120ms 云端: 45ms battery_charging_80 电源状态 机械臂电量: 85% sync 一键同步训练计划 需要 M33 医疗系统授权。 bug_report 蓝牙调试 / 实机验证 bug_report 调试信息 expand_more robot_2 home_health 首页 exercise 训练 monitoring 肌电 precision_manufacturing 设备 person 我的",
+      "title": "设备连接 - RoboRehab 控制器",
+      "url": "http://106.55.62.122:3001/rehab-arm-mobile/device.html",
+      "screenshot": "docs/qa/rehab-mobile-20260706/screenshots/current-deployed-device-20260707-375x812.jpg"
+    },
+    {
+      "metrics": {
+        "fakeHits": [],
+        "inputIssues": [],
+        "overflows": [],
+        "touchIssues": [
+          {
+            "height": 4,
+            "tag": "INPUT",
+            "text": "2",
+            "width": 325,
+            "x": 33,
+            "y": 438
+          },
+          {
+            "height": 44,
+            "tag": "SELECT",
+            "text": "轻微 中等 明显疲劳",
+            "width": 325,
+            "x": 33,
+            "y": 486
+          }
+        ],
+        "verticalTextIssues": []
+      },
+      "page": "ai-plan",
+      "textPreview": "网络未连接，请检查后端服务 arrow_back 康复智能体 云端同步 warning AI 只生成训练草稿；接受后还需要设备审核和训练前检查，不能直接启动机械臂。 terminal 智能体规划输入 肌电：等待读取 意图：等待读取 草稿：等待生成 疼痛自评 2/10 疲劳状态 轻微 中等 明显疲劳 memory 生成 AI 草稿 receipt_long 训练草稿处方 草稿 等待生成训练草稿 训练量 登录后生成 助力 / 速度 - report 安全提示：草稿接受后仍需同步到设备、等待设备审核，并通过训练前检查后才能开始记录。 智能体状态：AI 规划会调用后端 /ai-training-drafts/generate。模型未配置时会明确显示规则回退，不伪装真实 AI 调用。 check_circle 接受为训练计划 闭环执行状态 check 生成 AI 草稿 等待后端草稿 人工确认草稿 接受后仅生成普通训练计划 生成训练计划 同步到设备 等待设备审核 Preflight 后开始记录 等待训练前检查 home_health 首页 terminal AI precision_manufacturing 设备",
+      "title": "康复智能体 - 灵动康复 ArmControl",
+      "url": "http://106.55.62.122:3001/rehab-arm-mobile/ai-plan.html",
+      "screenshot": "docs/qa/rehab-mobile-20260706/screenshots/current-deployed-ai-plan-20260707-390x844.jpg"
+    }
+  ]
+}
