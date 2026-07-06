@@ -90,11 +90,12 @@ Current result: `NOT READY`.
 | Agent draft patient copy | PASS | AI training draft risk notes now use patient-facing Chinese and cloud smoke found no `M33`, `preflight`, `m33_accepted`, `CAN`, or `Stop` in `risk_notes` |
 | Agent public config readiness | WARN | `P1-AGENT-CONFIG-001`: public-config exposes `data.agent.model_readiness`; current staging mode is `fallback_rule_based`, reason `external_model_not_configured` |
 | Agent cloud model readiness | FAIL | L1 release now blocks on `agent_cloud_model` until `P1-AGENT-CONFIG-001` and `P1-AGENT-MODEL-001` are `PASS`; current staging is `fallback_rule_based`, reason `external_model_not_configured` |
+| Agent model relay ops | READY TO CONFIGURE | `tools/configure_rehab_model_relay.py` now performs privileged relay config plus Agent smoke; runbook: `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |
 | Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, 5 failed frontend gates, blockers `frontend_l1_gate` and `agent_cloud_model` |
 | Home UI | FAIL | Browser screenshots plus `tools/qa_rehab_mobile_l1_frontend.py` gate `L1-HOME-STATIC-001` |
 | Agent UI | FAIL | Visible assistant entries do not open chat; static gate `L1-AGENT-STATIC-001` missing `问康复师` |
-| Device UI | FAIL | Device page still looks like debug/engineering state; latest browser evidence `screenshots/continuation-device-qa-20260706-390.png`; static gate `L1-DEVICE-STATIC-001` now also requires `绑定设备` and `打开康复设备电源` |
+| Device UI | FAIL | Device page still looks like debug/engineering state; latest browser evidence `screenshots/model-relay-ops-device-390.png`; static gate `L1-DEVICE-STATIC-001` requires `绑定设备` and `打开康复设备电源`, and the page still exposes `M33`, `M55`, and `Gatekeeper` |
 | Profile UI | FAIL | Browser screenshots plus static gate `L1-PROFILE-STATIC-001` now also require `绑定手机号` and `验证码` |
 | Frontend API integration | FAIL | `L1-FRONTEND-INTEGRATION-001` is missing `patient_view` section wiring plus phone verification and Agent message endpoints |
 
@@ -104,15 +105,16 @@ Current result: `NOT READY`.
 2. Follow the Stitch runbook in `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`.
 3. Deploy updated frontend web assets to `http://106.55.62.122:3001/rehab-arm-mobile/`.
 4. Rebuild or refresh APK if the APK bundles frontend assets.
-5. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
-6. If the combined gate fails, inspect the nested `api` and `frontend` sections before changing code.
-7. Browser QA at 390px:
+5. Configure the real Agent cloud model relay with `tools/configure_rehab_model_relay.py` after a real model endpoint/key is available.
+6. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
+7. If the combined gate fails, inspect the nested `api` and `frontend` sections before changing code.
+8. Browser QA at 390px:
    - Home first screen.
    - `问康复师` chat open.
    - Unsafe Agent refusal.
    - Device binding wizard.
    - Profile account/phone/medical empty state.
-8. Update this scorecard after every large task.
+9. Update this scorecard after every large task.
 
 ## Git Discipline
 

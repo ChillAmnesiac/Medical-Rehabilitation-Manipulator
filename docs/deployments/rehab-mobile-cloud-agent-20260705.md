@@ -416,6 +416,28 @@
   - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`
   - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
 
+## 2026-07-06 Agent Model Relay Ops Tooling
+
+- Investigated the live cloud `agent_cloud_model` blocker.
+- Current server model relay env is empty for `REHAB_ARM_MODEL_RELAY_PROVIDER`, `REHAB_ARM_MODEL_RELAY_BASE_URL`, `REHAB_ARM_MODEL_RELAY_MODEL`, and `REHAB_ARM_MODEL_RELAY_API_KEY`; `REHAB_ARM_MODEL_RELAY_EXTERNAL_ENABLED=false`.
+- XiaoZhi ASR/TTS model relay fallback keys are also empty, so the staging server cannot call a real model until a provider endpoint/key is configured.
+- Added local ops tool:
+  - `tools/configure_rehab_model_relay.py`
+- Added tests:
+  - `tools/test_configure_rehab_model_relay.py`
+- Added runbook:
+  - `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md`
+- Fresh verification:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest tools/test_configure_rehab_model_relay.py -q` -> `5 passed`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud/rehab-platform/tests tools/test_qa_rehab_mobile_acceptance.py tools/test_qa_rehab_mobile_l1_frontend.py tools/test_qa_rehab_mobile_l1_release.py tools/test_export_rehab_mobile_stitch_fixture.py tools/test_configure_rehab_model_relay.py -q` -> `71 passed, 1 warning`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe tools\configure_rehab_model_relay.py --project-id e201f41c-25a6-46e1-baf8-be6dcb83284c --email 3245056131@qq.com --password 1234 --base-url https://model.example/v1 --model rehab-cloud-model` -> `{"error": "api_key is required"}`
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 22`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`
+  - APK HEAD -> `200`, size `4198462`, content type `application/vnd.android.package-archive`
+  - Browser QA screenshot: `docs/qa/rehab-mobile-20260706/screenshots/model-relay-ops-device-390.png`
+- No cloud runtime deployment was made for this ops-only change.
+- L1 remains blocked until a real model key is configured and the Agent smoke reports `data.model_status.mode = cloud_model`.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

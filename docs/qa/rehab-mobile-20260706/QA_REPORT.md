@@ -665,6 +665,34 @@ Fresh verification:
 - Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
 - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/phone-cooldown-profile-390.png`; the profile page still misses the phone field and shows demo/engineering content, so Stitch must consume the phone contract before L1 can pass.
 
+## Agent Cloud Model Relay Ops Follow-Up
+
+2026-07-06 continuation work investigated the remaining `agent_cloud_model` blocker against the live cloud service:
+
+- Cloud model relay settings are currently empty:
+  - `REHAB_ARM_MODEL_RELAY_PROVIDER`
+  - `REHAB_ARM_MODEL_RELAY_BASE_URL`
+  - `REHAB_ARM_MODEL_RELAY_MODEL`
+  - `REHAB_ARM_MODEL_RELAY_API_KEY`
+  - `REHAB_ARM_MODEL_RELAY_EXTERNAL_ENABLED=false`
+- XiaoZhi ASR/TTS fallback relay keys are also empty, so there is no reusable model key on this staging server.
+- The cloud App Agent and AI draft planner both use the shared `REHAB_ARM_MODEL_RELAY_*` settings.
+- The existing config writer clears the settings cache after API-based `.env` updates; direct server `.env` edits still require a service restart.
+- Added `tools/configure_rehab_model_relay.py` to configure the relay through the privileged project API and smoke-test `/api/rehab-arm/app/v1/agent/messages`.
+- Added `tools/test_configure_rehab_model_relay.py`.
+- The configure tool redacts the API key and exits successfully only when the Agent smoke response reports `data.model_status.mode = cloud_model`.
+- Focused tests: `5 passed`.
+- Full local backend plus QA suite after this tooling change: `71 passed, 1 warning`.
+- Cloud acceptance after this tooling change: API/APK `PASS`, `p0_failed = 0`, `total = 22`.
+- Total L1 release gate remains `FAIL`, with blockers `frontend_l1_gate` and `agent_cloud_model`.
+- Negative no-key check returned `{"error": "api_key is required"}`, proving the tool does not write partial config without a real model secret.
+- Browser QA screenshot: `docs/qa/rehab-mobile-20260706/screenshots/model-relay-ops-device-390.png`.
+  - Current deployed `device.html` still shows a false network warning, `setup_required`, `M33`, `M55`, and `Gatekeeper`.
+  - Current deployed `device.html` contains `绑定设备` but still misses the normal-user step copy `打开康复设备电源`.
+- New ops runbook: `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md`.
+
+Current product decision remains unchanged: do not call this build L1 user-ready until a real model endpoint/key is configured and both `P1-AGENT-CONFIG-001` and `P1-AGENT-MODEL-001` pass.
+
 ## Accessibility Risks
 
 - Agent-like icon buttons do not communicate their purpose clearly to screen-reader or touch users.
