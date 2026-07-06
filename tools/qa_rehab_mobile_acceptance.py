@@ -142,6 +142,25 @@ def agent_cloud_model_readiness(value: Any) -> tuple[bool, dict[str, Any]]:
     return mode == "cloud_model" and bool(model_status.get("model")), detail
 
 
+def phone_delivery_readiness(value: Any) -> tuple[bool, dict[str, Any]]:
+    phone_verification = data(value).get("phone_verification")
+    delivery_status = phone_verification.get("delivery_status") if isinstance(phone_verification, dict) else None
+    if not isinstance(delivery_status, dict):
+        return False, {"mode": None, "reason": "phone_delivery_status_missing"}
+    detail = {
+        "mode": delivery_status.get("mode"),
+        "configured": delivery_status.get("configured"),
+        "provider": delivery_status.get("provider"),
+        "exposes_debug_code": delivery_status.get("exposes_debug_code"),
+        "reason": delivery_status.get("reason"),
+    }
+    return (
+        delivery_status.get("mode") == "sms"
+        and delivery_status.get("configured") is True
+        and delivery_status.get("exposes_debug_code") is False
+    ), detail
+
+
 def get_or_create_session_token(
     client: Client,
     email: str,
@@ -356,6 +375,25 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         "Cloud API health returns ok.",
         {"status_code": health_status, "pid": health_data.get("pid"), "body": health_body},
     )
+
+    public_config_status, public_config_body, _ = client.request("GET", "/api/rehab-arm/app/v1/public-config")
+    phone_sms_ready, phone_sms_detail = phone_delivery_readiness(public_config_body)
+    if phone_sms_ready:
+        add(
+            results,
+            "P1-PHONE-SMS-001",
+            "P1",
+            True,
+            "Phone verification is configured for real SMS delivery without exposing debug codes.",
+            phone_sms_detail,
+        )
+    else:
+        warn(
+            results,
+            "P1-PHONE-SMS-001",
+            "Phone verification is not configured for production SMS delivery; staging may rely on debug codes.",
+            {"status_code": public_config_status, **phone_sms_detail},
+        )
 
     token = None
     if args.email and args.password:

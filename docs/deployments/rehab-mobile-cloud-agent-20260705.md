@@ -216,6 +216,39 @@
   - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
 - In-app browser plugin attempt: the Codex in-app browser backend was listed, but selected-tab and tab-list reads timed out, so no new rendered screenshot could be captured for this gate.
 
+## 2026-07-06 Phone SMS Delivery Readiness Gate
+
+- Added public runtime visibility for phone verification delivery readiness:
+  - `GET /api/rehab-arm/app/v1/public-config`
+  - `data.phone_verification.delivery_status`
+  - Acceptance gate `P1-PHONE-SMS-001`
+- Local source updates:
+  - `cloud/rehab-platform/app/core/config.py`
+  - `cloud/rehab-platform/app/api/routes/rehab_app.py`
+  - `tools/qa_rehab_mobile_acceptance.py`
+- Cloud patch deployed to:
+  - `app/settings.py`
+  - `app/modules/rehab_arm/app_router.py`
+- Cloud backups created:
+  - `app/settings.py.bak-sms-readiness-20260706`
+  - `app/modules/rehab_arm/app_router.py.bak-sms-readiness-20260706`
+- Cloud restart:
+  - PID: `1605495`
+  - Explicit database URL: `sqlite:///./ai_collab_server.db`
+  - API: `http://106.55.62.122:8011`
+- Current staging result:
+  - `P1-PHONE-SMS-001` -> `WARN`
+  - mode `debug_sms`
+  - reason `debug_code_enabled`
+- Fresh verification:
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests tools\test_qa_rehab_mobile_acceptance.py tools\test_qa_rehab_mobile_l1_frontend.py tools\test_qa_rehab_mobile_l1_release.py -q` -> `46 passed, 1 warning`
+  - Local `py_compile` passed for config/router/QA files
+  - Remote `.venv/bin/python -m py_compile app/settings.py app/modules/rehab_arm/app_router.py` passed
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 19`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
+  - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/sms-readiness-device-390.png`; frontend still shows false network/debug workflow copy.
+  - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

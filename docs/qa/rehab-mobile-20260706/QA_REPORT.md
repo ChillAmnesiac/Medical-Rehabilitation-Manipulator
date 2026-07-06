@@ -27,6 +27,7 @@ The current deployed frontend does not consume the backend `data.patient_view` c
 9. `screenshots/device-binding-profile-390.png` - Profile browser QA after device-binding deployment.
 10. `screenshots/device-binding-device-390.png` - Device browser QA after device-binding deployment.
 11. `screenshots/device-binding-agent-390.png` - Agent browser QA after device-binding deployment.
+12. `screenshots/sms-readiness-device-390.png` - Device page browser QA after SMS readiness deployment.
 
 All screenshots were opened and inspected before being used as evidence. They show the deployed cloud app, not a blank page or wrong window.
 
@@ -41,6 +42,7 @@ All screenshots were opened and inspected before being used as evidence. They sh
 | 5 | Profile tab from bottom navigation | FAIL | `05-profile-nav-390.png` |
 | 6 | Profile resmoke on current production frontend | FAIL | `06-profile-resmoke-390.png` |
 | 7 | Home resmoke on current production frontend | FAIL | `07-home-resmoke-390.png` |
+| 8 | Device page after SMS readiness deployment | FAIL | `screenshots/sms-readiness-device-390.png` |
 
 ## 2026-07-06 L1 Resmoke
 
@@ -369,6 +371,42 @@ Fresh verification:
 - `P1-AGENT-MODEL-001` -> `WARN`.
 - Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
 - In-app browser plugin QA attempt: the Codex in-app browser instance was discoverable, but `selected` tab and tab-list reads timed out; no new screenshot evidence was captured in this pass.
+
+## Backend Phone SMS Delivery Readiness Follow-Up
+
+2026-07-06 continuation work added explicit visibility for whether phone verification can use a real SMS delivery channel or is still using staging debug codes:
+
+- `GET /api/rehab-arm/app/v1/public-config` now returns `data.phone_verification.delivery_status`.
+- Acceptance smoke now includes `P1-PHONE-SMS-001`.
+- Cloud deployment patched:
+  - `app/settings.py`
+  - `app/modules/rehab_arm/app_router.py`
+- Cloud backups:
+  - `app/settings.py.bak-sms-readiness-20260706`
+  - `app/modules/rehab_arm/app_router.py.bak-sms-readiness-20260706`
+- Cloud restart:
+  - PID: `1605495`
+  - API: `http://106.55.62.122:8011`
+- Current staging SMS status:
+  - `mode = debug_sms`
+  - `configured = false`
+  - `exposes_debug_code = true`
+  - `reason = debug_code_enabled`
+
+Fresh verification:
+
+- Red tests first:
+  - `phone_delivery_readiness` was missing and helper tests failed.
+  - `public-config` was missing `phone_verification` and backend test failed.
+- Focused helper tests after implementation: `12 passed`.
+- Focused phone backend tests after implementation: `6 passed, 1 warning`.
+- Full local suite: `46 passed, 1 warning`.
+- Remote compile: `.venv/bin/python -m py_compile app/settings.py app/modules/rehab_arm/app_router.py`.
+- Cloud smoke: `overall = PASS`, `p0_failed = 0`, `total = 19`.
+- `P1-PHONE-SMS-001` -> `WARN`.
+- APK smoke remained `PASS` with size `4198462` bytes.
+- Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+- Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/sms-readiness-device-390.png`; the page still shows a false network warning and engineering/debug terms including `setup_required`, `M33`, `M55`, and `Gatekeeper`.
 
 ## Accessibility Risks
 

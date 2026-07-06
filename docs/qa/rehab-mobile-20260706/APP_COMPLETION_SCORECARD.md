@@ -12,6 +12,7 @@ Required:
 - Auth/session passes.
 - `/api/rehab-arm/app/v1/me` returns `profile` and `patient_view`.
 - Phone binding APIs pass.
+- Phone SMS delivery readiness is visible; staging warns when still using debug SMS codes.
 - Device binding APIs pass, including same-account idempotency and cross-account already-bound conflict.
 - Agent safe answer and unsafe refusal pass.
 - Agent model readiness is visible; current staging warns when using fallback rules instead of a configured cloud model.
@@ -78,6 +79,7 @@ Current result: `NOT READY`.
 | Backend API | PASS | `tools/qa_rehab_mobile_acceptance.py`, `overall = PASS`, `p0_failed = 0` |
 | Patient view contract | PASS | `P0-PATIENT-VIEW-001` checks sections, Agent endpoint, device step, phone field, and no raw terms |
 | Phone verification flow | PASS | `P0-PHONE-FLOW-001` requests and confirms a staging SMS code end to end |
+| Phone SMS delivery readiness | WARN | `P1-PHONE-SMS-001`: current staging mode is `debug_sms`, reason `debug_code_enabled` |
 | Device binding flow | PASS | `P0-DEVICE-FLOW-001` repeats binding against the same record; `P0-DEVICE-CONFLICT-001` rejects a second account with `DEVICE_ALREADY_BOUND` |
 | Agent backend safety | PASS | Safe answer `200` with `model_status`, unsafe direct-control requests `400 UNSAFE_MOTION_REQUEST` |
 | Agent cloud model readiness | WARN | `P1-AGENT-MODEL-001`: current staging mode is `fallback_rule_based`, reason `external_model_not_configured` |

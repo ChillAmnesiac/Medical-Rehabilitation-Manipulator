@@ -25,9 +25,10 @@ Move the rehab mobile frontend from engineering dashboard to L1 patient-ready st
 Current backend status:
 - API smoke is PASS.
 - APK delivery is PASS.
-- Backend acceptance total is 18 checks with 0 P0 failures.
+- Backend acceptance total is 19 checks with 0 P0 failures.
 - Device binding is verified for both same-account idempotency and cross-account already-bound conflict.
 - Current staging Agent model readiness is WARN: `model_status.mode = fallback_rule_based`, reason `external_model_not_configured`.
+- Current staging phone SMS readiness is WARN: `delivery_status.mode = debug_sms`, reason `debug_code_enabled`.
 - The remaining blocker is frontend rendering and interaction.
 
 Use this API base by default:
@@ -173,6 +174,12 @@ Fix 5 - Profile:
 - Do not show demo patient, fake ID, fake medical warning, fake stage, or M33/M55 device names as real user data.
 
 Fix 6 - Phone verification:
+- Read public delivery status from:
+  GET /api/rehab-arm/app/v1/public-config
+  Path: data.phone_verification.delivery_status
+- If delivery_status.mode = debug_sms, show staging/test helper copy only. Do not imply a production SMS provider is connected.
+- If delivery_status.mode = sms, show normal "验证码已发送" copy.
+- If delivery_status.mode = sms_unconfigured, show a calm unavailable state and ask the user to retry later or contact support.
 - Start:
   POST /api/rehab-arm/app/v1/account/phone-verifications
   Body: { "phone": "...", "purpose": "bind_account" }
@@ -224,4 +231,5 @@ Current failure evidence:
 - docs/qa/rehab-mobile-20260706/screenshots/device-binding-profile-390.png
 - docs/qa/rehab-mobile-20260706/screenshots/device-binding-device-390.png
 - docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png
+- docs/qa/rehab-mobile-20260706/screenshots/sms-readiness-device-390.png
 ```

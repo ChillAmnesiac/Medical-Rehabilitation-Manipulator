@@ -38,6 +38,35 @@ from app.security import hash_password, verify_password
 router = APIRouter(prefix="/api/rehab-arm/app/v1", tags=["rehab-app"])
 
 
+def _phone_delivery_status(settings: Settings) -> dict[str, object]:
+    if settings.phone_verification_debug_code_enabled:
+        return {
+            "mode": "debug_sms",
+            "configured": False,
+            "provider": None,
+            "exposes_debug_code": True,
+            "reason": "debug_code_enabled",
+        }
+
+    provider = settings.phone_verification_sms_provider
+    webhook_url = settings.phone_verification_sms_webhook_url
+    if provider and webhook_url:
+        return {
+            "mode": "sms",
+            "configured": True,
+            "provider": provider,
+            "exposes_debug_code": False,
+        }
+
+    return {
+        "mode": "sms_unconfigured",
+        "configured": False,
+        "provider": provider,
+        "exposes_debug_code": False,
+        "reason": "sms_provider_not_configured",
+    }
+
+
 @router.get("/public-config")
 def get_public_config(settings: Settings = Depends(get_settings)):
     return {
@@ -47,6 +76,13 @@ def get_public_config(settings: Settings = Depends(get_settings)):
                 "catalog_endpoint": "/api/rehab-arm/app/v1/catalog",
                 "workflow_endpoint": "/api/rehab-arm/app/v1/me/workflow",
                 "agent_message_endpoint": "/api/rehab-arm/app/v1/agent/messages",
+            },
+            "phone_verification": {
+                "start_endpoint": "/api/rehab-arm/app/v1/account/phone-verifications",
+                "confirm_endpoint_template": (
+                    "/api/rehab-arm/app/v1/account/phone-verifications/{verification_id}/confirm"
+                ),
+                "delivery_status": _phone_delivery_status(settings),
             },
             "m33_legacy_spp_profile": _m33_legacy_spp_profile(),
             "safety_boundary": "Cloud suggests plans only. M33 remains final motion authority.",

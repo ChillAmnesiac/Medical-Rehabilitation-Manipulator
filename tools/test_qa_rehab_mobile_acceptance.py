@@ -144,6 +144,53 @@ def test_phone_verification_flow_fails_without_debug_code_for_automated_staging(
     assert detail["reason"] == "debug_code_missing"
 
 
+def test_phone_delivery_readiness_reports_real_sms_ready():
+    module = _load_module()
+
+    ok, detail = module.phone_delivery_readiness(
+        {
+            "data": {
+                "phone_verification": {
+                    "delivery_status": {
+                        "mode": "sms",
+                        "configured": True,
+                        "provider": "webhook",
+                        "exposes_debug_code": False,
+                    }
+                }
+            }
+        }
+    )
+
+    assert ok is True
+    assert detail["mode"] == "sms"
+    assert detail["provider"] == "webhook"
+
+
+def test_phone_delivery_readiness_warns_when_debug_sms_is_enabled():
+    module = _load_module()
+
+    ok, detail = module.phone_delivery_readiness(
+        {
+            "data": {
+                "phone_verification": {
+                    "delivery_status": {
+                        "mode": "debug_sms",
+                        "configured": False,
+                        "provider": None,
+                        "exposes_debug_code": True,
+                        "reason": "debug_code_enabled",
+                    }
+                }
+            }
+        }
+    )
+
+    assert ok is False
+    assert detail["mode"] == "debug_sms"
+    assert detail["reason"] == "debug_code_enabled"
+
+
 def test_device_binding_flow_binds_and_updates_same_device_idempotently():
     module = _load_module()
 

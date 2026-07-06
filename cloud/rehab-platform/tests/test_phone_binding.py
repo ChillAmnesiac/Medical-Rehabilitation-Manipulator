@@ -130,3 +130,25 @@ def test_phone_verification_requires_login():
 
     assert response.status_code == 401
     assert response.json()["error"]["code"] == "AUTH_REQUIRED"
+
+
+def test_public_config_exposes_phone_delivery_readiness_without_secret(monkeypatch):
+    monkeypatch.setenv("PHONE_VERIFICATION_DEBUG_CODE_ENABLED", "false")
+    monkeypatch.setenv("PHONE_VERIFICATION_SMS_PROVIDER", "webhook")
+    monkeypatch.setenv("PHONE_VERIFICATION_SMS_WEBHOOK_URL", "https://sms.example.test/send")
+    monkeypatch.setenv("PHONE_VERIFICATION_SMS_WEBHOOK_TOKEN", "secret-token")
+    client = TestClient(create_app(database_url="sqlite+pysqlite:///:memory:"))
+
+    response = client.get("/api/rehab-arm/app/v1/public-config")
+
+    assert response.status_code == 200
+    phone_verification = response.json()["data"]["phone_verification"]
+    assert phone_verification["start_endpoint"] == "/api/rehab-arm/app/v1/account/phone-verifications"
+    delivery_status = phone_verification["delivery_status"]
+    assert delivery_status == {
+        "mode": "sms",
+        "configured": True,
+        "provider": "webhook",
+        "exposes_debug_code": False,
+    }
+    assert "secret-token" not in response.text
