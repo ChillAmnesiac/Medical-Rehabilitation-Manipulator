@@ -5,7 +5,7 @@ The tool is intentionally conservative:
 - it verifies the manifest before any deploy command is exposed as executable,
 - it defaults to dry-run,
 - --execute is required before scp/ssh commands are run,
-- post-deploy verification commands run only with --run-post-verify.
+- --run-post-verify is required whenever --execute is used.
 """
 
 from __future__ import annotations
@@ -110,6 +110,9 @@ def run(argv: list[str], command_runner: CommandRunner = _default_runner) -> tup
         return 2, summary
     if not args.execute:
         return 0, summary
+    if not args.run_post_verify:
+        summary["error"] = "post_deploy_verification_required"
+        return 2, summary
 
     executed.extend(_execute_commands(plan["deploy_commands"], command_runner))
     if args.run_post_verify:

@@ -151,6 +151,22 @@ def test_execute_runs_deploy_commands_and_requested_post_verify(tmp_path):
     assert summary["executed"] == calls
 
 
+def test_execute_requires_post_deploy_verification(tmp_path):
+    module = _load_deploy_module()
+    manifest_path = _build_manifest(tmp_path)
+    calls = []
+
+    exit_code, summary = module.run(
+        ["--manifest", str(manifest_path), "--execute"],
+        command_runner=calls.append,
+    )
+
+    assert exit_code == 2
+    assert summary["error"] == "post_deploy_verification_required"
+    assert summary["executed"] == []
+    assert calls == []
+
+
 def test_failed_manifest_blocks_deployment(tmp_path):
     module = _load_deploy_module()
     manifest_path = _build_manifest(tmp_path)
