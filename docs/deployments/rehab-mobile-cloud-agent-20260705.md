@@ -249,6 +249,37 @@
   - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/sms-readiness-device-390.png`; frontend still shows false network/debug workflow copy.
   - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`
 
+## 2026-07-06 Phone SMS Webhook Delivery
+
+- Added the backend delivery handoff for real SMS providers:
+  - Local route: `cloud/rehab-platform/app/api/routes/rehab_app.py`
+  - Local tests: `cloud/rehab-platform/tests/test_phone_binding.py`
+- Behavior:
+  - Debug SMS enabled: staging keeps returning `delivery_channel = debug_sms` with a test code.
+  - Debug SMS disabled plus webhook configured: backend POSTs the code payload to the webhook and returns `delivery_channel = sms` without `debug_code`.
+  - Debug SMS disabled plus no provider: backend returns `503 PHONE_SMS_NOT_CONFIGURED`.
+  - Webhook failure: backend returns `502 PHONE_SMS_DELIVERY_FAILED`.
+- Cloud patch deployed to:
+  - `app/modules/rehab_arm/app_service.py`
+- Cloud backup created:
+  - `app/modules/rehab_arm/app_service.py.bak-sms-webhook-20260706`
+- Cloud restart:
+  - PID: `1620444`
+  - API: `http://106.55.62.122:8011`
+- Current staging result:
+  - `P1-PHONE-SMS-001` -> `WARN`
+  - mode `debug_sms`
+  - reason `debug_code_enabled`
+- Fresh verification:
+  - Red backend tests first showed missing webhook delivery behavior and missing `PHONE_SMS_NOT_CONFIGURED`.
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests\test_phone_binding.py -q` -> `8 passed, 1 warning`
+  - `cloud\rehab-platform\.venv\Scripts\python.exe -m pytest cloud\rehab-platform\tests tools\test_qa_rehab_mobile_acceptance.py tools\test_qa_rehab_mobile_l1_frontend.py tools\test_qa_rehab_mobile_l1_release.py -q` -> `48 passed, 1 warning`
+  - Remote `.venv/bin/python -m py_compile app/modules/rehab_arm/app_service.py` passed.
+  - `tools\qa_rehab_mobile_acceptance.py` -> `overall = PASS`, `p0_failed = 0`, `total = 19`
+  - `tools\qa_rehab_mobile_l1_release.py` -> API `PASS`, frontend `FAIL`, blocker `frontend_l1_gate`
+  - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/sms-webhook-device-390.png`.
+  - APK remained reachable with size `4198462` bytes and content type `application/vnd.android.package-archive`.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

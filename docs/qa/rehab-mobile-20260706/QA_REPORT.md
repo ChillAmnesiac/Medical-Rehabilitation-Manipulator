@@ -28,6 +28,7 @@ The current deployed frontend does not consume the backend `data.patient_view` c
 10. `screenshots/device-binding-device-390.png` - Device browser QA after device-binding deployment.
 11. `screenshots/device-binding-agent-390.png` - Agent browser QA after device-binding deployment.
 12. `screenshots/sms-readiness-device-390.png` - Device page browser QA after SMS readiness deployment.
+13. `screenshots/sms-webhook-device-390.png` - Device page browser QA after SMS webhook deployment.
 
 All screenshots were opened and inspected before being used as evidence. They show the deployed cloud app, not a blank page or wrong window.
 
@@ -43,6 +44,7 @@ All screenshots were opened and inspected before being used as evidence. They sh
 | 6 | Profile resmoke on current production frontend | FAIL | `06-profile-resmoke-390.png` |
 | 7 | Home resmoke on current production frontend | FAIL | `07-home-resmoke-390.png` |
 | 8 | Device page after SMS readiness deployment | FAIL | `screenshots/sms-readiness-device-390.png` |
+| 9 | Device page after SMS webhook deployment | FAIL | `screenshots/sms-webhook-device-390.png` |
 
 ## 2026-07-06 L1 Resmoke
 
@@ -238,15 +240,15 @@ Expected:
 
 ## Backend/API Evidence
 
-Latest API/package acceptance smoke passed:
+Latest API/package acceptance smoke passed after the SMS webhook deployment:
 
 - Overall: `PASS`
 - P0 failed: `0`
-- Total checks: `18`
-- Cloud PID: `1449627`
+- Total checks: `19`
+- Cloud PID: `1620444`
 - Build ref: `codex/rehab-mobile-backend-qa-20260706`
-- Build SHA: `device-binding-hardening-20260706`
-- Build time: `2026-07-06T03:54:50Z`
+- Build SHA: `unknown`
+- Build time: `unknown`
 - `P0-PATIENT-VIEW-001`: `PASS`
 - `P0-PHONE-FLOW-001`: `PASS`
 - `P0-DEVICE-FLOW-001`: `PASS`
@@ -254,6 +256,7 @@ Latest API/package acceptance smoke passed:
 - Agent safe answer with `data.model_status`: `PASS`
 - Current Agent model mode: `fallback_rule_based`, reason `external_model_not_configured`
 - `P1-AGENT-MODEL-001`: `WARN`, configure external cloud model credentials before claiming production-grade model-backed Agent.
+- `P1-PHONE-SMS-001`: `WARN`, current staging is still `debug_sms`.
 - Agent unsafe refusal: `PASS`
 - CORS from deployed web origin: `PASS`
 - APK HEAD: `PASS`, size over 1 MB
@@ -407,6 +410,35 @@ Fresh verification:
 - APK smoke remained `PASS` with size `4198462` bytes.
 - Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
 - Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/sms-readiness-device-390.png`; the page still shows a false network warning and engineering/debug terms including `setup_required`, `M33`, `M55`, and `Gatekeeper`.
+
+## Backend Phone SMS Webhook Delivery Follow-Up
+
+2026-07-06 continuation work added the actual SMS provider handoff path behind phone verification:
+
+- When `PHONE_VERIFICATION_DEBUG_CODE_ENABLED=false` and a provider/webhook URL are configured, `POST /api/rehab-arm/app/v1/account/phone-verifications` sends the verification payload to the SMS webhook and returns `delivery_channel = sms` without exposing `debug_code`.
+- When debug SMS is disabled but no delivery provider is configured, the request returns `503 PHONE_SMS_NOT_CONFIGURED` instead of pretending a code was sent.
+- When the configured webhook fails, the request returns `502 PHONE_SMS_DELIVERY_FAILED`.
+- Webhook payload includes `phone`, `code`, `purpose`, `verification_id`, and `expires_in`; webhook tokens are sent only as an Authorization header and are not returned to the app.
+- Cloud deployment patched `app/modules/rehab_arm/app_service.py` on `106.55.62.122`.
+- Cloud backup: `app/modules/rehab_arm/app_service.py.bak-sms-webhook-20260706`.
+- Cloud restart:
+  - PID: `1620444`
+  - API: `http://106.55.62.122:8011`
+
+Fresh verification:
+
+- Red tests first:
+  - `_post_sms_webhook` was missing when the webhook-delivery test was introduced.
+  - The unconfigured production-SMS path returned `200` before the fix, but the test expected `503 PHONE_SMS_NOT_CONFIGURED`.
+- Focused phone backend tests after implementation: `8 passed, 1 warning`.
+- Full local backend plus QA suite: `48 passed, 1 warning`.
+- Remote compile: `.venv/bin/python -m py_compile app/modules/rehab_arm/app_service.py`.
+- Cloud smoke after deployment: `overall = PASS`, `p0_failed = 0`, `total = 19`.
+- `P0-PHONE-FLOW-001` -> `PASS`.
+- `P1-PHONE-SMS-001` -> `WARN`, because current staging is intentionally still `debug_sms`.
+- APK smoke remained `PASS` with size `4198462` bytes and content type `application/vnd.android.package-archive`.
+- Total L1 release gate: API `PASS`, frontend `FAIL`, blocking gate `frontend_l1_gate`.
+- Browser QA captured `docs/qa/rehab-mobile-20260706/screenshots/sms-webhook-device-390.png`; the device page still shows `setup_required`, `M33`, `M55`, `Gatekeeper`, and debug-oriented device content.
 
 ## Accessibility Risks
 

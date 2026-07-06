@@ -1,4 +1,6 @@
 import json
+import urllib.error
+import urllib.request
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -38,6 +40,17 @@ from app.security import hash_password, verify_password
 router = APIRouter(prefix="/api/rehab-arm/app/v1", tags=["rehab-app"])
 
 
+class SmsDeliveryError(RuntimeError):
+    pass
+
+
+def _sms_delivery_configured(settings: Settings) -> bool:
+    return bool(
+        (settings.phone_verification_sms_provider or "").strip()
+        and (settings.phone_verification_sms_webhook_url or "").strip()
+    )
+
+
 def _phone_delivery_status(settings: Settings) -> dict[str, object]:
     if settings.phone_verification_debug_code_enabled:
         return {
@@ -64,6 +77,62 @@ def _phone_delivery_status(settings: Settings) -> dict[str, object]:
         "provider": provider,
         "exposes_debug_code": False,
         "reason": "sms_provider_not_configured",
+    }
+
+
+def _post_sms_webhook(settings: Settings, payload: dict[str, object]) -> None:
+    webhook_url = (settings.phone_verification_sms_webhook_url or "").strip()
+    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+    headers = {"Content-Type": "application/json; charset=utf-8"}
+    token = (settings.phone_verification_sms_webhook_token or "").strip()
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(webhook_url, data=body, headers=headers, method="POST")
+    try:
+        with urllib.request.urlopen(request, timeout=8) as response:
+            if response.status < 200 or response.status >= 300:
+                raise SmsDeliveryError(f"sms webhook returned {response.status}")
+    except (urllib.error.URLError, TimeoutError) as exc:
+        raise SmsDeliveryError("sms webhook request failed") from exc
+
+
+def _phone_delivery_payload(
+    settings: Settings,
+    *,
+    phone: str,
+    purpose: str,
+    code: str,
+    verification_id: int,
+) -> dict[str, object]:
+    if settings.phone_verification_debug_code_enabled:
+        return {"delivery_channel": "debug_sms", "debug_code": code}
+    if not _sms_delivery_configured(settings):
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "code": "PHONE_SMS_NOT_CONFIGURED",
+                "message": "Phone SMS delivery is not configured.",
+            },
+        )
+    try:
+        _post_sms_webhook(
+            settings,
+            {
+                "phone": phone,
+                "code": code,
+                "purpose": purpose,
+                "verification_id": str(verification_id),
+                "expires_in": settings.phone_verification_ttl_seconds,
+            },
+        )
+    except SmsDeliveryError:
+        raise HTTPException(
+            status_code=502,
+            detail={"code": "PHONE_SMS_DELIVERY_FAILED", "message": "Phone SMS delivery failed."},
+        )
+    return {
+        "delivery_channel": "sms",
+        "delivery_provider": settings.phone_verification_sms_provider,
     }
 
 
@@ -202,17 +271,27 @@ def start_phone_verification(
         code_hash=hash_password(code),
         expires_at=utcnow() + timedelta(seconds=settings.phone_verification_ttl_seconds),
     )
-    db.add(verification)
-    db.commit()
+    try:
+        db.add(verification)
+        db.flush()
+        delivery_payload = _phone_delivery_payload(
+            settings,
+            phone=phone,
+            purpose=purpose,
+            code=code,
+            verification_id=verification.id,
+        )
+        db.commit()
+    except HTTPException:
+        db.rollback()
+        raise
     db.refresh(verification)
     payload = {
         "verification_id": str(verification.id),
         "masked_phone": _mask_phone(phone),
         "expires_in": settings.phone_verification_ttl_seconds,
-        "delivery_channel": "debug_sms" if settings.phone_verification_debug_code_enabled else "sms",
+        **delivery_payload,
     }
-    if settings.phone_verification_debug_code_enabled:
-        payload["debug_code"] = code
     return {"data": payload}
 
 

@@ -29,6 +29,7 @@ Current backend status:
 - Device binding is verified for both same-account idempotency and cross-account already-bound conflict.
 - Current staging Agent model readiness is WARN: `model_status.mode = fallback_rule_based`, reason `external_model_not_configured`.
 - Current staging phone SMS readiness is WARN: `delivery_status.mode = debug_sms`, reason `debug_code_enabled`.
+- Backend phone verification now supports real SMS webhook delivery when debug SMS is disabled and provider settings are configured. If production SMS is not configured, the API returns `PHONE_SMS_NOT_CONFIGURED`.
 - The remaining blocker is frontend rendering and interaction.
 
 Use this API base by default:
@@ -189,6 +190,10 @@ Fix 6 - Phone verification:
 - In staging only, if delivery_channel = debug_sms and debug_code exists, show a small test-helper line:
   "测试验证码：{debug_code}"
 - Do not show debug_code in normal production mode.
+- If start returns `PHONE_SMS_NOT_CONFIGURED`, show:
+  "验证码服务暂未开启，请稍后重试或联系康复师。"
+- If start returns `PHONE_SMS_DELIVERY_FAILED`, show:
+  "验证码发送未成功，请检查手机号或稍后重试。"
 - Wrong code copy:
   "验证码不正确或已过期，请重新输入。"
 - Attempt limit copy:
@@ -232,4 +237,5 @@ Current failure evidence:
 - docs/qa/rehab-mobile-20260706/screenshots/device-binding-device-390.png
 - docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png
 - docs/qa/rehab-mobile-20260706/screenshots/sms-readiness-device-390.png
+- docs/qa/rehab-mobile-20260706/screenshots/sms-webhook-device-390.png
 ```

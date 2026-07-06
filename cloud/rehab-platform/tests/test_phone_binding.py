@@ -1,5 +1,6 @@
 from fastapi.testclient import TestClient
 
+from app.api.routes import rehab_app
 from app.main import create_app
 
 
@@ -69,8 +70,17 @@ def test_phone_verification_rejects_wrong_code_without_binding_phone():
     assert me["profile"]["phone_verified"] is False
 
 
-def test_phone_verification_hides_debug_code_when_debug_sms_disabled(monkeypatch):
+def test_phone_verification_delivers_via_webhook_when_debug_sms_disabled(monkeypatch):
+    deliveries = []
+
+    def fake_post_sms_webhook(settings, payload):
+        deliveries.append({"provider": settings.phone_verification_sms_provider, "payload": payload})
+
     monkeypatch.setenv("PHONE_VERIFICATION_DEBUG_CODE_ENABLED", "false")
+    monkeypatch.setenv("PHONE_VERIFICATION_SMS_PROVIDER", "webhook")
+    monkeypatch.setenv("PHONE_VERIFICATION_SMS_WEBHOOK_URL", "https://sms.example.test/send")
+    monkeypatch.setenv("PHONE_VERIFICATION_SMS_WEBHOOK_TOKEN", "secret-token")
+    monkeypatch.setattr(rehab_app, "_post_sms_webhook", fake_post_sms_webhook)
     client = TestClient(create_app(database_url="sqlite+pysqlite:///:memory:"))
     headers = _auth_headers(client)
 
@@ -83,7 +93,52 @@ def test_phone_verification_hides_debug_code_when_debug_sms_disabled(monkeypatch
     assert start.status_code == 200
     verification = start.json()["data"]
     assert verification["delivery_channel"] == "sms"
+    assert verification["delivery_provider"] == "webhook"
     assert "debug_code" not in verification
+    assert len(deliveries) == 1
+    assert deliveries[0]["payload"]["phone"] == "+15550104444"
+    assert deliveries[0]["payload"]["code"].isdigit()
+    assert len(deliveries[0]["payload"]["code"]) == 6
+    assert deliveries[0]["payload"]["purpose"] == "bind_account"
+    assert "secret-token" not in start.text
+
+
+def test_phone_verification_fails_when_sms_not_configured_and_debug_sms_disabled(monkeypatch):
+    monkeypatch.setenv("PHONE_VERIFICATION_DEBUG_CODE_ENABLED", "false")
+    monkeypatch.delenv("PHONE_VERIFICATION_SMS_PROVIDER", raising=False)
+    monkeypatch.delenv("PHONE_VERIFICATION_SMS_WEBHOOK_URL", raising=False)
+    client = TestClient(create_app(database_url="sqlite+pysqlite:///:memory:"))
+    headers = _auth_headers(client)
+
+    start = client.post(
+        "/api/rehab-arm/app/v1/account/phone-verifications",
+        headers=headers,
+        json={"phone": "+15550104445", "purpose": "bind_account"},
+    )
+
+    assert start.status_code == 503
+    assert start.json()["error"]["code"] == "PHONE_SMS_NOT_CONFIGURED"
+
+
+def test_phone_verification_reports_sms_delivery_failure(monkeypatch):
+    def fake_post_sms_webhook(settings, payload):
+        raise rehab_app.SmsDeliveryError("provider unavailable")
+
+    monkeypatch.setenv("PHONE_VERIFICATION_DEBUG_CODE_ENABLED", "false")
+    monkeypatch.setenv("PHONE_VERIFICATION_SMS_PROVIDER", "webhook")
+    monkeypatch.setenv("PHONE_VERIFICATION_SMS_WEBHOOK_URL", "https://sms.example.test/send")
+    monkeypatch.setattr(rehab_app, "_post_sms_webhook", fake_post_sms_webhook)
+    client = TestClient(create_app(database_url="sqlite+pysqlite:///:memory:"))
+    headers = _auth_headers(client)
+
+    start = client.post(
+        "/api/rehab-arm/app/v1/account/phone-verifications",
+        headers=headers,
+        json={"phone": "+15550104446", "purpose": "bind_account"},
+    )
+
+    assert start.status_code == 502
+    assert start.json()["error"]["code"] == "PHONE_SMS_DELIVERY_FAILED"
 
 
 def test_phone_verification_locks_after_max_wrong_attempts(monkeypatch):
