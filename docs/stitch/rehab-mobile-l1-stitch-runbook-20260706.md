@@ -19,6 +19,7 @@ Codex owns backend, QA, deployment verification, APK verification, and git commi
   - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-profile-390.png`
   - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-device-390.png`
   - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png`
+  - `docs/qa/rehab-mobile-20260706/screenshots/continuation-device-qa-20260706-390.png`
 
 Latest visible frontend blockers:
 
@@ -26,6 +27,7 @@ Latest visible frontend blockers:
 - Home still exposes `setup_required`, `early_active`, `left`, `M33`, action queue, blockers, forbidden actions.
 - Profile still shows demo patient content and fake medical warning.
 - Normal screens still expose `M33/M55` device names.
+- Device still exposes `setup_required`, `Gatekeeper`, and a prominent `bluetooth-debug.html` developer route instead of a patient binding wizard.
 - Assistant buttons do not provide the required working `问康复师` chat.
 
 ## Stitch Input
@@ -61,6 +63,7 @@ Use these screenshots as current failure evidence:
 - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-profile-390.png`
 - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-device-390.png`
 - `docs/qa/rehab-mobile-20260706/screenshots/device-binding-agent-390.png`
+- `docs/qa/rehab-mobile-20260706/screenshots/continuation-device-qa-20260706-390.png`
 
 ## Required Frontend Output
 

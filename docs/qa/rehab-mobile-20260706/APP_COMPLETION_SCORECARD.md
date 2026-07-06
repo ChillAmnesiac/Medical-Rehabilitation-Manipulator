@@ -93,7 +93,7 @@ Current result: `NOT READY`.
 | Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, 5 failed frontend gates, blockers `frontend_l1_gate` and `agent_cloud_model` |
 | Home UI | FAIL | Browser screenshots plus `tools/qa_rehab_mobile_l1_frontend.py` gate `L1-HOME-STATIC-001` |
 | Agent UI | FAIL | Visible assistant entries do not open chat; static gate `L1-AGENT-STATIC-001` missing `问康复师` |
-| Device UI | FAIL | Device page still looks like debug/engineering state; static gate `L1-DEVICE-STATIC-001` now also requires `绑定设备` and `打开康复设备电源` |
+| Device UI | FAIL | Device page still looks like debug/engineering state; latest browser evidence `screenshots/continuation-device-qa-20260706-390.png`; static gate `L1-DEVICE-STATIC-001` now also requires `绑定设备` and `打开康复设备电源` |
 | Profile UI | FAIL | Browser screenshots plus static gate `L1-PROFILE-STATIC-001` now also require `绑定手机号` and `验证码` |
 | Frontend API integration | FAIL | `L1-FRONTEND-INTEGRATION-001` is missing `patient_view` section wiring plus phone verification and Agent message endpoints |
 

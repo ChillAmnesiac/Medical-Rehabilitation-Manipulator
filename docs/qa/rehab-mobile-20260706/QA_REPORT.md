@@ -31,6 +31,7 @@ The current deployed frontend does not consume the backend `data.patient_view` c
 13. `screenshots/sms-webhook-device-390.png` - Device page browser QA after SMS webhook deployment.
 14. `screenshots/phone-cooldown-profile-390.png` - Profile page browser QA after phone resend cooldown deployment.
 15. `screenshots/agent-readiness-ai-plan-390.png` - Agent page browser QA after public Agent readiness deployment.
+16. `screenshots/continuation-device-qa-20260706-390.png` - Device page continuation browser QA at the current cloud URL.
 
 All screenshots were opened and inspected before being used as evidence. They show the deployed cloud app, not a blank page or wrong window.
 
@@ -49,6 +50,7 @@ All screenshots were opened and inspected before being used as evidence. They sh
 | 9 | Device page after SMS webhook deployment | FAIL | `screenshots/sms-webhook-device-390.png` |
 | 10 | Profile page after phone resend cooldown deployment | FAIL | `screenshots/phone-cooldown-profile-390.png` |
 | 11 | Agent page after public Agent readiness deployment | FAIL | `screenshots/agent-readiness-ai-plan-390.png` |
+| 12 | Device page continuation resmoke on current production frontend | FAIL | `screenshots/continuation-device-qa-20260706-390.png` |
 
 ## 2026-07-06 L1 Resmoke
 
@@ -134,6 +136,14 @@ This gate is intentionally strict and should remain failing until Stitch convert
 - Full local backend plus QA suite: `66 passed, 1 warning`.
 - Current cloud combined L1 gate: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
 - Current cloud Agent state remains `fallback_rule_based`, reason `external_model_not_configured`; configure cloud-model relay credentials before calling the Agent L1 user-ready.
+
+2026-07-06 continuation browser QA rechecked the deployed cloud device page at `390 x 844`:
+
+- Screenshot: `screenshots/continuation-device-qa-20260706-390.png`.
+- URL: `http://106.55.62.122:3001/rehab-arm-mobile/device.html?v=qa-20260706-continuation`.
+- Result: `FAIL`.
+- Still visible on the normal device page: false network warning, `setup_required`, `M33`, `M55`, `Gatekeeper`, and a prominent `bluetooth-debug.html` developer route.
+- Still missing as the primary user flow: a patient-facing device binding wizard led by `绑定设备` / `打开康复设备电源`.
 
 ## 2026-07-06 L1 Combined Release Gate
 

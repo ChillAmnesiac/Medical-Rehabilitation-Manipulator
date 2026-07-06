@@ -280,4 +280,5 @@ Current failure evidence:
 - docs/qa/rehab-mobile-20260706/screenshots/sms-webhook-device-390.png
 - docs/qa/rehab-mobile-20260706/screenshots/phone-cooldown-profile-390.png
 - docs/qa/rehab-mobile-20260706/screenshots/agent-readiness-ai-plan-390.png
+- docs/qa/rehab-mobile-20260706/screenshots/continuation-device-qa-20260706-390.png
 ```
