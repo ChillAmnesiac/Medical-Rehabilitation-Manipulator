@@ -27,14 +27,14 @@ def _write_local_frontend(source_dir: Path, module) -> None:
         const profile = response.data.patient_view.profile;
         const device = response.data.patient_view.device;
         const agent = response.data.patient_view.agent;
-        fetch('/api/rehab-arm/app/v1/account/phone-verifications');
-        fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`);
+        fetch('/api/rehab-arm/app/v1/account/phone-verifications', { method: 'POST' });
+        fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`, { method: 'POST' });
         if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
         if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
         if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
-        fetch('/api/rehab-arm/app/v1/devices/bind');
+        fetch('/api/rehab-arm/app/v1/devices/bind', { method: 'POST' });
         if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
-        fetch('/api/rehab-arm/app/v1/agent/messages');
+        fetch('/api/rehab-arm/app/v1/agent/messages', { method: 'POST' });
         if (error.code === 'UNSAFE_MOTION_REQUEST') showSafeRefusal();
         renderModelStatus(response.data.model_status);
         """,

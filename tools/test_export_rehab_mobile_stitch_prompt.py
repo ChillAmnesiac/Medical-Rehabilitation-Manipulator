@@ -192,6 +192,7 @@ def test_render_prompt_hardens_browser_candidate_copy_and_touch_targets():
     assert "Simulate API response" in prompt
     assert "In real app" in prompt
     assert "must call the real backend endpoints" in prompt
+    assert "method: 'POST'" in prompt
 
 
 def test_cli_writes_prompt_from_repair_packet(tmp_path):

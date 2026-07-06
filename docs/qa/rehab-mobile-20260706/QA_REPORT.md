@@ -2008,3 +2008,43 @@ Result:
   for deployment. The next accepted Stitch output must make real cloud API calls
   before it can be copied into the real App branch, deployed, or packaged into
   an APK.
+
+## 2026-07-07 API Action POST Gate Hardening
+
+Codex tightened the same frontend source gate again so generated pages cannot
+pass by merely mentioning endpoint strings. Critical user actions must now show
+source evidence of real POST requests.
+
+Tooling changes:
+
+- `tools/qa_rehab_mobile_l1_frontend.py` now requires POST source evidence for:
+  - `phone_verification_start_post`
+  - `phone_verification_confirm_post`
+  - `device_bind_post`
+  - `agent_messages_post`
+- `tools/export_rehab_mobile_stitch_prompt.py` now tells Stitch to use
+  `method: 'POST'` for phone verification start/confirm, device binding, and
+  Ask Therapist messages.
+- `docs/stitch/rehab-mobile-l1-stitch-execution-v4-20260706.md` was regenerated
+  with the POST requirement.
+
+Fresh verification:
+
+- Red regression first failed because a source bundle that mentioned every
+  endpoint and error code, but omitted POST methods, still returned `PASS`.
+- Focused frontend gate tests after implementation: `15 passed`.
+- Focused Stitch prompt tests after implementation: `4 passed`.
+- Release/prepare/deploy verifier suite after implementation: `20 passed`.
+- Post-hardened v3 source-gate report:
+  `docs/qa/rehab-mobile-20260706/frontend-l1-source-gate-stitch-full-candidate-v3-post-hardened-20260707.json`.
+- Post-hardened v3 result: `overall = FAIL`, blocking requirements
+  `no_mock_api_behavior`, `phone_verification_start_post`,
+  `phone_verification_confirm_post`, `device_bind_post`, and
+  `agent_messages_post`.
+
+Stitch status:
+
+- Stitch MCP still returns `401 invalid authentication credentials` for
+  `list_screens`, so Codex could not request a new production API-integrated
+  frontend candidate in this pass.
+- The real App branch `app/rehab-arm-mobile-stitch` remains clean and unchanged.

@@ -17,20 +17,20 @@ def test_frontend_integration_contract_passes_when_stitch_uses_required_api_cont
         """,
         "profile.html": """
           const profile = response.data.patient_view.profile;
-          fetch('/api/rehab-arm/app/v1/account/phone-verifications');
-          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`);
+          fetch('/api/rehab-arm/app/v1/account/phone-verifications', { method: 'POST' });
+          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`, { method: 'POST' });
           if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
           if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
           if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
         """,
         "device.html": """
           const device = response.data.patient_view.device;
-          fetch('/api/rehab-arm/app/v1/devices/bind');
+          fetch('/api/rehab-arm/app/v1/devices/bind', { method: 'POST' });
           if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
         """,
         "ai-plan.html": """
           const agent = response.data.patient_view.agent;
-          fetch('/api/rehab-arm/app/v1/agent/messages');
+          fetch('/api/rehab-arm/app/v1/agent/messages', { method: 'POST' });
           if (error.code === 'UNSAFE_MOTION_REQUEST') showSafeRefusal();
           renderModelStatus(response.data.model_status);
         """,
@@ -110,20 +110,20 @@ def test_frontend_integration_contract_accepts_html_entity_accessibility_label()
         """,
         "profile.html": """
           const profile = response.data.patient_view.profile;
-          fetch('/api/rehab-arm/app/v1/account/phone-verifications');
-          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`);
+          fetch('/api/rehab-arm/app/v1/account/phone-verifications', { method: 'POST' });
+          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`, { method: 'POST' });
           if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
           if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
           if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
         """,
         "device.html": """
           const device = response.data.patient_view.device;
-          fetch('/api/rehab-arm/app/v1/devices/bind');
+          fetch('/api/rehab-arm/app/v1/devices/bind', { method: 'POST' });
           if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
         """,
         "ai-plan.html": """
           const agent = response.data.patient_view.agent;
-          fetch('/api/rehab-arm/app/v1/agent/messages');
+          fetch('/api/rehab-arm/app/v1/agent/messages', { method: 'POST' });
           if (error.code === 'UNSAFE_MOTION_REQUEST') showSafeRefusal();
           renderModelStatus(response.data.model_status);
         """,
@@ -174,6 +174,48 @@ def test_frontend_integration_contract_rejects_mocked_api_behavior():
     assert result.status == "FAIL"
     assert "no_mock_api_behavior" in result.detail["missing_requirements"]
     assert "mockData" in result.detail["forbidden_source_hits"]
+
+
+def test_frontend_integration_contract_rejects_action_endpoints_without_post_methods():
+    module = _load_module()
+
+    sources = {
+        "home.html": """
+          localStorage.setItem('access_token', token);
+          fetch('/api/auth/session');
+          fetch('/api/rehab-arm/app/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+          const home = response.data.patient_view.home;
+          const agent = response.data.patient_view.agent;
+          <button aria-label="&#38382;&#24247;&#22797;&#24072;">&#38382;&#24247;&#22797;&#24072;</button>
+        """,
+        "profile.html": """
+          const profile = response.data.patient_view.profile;
+          fetch('/api/rehab-arm/app/v1/account/phone-verifications');
+          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`);
+          if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
+          if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
+          if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
+        """,
+        "device.html": """
+          const device = response.data.patient_view.device;
+          fetch('/api/rehab-arm/app/v1/devices/bind');
+          if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
+        """,
+        "ai-plan.html": """
+          const agent = response.data.patient_view.agent;
+          fetch('/api/rehab-arm/app/v1/agent/messages');
+          if (error.code === 'UNSAFE_MOTION_REQUEST') showSafeRefusal();
+          renderModelStatus(response.data.model_status);
+        """,
+    }
+
+    result = module.check_frontend_integration_contract(sources)
+
+    assert result.status == "FAIL"
+    assert "phone_verification_start_post" in result.detail["missing_requirements"]
+    assert "phone_verification_confirm_post" in result.detail["missing_requirements"]
+    assert "device_bind_post" in result.detail["missing_requirements"]
+    assert "agent_messages_post" in result.detail["missing_requirements"]
 
 
 MODULE_PATH = Path(__file__).with_name("qa_rehab_mobile_l1_frontend.py")

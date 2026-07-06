@@ -107,6 +107,13 @@ MOCK_API_FORBIDDEN_TERMS = (
     "console only",
 )
 
+POST_ACTION_REQUIREMENTS = {
+    "phone_verification_start_post": ("/api/rehab-arm/app/v1/account/phone-verifications",),
+    "phone_verification_confirm_post": ("phone-verifications", "confirm"),
+    "device_bind_post": ("/api/rehab-arm/app/v1/devices/bind",),
+    "agent_messages_post": ("/api/rehab-arm/app/v1/agent/messages",),
+}
+
 SCRIPT_SRC_RE = re.compile(r"""(?is)<script\b[^>]*\bsrc=["']([^"']+)["']""")
 
 
@@ -156,6 +163,19 @@ def _matches_requirement(source: str, alternatives: tuple[tuple[str, ...], ...])
     )
 
 
+def _has_post_action(source: str, tokens: tuple[str, ...]) -> bool:
+    decoded_source = unescape(source)
+    for candidate in (source, decoded_source):
+        for match in re.finditer(re.escape(tokens[0]), candidate):
+            window = candidate[match.start() : match.start() + 700]
+            if all(token in window for token in tokens[1:]) and re.search(
+                r"""(?is)\bmethod\s*[:=]\s*["']POST["']""",
+                window,
+            ):
+                return True
+    return False
+
+
 def check_frontend_integration_contract(sources: dict[str, str]) -> Result:
     combined_source = "\n".join(sources.get(path, "") for path in sorted(sources))
     missing_requirements = [
@@ -169,6 +189,11 @@ def check_frontend_integration_contract(sources: dict[str, str]) -> Result:
     ]
     if forbidden_source_hits:
         missing_requirements.append("no_mock_api_behavior")
+    missing_requirements.extend(
+        name
+        for name, tokens in POST_ACTION_REQUIREMENTS.items()
+        if not _has_post_action(combined_source, tokens)
+    )
     return Result(
         gate="L1-FRONTEND-INTEGRATION-001",
         level="L1",
