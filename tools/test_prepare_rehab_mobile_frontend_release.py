@@ -102,6 +102,8 @@ def test_build_release_bundle_validates_pages_and_manifest(tmp_path):
     assert "verify_rehab_mobile_frontend_release.py" in "\n".join(manifest["verification"]["powershell"])
     assert "verify_rehab_mobile_webview_mirror.py" in "\n".join(manifest["verification"]["powershell"])
     assert "webview-mirror-verification.json" in "\n".join(manifest["verification"]["powershell"])
+    assert "verify_rehab_mobile_apk_webview_assets.py" in "\n".join(manifest["verification"]["powershell"])
+    assert "apk-webview-assets-verification.json" in "\n".join(manifest["verification"]["powershell"])
     assert manifest["verification"]["required_browser_metrics_report"] == "browser-metrics-l1-390x844.json"
     assert "qa_rehab_mobile_browser_metrics.py" in "\n".join(manifest["verification"]["powershell"])
     assert "browser-metrics-l1-390x844.json" in "\n".join(manifest["verification"]["powershell"])

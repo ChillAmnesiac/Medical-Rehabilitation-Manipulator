@@ -94,6 +94,7 @@ def _verification_commands(api_base: str, web_base: str, apk_url: str) -> list[s
         f"$env:REHAB_QA_APK_URL='{apk_url}'",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_l1_frontend.py --source-dir apps/web/public/rehab-arm-mobile",
         ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\verify_rehab_mobile_webview_mirror.py --web-dir apps/web/public/rehab-arm-mobile --android-www-dir apps/mobile/rehab-arm-android/www --output artifacts/rehab-mobile-frontend-release/webview-mirror-verification.json",
+        ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\verify_rehab_mobile_apk_webview_assets.py --apk apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk --android-www-dir apps/mobile/rehab-arm-android/www --asset-prefix assets/public --output artifacts/rehab-mobile-frontend-release/apk-webview-assets-verification.json",
         (
             ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\qa_rehab_mobile_browser_metrics.py "
             f"--input artifacts/rehab-mobile-frontend-release/{FINAL_BROWSER_METRICS_REPORT} "

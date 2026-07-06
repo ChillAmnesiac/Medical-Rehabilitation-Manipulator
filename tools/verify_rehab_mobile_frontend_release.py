@@ -307,6 +307,31 @@ def _check_browser_metrics(manifest_path: Path, manifest: dict[str, Any]) -> Res
     )
 
 
+def _check_apk_webview_assets_command(manifest: dict[str, Any]) -> Result:
+    verification = manifest.get("verification") if isinstance(manifest.get("verification"), dict) else {}
+    commands = verification.get("powershell") if isinstance(verification.get("powershell"), list) else []
+    joined_commands = "\n".join(str(command) for command in commands)
+    ok = (
+        "verify_rehab_mobile_apk_webview_assets.py" in joined_commands
+        and "--apk apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk" in joined_commands
+        and "--android-www-dir apps/mobile/rehab-arm-android/www" in joined_commands
+        and "--asset-prefix assets/public" in joined_commands
+        and "--output artifacts/rehab-mobile-frontend-release/apk-webview-assets-verification.json" in joined_commands
+    )
+    return _result(
+        "FRONTEND-RELEASE-APK-WEBVIEW-ASSETS",
+        ok,
+        "Release manifest requires verifying APK WebView assets match the accepted Android www bundle.",
+        {
+            "has_command": "verify_rehab_mobile_apk_webview_assets.py" in joined_commands,
+            "expected_apk": "apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk",
+            "expected_android_www_dir": "apps/mobile/rehab-arm-android/www",
+            "expected_asset_prefix": "assets/public",
+            "expected_output": "artifacts/rehab-mobile-frontend-release/apk-webview-assets-verification.json",
+        },
+    )
+
+
 def verify_release_manifest(manifest_path: Path) -> dict[str, Any]:
     manifest_path = Path(manifest_path)
     manifest = _load_json(manifest_path)
@@ -318,6 +343,7 @@ def verify_release_manifest(manifest_path: Path) -> dict[str, Any]:
         _check_deployment(manifest),
         _check_browser_evidence(manifest),
         _check_browser_metrics(manifest_path, manifest),
+        _check_apk_webview_assets_command(manifest),
     ]
     failed = [result for result in results if result.status == "FAIL"]
     return {

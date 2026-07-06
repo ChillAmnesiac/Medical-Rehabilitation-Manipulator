@@ -2240,3 +2240,64 @@ Acceptance boundary:
 - No cloud deployment or APK rebuild was performed in this pass because the only
   runtime candidate was rejected and the committed work is QA/release tooling
   plus evidence.
+
+## 2026-07-07 APK WebView Asset Verification Gate
+
+Codex added a package-level APK verifier so L1 acceptance cannot rely only on
+`curl -I` returning `200` for an APK URL. The APK must now prove that its bundled
+WebView assets match the accepted Android WebView source directory.
+
+Tooling changes:
+
+- Added `tools/verify_rehab_mobile_apk_webview_assets.py`.
+- The verifier opens the APK as a zip, reads files under `assets/public/`, and
+  compares them against `apps/mobile/rehab-arm-android/www/`.
+- Required L1 pages checked inside the APK:
+  `home.html`, `profile.html`, `device.html`, and `ai-plan.html`.
+- The verifier fails on missing required pages, changed bytes, missing files,
+  or stale extra files in the APK asset prefix.
+- `tools/prepare_rehab_mobile_frontend_release.py` now emits a post-deploy
+  verification command for this gate:
+  `tools\verify_rehab_mobile_apk_webview_assets.py --apk apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk --android-www-dir apps/mobile/rehab-arm-android/www --asset-prefix assets/public --output artifacts/rehab-mobile-frontend-release/apk-webview-assets-verification.json`.
+- `tools/verify_rehab_mobile_frontend_release.py` now rejects a release
+  manifest that omits the APK WebView asset verification command.
+
+Fresh verification:
+
+- Red APK verifier tests first failed because
+  `tools/verify_rehab_mobile_apk_webview_assets.py` did not exist.
+- Red release-manifest tests then failed because the generated manifest did not
+  include the APK verifier command and the release verifier did not require it.
+- Focused APK verifier tests:
+  `tools/test_verify_rehab_mobile_apk_webview_assets.py` -> `3 passed`.
+- Focused prepare/release verifier tests:
+  `tools/test_prepare_rehab_mobile_frontend_release.py` and
+  `tools/test_verify_rehab_mobile_frontend_release.py` -> `14 passed`.
+- Related release chain:
+  `tools/test_verify_rehab_mobile_apk_webview_assets.py`,
+  `tools/test_prepare_rehab_mobile_frontend_release.py`,
+  `tools/test_verify_rehab_mobile_frontend_release.py`,
+  `tools/test_deploy_rehab_mobile_frontend_release.py`,
+  `tools/test_verify_rehab_mobile_webview_mirror.py`, and
+  `tools/test_promote_rehab_mobile_stitch_frontend.py` -> `33 passed`.
+
+Current APK evidence:
+
+- Command:
+  `tools/verify_rehab_mobile_apk_webview_assets.py --apk artifacts/external/rehab-arm-mobile-stitch/apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk --android-www-dir artifacts/external/rehab-arm-mobile-stitch/apps/mobile/rehab-arm-android/www --asset-prefix assets/public --output docs/qa/rehab-mobile-20260706/apk-webview-assets-current-20260707.json`.
+- Result: `overall = FAIL`, `failed = 3`, `total = 3`.
+- The APK exists and contains `20` files under `assets/public/`.
+- The real App checkout currently has no
+  `apps/mobile/rehab-arm-android/www/` directory, so the verifier cannot prove
+  Android source-to-APK parity.
+- The current APK asset prefix includes stale/debug routes such as
+  `bluetooth-debug.html`, `emg.html`, `report.html`,
+  `training-library.html`, and `training-session.html`. These must not remain
+  in a final L1 APK unless they are intentionally mirrored from the accepted
+  Android WebView source and hidden from normal user flows.
+
+Acceptance boundary:
+
+- No cloud deployment or APK rebuild was performed in this pass because this
+  work only adds release verification tooling and records that the current APK
+  does not yet satisfy the new package-level asset gate.

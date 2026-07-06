@@ -90,6 +90,7 @@ Current result: `NOT READY`.
 | Frontend release packaging | PASS | `tools/qa_rehab_mobile_l1_frontend.py --source-dir --output` preflights Stitch output locally and preserves JSON evidence; `tools/prepare_rehab_mobile_frontend_release.py` refuses failing frontend sources, writes a deployable zip, and records manifest deploy/verification commands before cloud copy, including the `browser-metrics-l1-390x844.json` browser metrics gate; release manifests no longer write raw staging email/password values |
 | Frontend release package verification | PASS | `tools/verify_rehab_mobile_frontend_release.py` validates the generated manifest schema, zip sha256, preflight report, required page artifacts, guarded deploy executor command, exact browser QA screenshot checklist, and a real `browser-metrics-gate.json` with `L1-BROWSER-METRICS-001 = PASS` plus full `home/profile/device/ai-plan` coverage before cloud deployment |
 | APK WebView mirror verification | PASS | `tools/verify_rehab_mobile_webview_mirror.py` checks that `apps/mobile/rehab-arm-android/www/` is byte-identical to `apps/web/public/rehab-arm-mobile/`, including required pages and no stale extra files; release manifests now require this command before APK packaging |
+| APK packaged WebView asset verification | TOOL READY, CURRENT APK FAILS | `tools/verify_rehab_mobile_apk_webview_assets.py` now opens the APK as a zip and verifies `assets/public/` is byte-identical to `apps/mobile/rehab-arm-android/www/`, including required pages and no stale extras. Release manifests now require this command before L1 acceptance. Current evidence `docs/qa/rehab-mobile-20260706/apk-webview-assets-current-20260707.json` is `overall = FAIL` because the real App checkout currently lacks `apps/mobile/rehab-arm-android/www/`; the current APK contains 20 `assets/public` files, including stale/debug routes such as `bluetooth-debug.html` |
 | Frontend release deployment guard | PASS | `tools/deploy_rehab_mobile_frontend_release.py` verifies the manifest again, defaults to dry-run, refuses unsafe remote roots, and now enforces `--run-post-verify` whenever `--execute` is used, so cloud copy cannot run without post-deploy checks. The generated post-deploy objective audit now consumes `artifacts/rehab-mobile-frontend-release/browser-metrics-gate.json` explicitly instead of falling back to stale/default browser evidence |
 | Stitch frontend promotion gate | PASS | `tools/promote_rehab_mobile_stitch_frontend.py` now gates Stitch exports before they can replace real web or Android WebView assets. It runs the local L1 frontend preflight, defaults to dry-run, refuses failing candidates without copying, rejects QA/report files mixed into the promotion source, and on `--execute` mirrors accepted files into both targets before writing `webview-mirror-verification.json`. TDD coverage: `tools/test_promote_rehab_mobile_stitch_frontend.py`, `5 passed`; related release/frontend chain: `35 passed`. Current v3 candidate dry-run evidence in `docs/qa/rehab-mobile-20260706/stitch-promotion-current-candidate-20260707/` remains `overall = FAIL`, `copied = false`, because source still contains `mockData`, `Simulate API response`, `In real app`, lacks POST action evidence, and is not a clean frontend package due mixed-in `browser-*` / `frontend-l1-*` JSON reports |
 | Frontend deployment metrics regression coverage | PASS | 2026-07-07 focused deploy/release verifier suite now covers a realistic `browser-metrics-gate.json` fixture and proves `deploy_rehab_mobile_frontend_release.py --execute` refuses to run deploy commands when that gate output is missing; fresh focused result: `16 passed` |
@@ -126,21 +127,22 @@ Current result: `NOT READY`.
 9. Dry-run `tools/deploy_rehab_mobile_frontend_release.py` and review the planned `scp`, `ssh`, and post-deploy verification commands.
 10. Deploy the reviewed frontend bundle with `tools/deploy_rehab_mobile_frontend_release.py --execute --run-post-verify`.
 11. Rebuild or refresh APK if the APK bundles frontend assets.
-12. Re-run Agent model smoke only when rotating the model provider/key; current staging cloud model is live.
-13. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
-14. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
-15. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
-16. Export the L1 evidence bundle with `tools/export_rehab_mobile_l1_evidence.py`; use `--fail-on-l1-fail` in CI/release jobs.
-17. Browser QA at exactly `390 x 844`:
+12. Run `tools/verify_rehab_mobile_apk_webview_assets.py --apk apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk --android-www-dir apps/mobile/rehab-arm-android/www --asset-prefix assets/public --output artifacts/rehab-mobile-frontend-release/apk-webview-assets-verification.json`; it must return exit code `0` and `summary.overall = PASS`.
+13. Re-run Agent model smoke only when rotating the model provider/key; current staging cloud model is live.
+14. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
+15. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
+16. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
+17. Export the L1 evidence bundle with `tools/export_rehab_mobile_l1_evidence.py`; use `--fail-on-l1-fail` in CI/release jobs.
+18. Browser QA at exactly `390 x 844`:
    - Home first screen.
    - `问康复师` chat open.
    - Unsafe Agent refusal.
    - Device binding wizard.
    - Profile account/phone/medical empty state.
-18. Run `tools/qa_rehab_mobile_browser_metrics.py` against the saved browser
+19. Run `tools/qa_rehab_mobile_browser_metrics.py` against the saved browser
     metrics JSON; it must return exit code `0` with `overall = PASS`, and pass that
     output to `tools/qa_rehab_mobile_l1_objective_audit.py --browser-metrics-json`.
-19. Update this scorecard after every large task.
+20. Update this scorecard after every large task.
 
 ## Git Discipline
 
