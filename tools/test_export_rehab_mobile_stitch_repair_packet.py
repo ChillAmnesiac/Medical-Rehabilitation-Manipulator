@@ -95,7 +95,18 @@ def _objective_payload():
                 "requirement": "browser_qa_evidence",
                 "status": "FAIL",
                 "summary": "Browser QA screenshots are incomplete.",
-                "evidence": {"missing": ["ask_therapist_chat", "unsafe_agent_refusal"]},
+                "evidence": {
+                    "matched": {"home_first_screen": "device-binding-home-390.png"},
+                    "missing": ["ask_therapist_chat", "unsafe_agent_refusal"],
+                    "invalid_dimensions": {
+                        "home_first_screen": {
+                            "file": "device-binding-home-390.png",
+                            "actual": {"width": 375, "height": 812},
+                            "expected": {"width": 390, "height": 844},
+                        }
+                    },
+                    "expected_dimensions": {"width": 390, "height": 844},
+                },
             },
         ],
     }
@@ -127,6 +138,11 @@ def test_repair_packet_extracts_stitch_and_non_stitch_blockers():
         "phone_verification_start",
         "agent_messages",
     ]
+    assert packet["browser_evidence_current"]["missing"] == ["ask_therapist_chat", "unsafe_agent_refusal"]
+    assert packet["browser_evidence_current"]["invalid_dimensions"]["home_first_screen"]["actual"] == {
+        "width": 375,
+        "height": 812,
+    }
     assert packet["required_artifacts"]["api_fixture"].endswith("rehab-mobile-l1-api-fixture-20260706.json")
     assert "qa_rehab_mobile_l1_release.py" in "\n".join(packet["verification_commands"]["powershell"])
     assert "configure_rehab_model_relay.py" in packet["non_stitch_actions"][0]["command"]

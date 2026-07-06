@@ -1,6 +1,6 @@
 {
   "schema": "rehab-mobile-stitch-repair-packet/v1",
-  "generated_at": "2026-07-06T12:48:52Z",
+  "generated_at": "2026-07-06T12:57:59Z",
   "target": {
     "api_base": "http://106.55.62.122:8011",
     "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
@@ -160,6 +160,46 @@
     "agent_unsafe_refusal",
     "agent_model_status"
   ],
+  "browser_evidence_current": {
+    "screenshot_dir": "docs\\qa\\rehab-mobile-20260706\\screenshots",
+    "matched": {
+      "home_first_screen": "device-binding-home-390.png",
+      "profile_phone_medical": "phone-cooldown-profile-390.png"
+    },
+    "missing": [
+      "ask_therapist_chat",
+      "unsafe_agent_refusal",
+      "device_binding_wizard"
+    ],
+    "invalid_dimensions": {
+      "home_first_screen": {
+        "file": "device-binding-home-390.png",
+        "actual": {
+          "width": 375,
+          "height": 812
+        },
+        "expected": {
+          "width": 390,
+          "height": 844
+        }
+      },
+      "profile_phone_medical": {
+        "file": "phone-cooldown-profile-390.png",
+        "actual": {
+          "width": 520,
+          "height": 2547
+        },
+        "expected": {
+          "width": 390,
+          "height": 844
+        }
+      }
+    },
+    "expected_dimensions": {
+      "width": 390,
+      "height": 844
+    }
+  },
   "non_stitch_actions": [
     {
       "blocker": "agent_cloud_model",

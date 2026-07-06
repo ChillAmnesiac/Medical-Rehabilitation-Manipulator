@@ -844,3 +844,40 @@ Fresh verification:
 - Live packet JSON parse check passed and reported `5` frontend failures plus `13` integration gaps.
 - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
+
+## Browser Evidence Dimension Gate Follow-Up
+
+2026-07-06 continuation work tightened browser QA evidence so screenshot filenames alone are no longer enough:
+
+- Updated script: `tools/qa_rehab_mobile_l1_objective_audit.py`
+- Updated tests: `tools/test_qa_rehab_mobile_l1_objective_audit.py`
+- Updated repair packet exporter: `tools/export_rehab_mobile_stitch_repair_packet.py`
+- Updated repair packet: `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
+
+Behavior:
+
+- Browser evidence still requires the five L1 scenes: home first screen, Ask Therapist chat, unsafe refusal, device wizard, and profile account/phone/medical state.
+- Matched evidence must decode to exactly `390 x 844`.
+- The decoder supports PNG and JPEG headers, because the in-app browser may save JPEG bytes under a `.png` filename.
+- Current `browser_evidence_current` is now exported into the Stitch repair packet.
+
+Fresh live evidence state:
+
+- Missing screenshots:
+  - `ask_therapist_chat`
+  - `unsafe_agent_refusal`
+  - `device_binding_wizard`
+- Matched but wrong dimensions:
+  - `device-binding-home-390.png`: `375 x 812`, expected `390 x 844`
+  - `phone-cooldown-profile-390.png`: `520 x 2547`, expected `390 x 844`
+
+Fresh verification:
+
+- Red test first: wrong-size screenshot evidence was accepted before the dimension check.
+- Follow-up red test first: browser JPEG screenshots with `.png` filenames were rejected before JPEG parsing was added.
+- Focused objective-audit and repair-packet tests: `7 passed`.
+- Full local backend plus QA suite after adding the dimension gate: `79 passed, 1 warning`.
+- Live objective audit remains `FAIL`; the browser evidence failure now reports both missing scenes and invalid dimensions.
+- Live L1 release gate remains `FAIL`: API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+- APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.

@@ -529,6 +529,31 @@
   - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
 - No cloud runtime deployment was made for this QA/tooling-only change.
 
+## 2026-07-06 Browser Evidence Dimension Gate
+
+- Tightened objective-level browser evidence validation:
+  - `tools/qa_rehab_mobile_l1_objective_audit.py`
+  - `tools/test_qa_rehab_mobile_l1_objective_audit.py`
+- Browser screenshot evidence must now decode to exactly `390 x 844`.
+- The validator supports PNG and JPEG headers, because current in-app browser captures may be JPEG bytes saved with `.png` filenames.
+- Updated the Stitch repair packet exporter so `browser_evidence_current` includes matched screenshots, missing scenes, invalid dimensions, and expected dimensions.
+- Refreshed:
+  - `docs/stitch/rehab-mobile-l1-repair-packet-20260706.json`
+  - `docs/stitch/rehab-mobile-l1-stitch-runbook-20260706.md`
+  - `docs/qa/rehab-mobile-20260706/APP_COMPLETION_SCORECARD.md`
+  - `docs/qa/rehab-mobile-20260706/QA_REPORT.md`
+- Fresh verification:
+  - Red objective-audit test first showed wrong-size screenshots were accepted.
+  - Red repair-packet test first showed current browser evidence details were not exported.
+  - Focused objective-audit and repair-packet tests: `7 passed`.
+  - Full local backend plus QA suite: `79 passed, 1 warning`.
+  - Live L1 release gate remained `FAIL` with API `PASS`, frontend `FAIL`, blockers `frontend_l1_gate` and `agent_cloud_model`.
+  - Live objective audit remained `FAIL` and now reports:
+    - missing `ask_therapist_chat`, `unsafe_agent_refusal`, and `device_binding_wizard`;
+    - wrong dimensions for `device-binding-home-390.png` (`375 x 812`) and `phone-cooldown-profile-390.png` (`520 x 2547`).
+  - APK HEAD remained `200`, size `4198462`, content type `application/vnd.android.package-archive`.
+- No cloud runtime deployment was made for this QA/tooling-only change.
+
 ## Browser QA
 
 - Previous browser QA after the CORS fix confirmed the cloud page could log in and show synced workflow/timeline state.

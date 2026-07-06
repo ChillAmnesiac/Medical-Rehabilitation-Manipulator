@@ -128,6 +128,14 @@ def _release_blockers(release_payload: dict[str, Any]) -> list[str]:
     return [item for item in blockers if isinstance(item, str)] if isinstance(blockers, list) else []
 
 
+def _requirement_evidence(objective_payload: dict[str, Any], requirement: str) -> dict[str, Any]:
+    for item in objective_payload.get("requirements") or []:
+        if isinstance(item, dict) and item.get("requirement") == requirement:
+            evidence = item.get("evidence")
+            return evidence if isinstance(evidence, dict) else {}
+    return {}
+
+
 def _split_blockers(
     objective_payload: dict[str, Any], release_payload: dict[str, Any]
 ) -> tuple[list[str], list[str], list[str]]:
@@ -187,6 +195,7 @@ def build_repair_packet(
         ],
         "frontend_failures": frontend_failures,
         "integration_gaps": _integration_gaps(frontend_failures),
+        "browser_evidence_current": _requirement_evidence(objective_payload, "browser_qa_evidence"),
         "non_stitch_actions": [
             {
                 "blocker": "agent_cloud_model",

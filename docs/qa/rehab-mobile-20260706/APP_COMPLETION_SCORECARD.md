@@ -37,7 +37,7 @@ Required P0 gates:
 - Profile shows cloud account, verified phone, `绑定手机号`/`验证码` path, rehab profile, and safe `待完善` medical empty state.
 - Frontend source is wired to auth, `/me`, `patient_view`, phone verification, device binding, and Agent message APIs.
 - Bottom navigation routes correctly.
-- 390px mobile screenshots show no overlap or unreachable primary controls.
+- Browser QA screenshots are real image files at exactly `390 x 844` and show no overlap or unreachable primary controls.
 
 Current result: `FAIL`, blocked by Stitch/frontend rendering.
 
@@ -94,7 +94,7 @@ Current result: `NOT READY`.
 | Agent model relay ops | READY TO CONFIGURE | `tools/configure_rehab_model_relay.py` now performs privileged relay config plus Agent smoke; runbook: `docs/deployments/rehab-mobile-agent-model-relay-runbook-20260706.md` |
 | APK delivery | PASS | APK HEAD `200`, size `4198462` bytes |
 | Combined L1 release gate | FAIL | `tools/qa_rehab_mobile_l1_release.py`: API `PASS`, frontend `FAIL`, 5 failed frontend gates, blockers `frontend_l1_gate` and `agent_cloud_model` |
-| Objective-level L1 audit | FAIL | `tools/qa_rehab_mobile_l1_objective_audit.py`: 8/11 objective requirements failing: home next step, phone UI, device UI, Ask Therapist UI, cloud model, profile no-fake-data, browser evidence, combined release |
+| Objective-level L1 audit | FAIL | `tools/qa_rehab_mobile_l1_objective_audit.py`: 8/11 objective requirements failing: home next step, phone UI, device UI, Ask Therapist UI, cloud model, profile no-fake-data, browser evidence, combined release; browser evidence now validates decoded PNG/JPEG dimensions against `390 x 844` |
 | Home UI | FAIL | Browser screenshots plus `tools/qa_rehab_mobile_l1_frontend.py` gate `L1-HOME-STATIC-001` |
 | Agent UI | FAIL | Visible assistant entries do not open chat; static gate `L1-AGENT-STATIC-001` missing `问康复师` |
 | Device UI | FAIL | Device page still looks like debug/engineering state; latest browser evidence `screenshots/model-relay-ops-device-390.png`; static gate `L1-DEVICE-STATIC-001` requires `绑定设备` and `打开康复设备电源`, and the page still exposes `M33`, `M55`, and `Gatekeeper` |
@@ -111,7 +111,7 @@ Current result: `NOT READY`.
 6. Run `tools/qa_rehab_mobile_l1_release.py`; it must return exit code `0` and `overall = PASS`.
 7. Run `tools/qa_rehab_mobile_l1_objective_audit.py`; it must return exit code `0` and every objective requirement must be `PASS`.
 8. If either gate fails, inspect the nested `api`, `frontend`, and `requirements` sections before changing code.
-9. Browser QA at 390px:
+9. Browser QA at exactly `390 x 844`:
    - Home first screen.
    - `问康复师` chat open.
    - Unsafe Agent refusal.

@@ -6,6 +6,33 @@ from pathlib import Path
 MODULE_PATH = Path(__file__).with_name("qa_rehab_mobile_l1_objective_audit.py")
 
 
+def _write_png_header(path, width, height):
+    path.write_bytes(
+        b"\x89PNG\r\n\x1a\n"
+        + (13).to_bytes(4, "big")
+        + b"IHDR"
+        + width.to_bytes(4, "big")
+        + height.to_bytes(4, "big")
+        + b"\x08\x02\x00\x00\x00"
+        + b"\x00\x00\x00\x00"
+    )
+
+
+def _write_jpeg_header(path, width, height):
+    path.write_bytes(
+        b"\xff\xd8"
+        + b"\xff\xe0"
+        + (16).to_bytes(2, "big")
+        + b"JFIF\x00\x01\x01\x00\x00\x01\x00\x01\x00\x00"
+        + b"\xff\xc0"
+        + (17).to_bytes(2, "big")
+        + b"\x08"
+        + height.to_bytes(2, "big")
+        + width.to_bytes(2, "big")
+        + b"\x03\x01\x11\x00\x02\x11\x00\x03\x11\x00"
+    )
+
+
 def _load_module():
     spec = importlib.util.spec_from_file_location("qa_rehab_mobile_l1_objective_audit", MODULE_PATH)
     module = importlib.util.module_from_spec(spec)
@@ -64,7 +91,7 @@ def test_objective_audit_passes_when_release_and_browser_evidence_are_ready(tmp_
         "l1-device-binding-wizard-390.png",
         "l1-profile-phone-medical-390.png",
     ):
-        (tmp_path / name).write_bytes(b"png")
+        _write_png_header(tmp_path / name, 390, 844)
 
     payload = module.audit_objective(_release_payload(), tmp_path)
 
@@ -102,3 +129,46 @@ def test_browser_evidence_does_not_count_agent_page_as_device_wizard(tmp_path):
 
     assert not ok
     assert "device_binding_wizard" in detail["missing"]
+
+
+def test_browser_evidence_requires_mobile_viewport_png_dimensions(tmp_path):
+    module = _load_module()
+    for name in (
+        "l1-home-390.png",
+        "l1-ask-therapist-chat-390.png",
+        "l1-unsafe-agent-refusal-390.png",
+        "l1-device-binding-wizard-390.png",
+        "l1-profile-phone-medical-390.png",
+    ):
+        _write_png_header(tmp_path / name, 430, 932)
+
+    ok, detail = module.browser_evidence_status(tmp_path)
+
+    assert not ok
+    assert detail["missing"] == []
+    assert sorted(detail["invalid_dimensions"]) == [
+        "ask_therapist_chat",
+        "device_binding_wizard",
+        "home_first_screen",
+        "profile_phone_medical",
+        "unsafe_agent_refusal",
+    ]
+    assert detail["expected_dimensions"] == {"width": 390, "height": 844}
+
+
+def test_browser_evidence_accepts_browser_jpeg_screenshots_with_png_extension(tmp_path):
+    module = _load_module()
+    for name in (
+        "l1-home-390.png",
+        "l1-ask-therapist-chat-390.png",
+        "l1-unsafe-agent-refusal-390.png",
+        "l1-device-binding-wizard-390.png",
+        "l1-profile-phone-medical-390.png",
+    ):
+        _write_jpeg_header(tmp_path / name, 390, 844)
+
+    ok, detail = module.browser_evidence_status(tmp_path)
+
+    assert ok
+    assert detail["missing"] == []
+    assert detail["invalid_dimensions"] == {}

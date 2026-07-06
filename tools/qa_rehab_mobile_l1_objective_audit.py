@@ -32,6 +32,8 @@ BROWSER_EVIDENCE_PATTERNS = {
     "profile_phone_medical": ("profile", "phone"),
 }
 
+EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS = {"width": 390, "height": 844}
+
 
 @dataclass
 class Requirement:
@@ -59,18 +61,75 @@ def _all_gates_pass(payload: dict[str, Any], gates: list[str]) -> bool:
     return all(_gate_status(payload, gate) == "PASS" for gate in gates)
 
 
+def _jpeg_dimensions(data: bytes) -> dict[str, int] | None:
+    if not data.startswith(b"\xff\xd8"):
+        return None
+    offset = 2
+    sof_markers = {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}
+    while offset + 3 < len(data):
+        if data[offset] != 0xFF:
+            offset += 1
+            continue
+        while offset < len(data) and data[offset] == 0xFF:
+            offset += 1
+        if offset >= len(data):
+            return None
+        marker = data[offset]
+        offset += 1
+        if marker in {0xD8, 0xD9} or 0xD0 <= marker <= 0xD7:
+            continue
+        if offset + 2 > len(data):
+            return None
+        segment_length = int.from_bytes(data[offset : offset + 2], "big")
+        if segment_length < 2 or offset + segment_length > len(data):
+            return None
+        if marker in sof_markers:
+            if segment_length < 7:
+                return None
+            height = int.from_bytes(data[offset + 3 : offset + 5], "big")
+            width = int.from_bytes(data[offset + 5 : offset + 7], "big")
+            return {"width": width, "height": height}
+        offset += segment_length
+    return None
+
+
+def _image_dimensions(path: Path) -> dict[str, int] | None:
+    try:
+        data = path.read_bytes()
+    except OSError:
+        return None
+    header = data[:24]
+    if len(header) < 24 or not header.startswith(b"\x89PNG\r\n\x1a\n") or header[12:16] != b"IHDR":
+        return _jpeg_dimensions(data)
+    return {"width": int.from_bytes(header[16:20], "big"), "height": int.from_bytes(header[20:24], "big")}
+
+
 def browser_evidence_status(screenshot_dir: Path) -> tuple[bool, dict[str, Any]]:
-    files = [path.name for path in screenshot_dir.glob("*.png")] if screenshot_dir.exists() else []
-    lower_files = [name.lower() for name in files]
+    files = list(screenshot_dir.glob("*.png")) if screenshot_dir.exists() else []
+    lower_files = {path.name.lower(): path for path in files}
     missing = []
     matched: dict[str, str] = {}
+    invalid_dimensions: dict[str, dict[str, Any]] = {}
     for key, tokens in BROWSER_EVIDENCE_PATTERNS.items():
-        match = next((name for name in lower_files if all(token in name for token in tokens)), None)
-        if match:
-            matched[key] = match
+        match_name = next((name for name in lower_files if all(token in name for token in tokens)), None)
+        if match_name:
+            matched[key] = match_name
+            dimensions = _image_dimensions(lower_files[match_name])
+            if dimensions != EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS:
+                invalid_dimensions[key] = {
+                    "file": match_name,
+                    "actual": dimensions,
+                    "expected": EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS,
+                }
         else:
             missing.append(key)
-    return not missing, {"screenshot_dir": str(screenshot_dir), "matched": matched, "missing": missing}
+    return not missing and not invalid_dimensions, {
+        "screenshot_dir": str(screenshot_dir),
+        "matched": matched,
+        "missing": missing,
+        "invalid_dimensions": invalid_dimensions,
+        "expected_dimensions": EXPECTED_BROWSER_SCREENSHOT_DIMENSIONS,
+    }
 
 
 def audit_objective(release_payload: dict[str, Any], screenshot_dir: Path) -> dict[str, Any]:

@@ -50,6 +50,7 @@ The packet is generated from the current cloud L1 release gate and objective aud
 - `summary.meta_blockers`: release-level proof that should turn green only after all underlying blockers are fixed.
 - `frontend_failures`: failed page gates, required additions, required removals, and visible text samples.
 - `integration_gaps`: required API wiring states that source/static checks still cannot find.
+- `browser_evidence_current`: current screenshot matches, missing required scenes, and screenshots whose dimensions are not the required `390 x 844`.
 
 Historical prompt kept for reference:
 
@@ -135,7 +136,7 @@ The next frontend build is not accepted until all checks pass:
     - `DEVICE_ALREADY_BOUND`
     - `UNSAFE_MOTION_REQUEST`
     - `data.model_status` / `modelStatus`
-12. 390px mobile screenshots show no overlap or unreachable primary controls.
+12. Browser QA screenshots are real image files at exactly `390 x 844`, and show no overlap or unreachable primary controls.
 
 ## Codex Verification After Stitch
 
@@ -166,13 +167,15 @@ If this combined gate fails, inspect the nested `api` and `frontend` sections. D
 
 If the objective audit fails, inspect the `requirements` section. Do not call the app L1 user-ready while any user-facing requirement such as `home_next_step`, `phone_binding`, `device_binding`, `ask_therapist_safety`, `profile_no_fake_debug`, or `browser_qa_evidence` is still failing.
 
-Then Codex must capture browser screenshots at `390 x 844`:
+Then Codex must capture browser screenshots at exactly `390 x 844`:
 
 1. Home first screen.
 2. `问康复师` chat open.
 3. Agent unsafe refusal.
 4. Device binding wizard.
 5. Profile account/phone/medical empty state.
+
+The objective audit validates image headers for PNG and JPEG screenshots. Files with a `.png` extension are acceptable if the browser saved JPEG content, but decoded dimensions must still be `390 x 844`.
 
 Then Codex must:
 
