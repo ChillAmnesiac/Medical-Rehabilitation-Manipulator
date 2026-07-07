@@ -59,6 +59,30 @@ def test_public_config_and_catalog_match_mobile_bridge_contract():
     assert payload["m33_legacy_spp_profile"]["write_characteristic_uuid"]
 
 
+def test_public_config_reports_current_apk_bluetooth_bridge_missing():
+    client = TestClient(create_app(database_url="sqlite+pysqlite:///:memory:"))
+
+    public_config = client.get("/api/rehab-arm/app/v1/public-config")
+
+    assert public_config.status_code == 200
+    config = public_config.json()["data"]
+    device_binding = config["device_binding"]
+    assert device_binding["bind_endpoint"] == "/api/rehab-arm/app/v1/devices/bind"
+    native_bridge = device_binding["native_bluetooth_bridge"]
+    assert native_bridge["status"] == "missing_in_current_apk"
+    assert native_bridge["required_for_real_pairing"] is True
+    assert native_bridge["expected_bridge_names"] == [
+        "window.RehabArmBluetoothBridge",
+        "window.Capacitor.Plugins.RehabArmBluetooth",
+    ]
+    assert native_bridge["required_methods"] == [
+        "requestBluetoothPermissions",
+        "scanDevices",
+        "connect",
+    ]
+    assert device_binding["web_fallback"] == "show_unavailable_state_do_not_fake_devices"
+
+
 def test_mobile_bootstrap_includes_patient_view_without_raw_debug_terms():
     client = TestClient(create_app(database_url="sqlite+pysqlite:///:memory:"))
     headers = _auth_headers(client)

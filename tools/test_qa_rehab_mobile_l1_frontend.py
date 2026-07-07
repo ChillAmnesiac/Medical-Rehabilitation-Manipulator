@@ -27,16 +27,30 @@ def test_frontend_integration_contract_passes_when_stitch_uses_required_api_cont
         """,
         "profile.html": """
           const profile = response.data.patient_view.profile;
+          document.querySelector('[data-action="send-phone-code"]').addEventListener('click', sendPhoneVerification);
+          document.querySelector('[data-action="confirm-phone-binding"]').addEventListener('click', confirmPhoneVerification);
           fetch('/api/rehab-arm/app/v1/account/phone-verifications', { method: 'POST' });
           fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`, { method: 'POST' });
+          if (profile.phone_verified) renderStatus('手机号已验证');
+          if (error.code === 'PHONE_CODE_INVALID') showInvalidCode();
+          if (error.code === 'PHONE_CODE_ATTEMPTS_EXCEEDED') showAttemptsExceeded();
           if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
+          const resendCooldown = setInterval(tick, 1000);
           if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
           if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
+          button.disabled = true; button.textContent = '发送中';
         """,
         "device.html": """
           const device = response.data.patient_view.device;
+          const bridge = window.RehabArmBluetoothBridge || Capacitor.Plugins.RehabArmBluetooth;
+          await bridge.requestBluetoothPermissions();
+          const devices = await bridge.scanDevices();
+          document.querySelector('[data-action="scan-rehab-device"]').addEventListener('click', scanRehabDevices);
+          document.querySelector('[data-action="bind-rehab-device"]').addEventListener('click', bindSelectedDevice);
+          if (!bridge) showBridgeMissing('未检测到手机蓝牙能力，请检查蓝牙权限');
           fetch('/api/rehab-arm/app/v1/devices/bind', { method: 'POST' });
           if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
+          renderDeviceBound('已绑定设备', response.data.m33_device_id);
         """,
         "ai-plan.html": """
           const agent = response.data.patient_view.agent;
@@ -104,6 +118,8 @@ def test_frontend_integration_contract_requires_l1_interaction_states():
     assert "device_already_bound" in result.detail["missing_requirements"]
     assert "phone_resend_cooldown" in result.detail["missing_requirements"]
     assert "ask_therapist_accessibility" in result.detail["missing_requirements"]
+    assert "phone_send_button_event" in result.detail["missing_requirements"]
+    assert "device_bluetooth_bridge" in result.detail["missing_requirements"]
 
 
 def test_frontend_integration_contract_requires_home_actions_to_leave_first_screen():
@@ -226,6 +242,57 @@ def test_frontend_integration_contract_rejects_mocked_api_behavior():
     assert result.status == "FAIL"
     assert "no_mock_api_behavior" in result.detail["missing_requirements"]
     assert "mockData" in result.detail["forbidden_source_hits"]
+
+
+def test_frontend_integration_contract_rejects_static_phone_and_device_demos():
+    module = _load_module()
+
+    sources = {
+        "home.html": """
+          localStorage.setItem('access_token', token);
+          fetch('/api/auth/session');
+          fetch('/api/rehab-arm/app/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+          const home = response.data.patient_view.home;
+          const agent = response.data.patient_view.agent;
+          <button class="primary-action" data-nav-target="ai-plan.html">Review therapist suggestion</button>
+          <button class="ask-therapist-action" data-nav-target="ai-plan.html" aria-label="&#38382;&#24247;&#22797;&#24072;">Ask therapist</button>
+          document.querySelectorAll('[data-nav-target]').forEach((control) => control.addEventListener('click', () => {
+            window.location.href = control.getAttribute('data-nav-target');
+          }));
+        """,
+        "profile.html": """
+          <button>获取验证码</button>
+          <button>绑定手机号</button>
+          fetch('/api/rehab-arm/app/v1/account/phone-verifications', { method: 'POST' });
+          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`, { method: 'POST' });
+          if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
+          if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
+          if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
+        """,
+        "device.html": """
+          function transitionToStep2() {}
+          function showBoundError() {}
+          <div>领动康复手臂 v2</div>
+          fetch('/api/rehab-arm/app/v1/devices/bind', { method: 'POST' });
+          if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
+        """,
+        "ai-plan.html": """
+          const agent = response.data.patient_view.agent;
+          fetch('/api/rehab-arm/app/v1/agent/messages', { method: 'POST' });
+          if (error.code === 'UNSAFE_MOTION_REQUEST') showSafeRefusal();
+          renderModelStatus(response.data.model_status);
+        """,
+    }
+
+    result = module.check_frontend_integration_contract(sources)
+
+    assert result.status == "FAIL"
+    assert "phone_send_button_event" in result.detail["missing_requirements"]
+    assert "phone_confirm_button_event" in result.detail["missing_requirements"]
+    assert "device_bluetooth_bridge" in result.detail["missing_requirements"]
+    assert "transitionToStep2()" in result.detail["forbidden_source_hits"]
+    assert "showBoundError()" in result.detail["forbidden_source_hits"]
+    assert "领动康复手臂 v2" in result.detail["forbidden_source_hits"]
 
 
 def test_frontend_integration_contract_rejects_action_endpoints_without_post_methods():

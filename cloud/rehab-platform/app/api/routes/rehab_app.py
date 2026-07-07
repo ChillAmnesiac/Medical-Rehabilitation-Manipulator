@@ -224,6 +224,7 @@ def get_public_config(settings: Settings = Depends(get_settings)):
                 "resend_cooldown_seconds": settings.phone_verification_resend_cooldown_seconds,
                 "delivery_status": _phone_delivery_status(settings),
             },
+            "device_binding": _device_binding_public_config(),
             "m33_legacy_spp_profile": _m33_legacy_spp_profile(),
             "safety_boundary": "Cloud suggests plans only. M33 remains final motion authority.",
         }
@@ -1025,6 +1026,30 @@ def _patient_text(value: str) -> str:
     for raw, replacement in replacements.items():
         cleaned = cleaned.replace(raw, replacement)
     return cleaned
+
+
+def _device_binding_public_config() -> dict[str, object]:
+    return {
+        "bind_endpoint": "/api/rehab-arm/app/v1/devices/bind",
+        "native_bluetooth_bridge": {
+            "status": "missing_in_current_apk",
+            "required_for_real_pairing": True,
+            "expected_bridge_names": [
+                "window.RehabArmBluetoothBridge",
+                "window.Capacitor.Plugins.RehabArmBluetooth",
+            ],
+            "required_methods": [
+                "requestBluetoothPermissions",
+                "scanDevices",
+                "connect",
+            ],
+            "reason": (
+                "The current packaged APK exposes the standard Capacitor bridge, "
+                "but no registered rehab Bluetooth plugin."
+            ),
+        },
+        "web_fallback": "show_unavailable_state_do_not_fake_devices",
+    }
 
 
 def _split_constraints(value: str | None) -> list[str]:
