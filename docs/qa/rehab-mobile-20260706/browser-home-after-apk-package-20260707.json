@@ -1,0 +1,15 @@
+{
+  "capturedAt": "2026-07-07T12:20:19.747Z",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "probe": {
+    "hasAskTherapist": true,
+    "hasDebugWords": false,
+    "path": "/rehab-arm-mobile/home.html",
+    "text": "领动康复手臂\nsync\n数据同步：正常\n您好，\n\n今日是您康复之旅的又一步。\n\n本周康复进度\n60%\n一\ncheck\n二\ncheck\n三\ncheck\n四\n今天\n五\n六\n日\n下一个任务\n基础屈伸训练\n预计耗时: 15分钟\n强度: 低\nplay_arrow\n查看康复师建议\n问康复师\nhome\n首页\nfitness_center\n训练\ngroup\n社区\nmail\n消息\nperson\n我的",
+    "title": "领动康复手臂 - 首页"
+  },
+  "screenshot": "F:/RT-ThreadStudio/workspace/Edgi_Talk_M33_Blink_LED/docs/qa/rehab-mobile-20260706/screenshots/l1-home-after-apk-package-20260707-390x844.png"
+}
