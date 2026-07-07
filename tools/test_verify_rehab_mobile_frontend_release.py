@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -54,6 +55,10 @@ def _write_l1_ready_frontend(source_dir: Path) -> None:
     )
 
 
+def _mirror_to_android_www(source_dir: Path, android_www_dir: Path) -> None:
+    shutil.copytree(source_dir, android_www_dir)
+
+
 def _write_browser_metrics_gate(output_dir: Path, *, status: str = "PASS", checked_pages=None) -> None:
     failed = 0 if status == "PASS" else 1
     pages = checked_pages or ["home", "profile", "device", "ai-plan"]
@@ -87,10 +92,13 @@ def _write_browser_metrics_gate(output_dir: Path, *, status: str = "PASS", check
 def _build_manifest(tmp_path: Path) -> Path:
     prepare = _load_module(PREPARE_MODULE_PATH, "prepare_rehab_mobile_frontend_release")
     source_dir = tmp_path / "rehab-arm-mobile"
+    android_www_dir = tmp_path / "rehab-arm-android" / "www"
     output_dir = tmp_path / "release"
     _write_l1_ready_frontend(source_dir)
+    _mirror_to_android_www(source_dir, android_www_dir)
     manifest = prepare.build_release_bundle(
         source_dir=source_dir,
+        android_www_dir=android_www_dir,
         output_dir=output_dir,
         generated_at="2026-07-06T15:00:00Z",
     )
@@ -115,6 +123,7 @@ def test_verify_release_manifest_accepts_intact_stitch_bundle(tmp_path):
         "FRONTEND-RELEASE-DEPLOYMENT",
         "FRONTEND-RELEASE-BROWSER-EVIDENCE",
         "FRONTEND-RELEASE-BROWSER-METRICS",
+        "FRONTEND-RELEASE-WEBVIEW-MIRROR",
         "FRONTEND-RELEASE-APK-WEBVIEW-ASSETS",
     }
     deployment = next(result for result in payload["results"] if result["gate"] == "FRONTEND-RELEASE-DEPLOYMENT")
@@ -170,6 +179,39 @@ def test_verify_release_manifest_rejects_missing_webview_mirror_command(tmp_path
     assert payload["summary"]["overall"] == "FAIL"
     failed_gates = {result["gate"] for result in payload["results"] if result["status"] == "FAIL"}
     assert failed_gates == {"FRONTEND-RELEASE-DEPLOYMENT"}
+
+
+def test_verify_release_manifest_rejects_missing_webview_mirror_report(tmp_path):
+    verify = _load_module(VERIFY_MODULE_PATH, "verify_rehab_mobile_frontend_release")
+    manifest_path = _build_manifest(tmp_path)
+    (manifest_path.parent / "webview-mirror-verification.json").unlink()
+
+    payload = verify.verify_release_manifest(manifest_path)
+
+    assert payload["summary"]["overall"] == "FAIL"
+    failed_gates = {result["gate"] for result in payload["results"] if result["status"] == "FAIL"}
+    assert failed_gates == {"FRONTEND-RELEASE-WEBVIEW-MIRROR"}
+    mirror = next(result for result in payload["results"] if result["gate"] == "FRONTEND-RELEASE-WEBVIEW-MIRROR")
+    assert mirror["detail"]["reason"] == "webview_mirror_report_missing"
+
+
+def test_verify_release_manifest_rejects_failed_webview_mirror_report(tmp_path):
+    verify = _load_module(VERIFY_MODULE_PATH, "verify_rehab_mobile_frontend_release")
+    manifest_path = _build_manifest(tmp_path)
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    report_path = Path(manifest["webview_mirror"]["report_path"])
+    report = json.loads(report_path.read_text(encoding="utf-8"))
+    report["summary"]["overall"] = "FAIL"
+    report["summary"]["failed"] = 1
+    report_path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+    payload = verify.verify_release_manifest(manifest_path)
+
+    assert payload["summary"]["overall"] == "FAIL"
+    failed_gates = {result["gate"] for result in payload["results"] if result["status"] == "FAIL"}
+    assert failed_gates == {"FRONTEND-RELEASE-WEBVIEW-MIRROR"}
+    mirror = next(result for result in payload["results"] if result["gate"] == "FRONTEND-RELEASE-WEBVIEW-MIRROR")
+    assert mirror["detail"]["report_summary"]["overall"] == "FAIL"
 
 
 def test_verify_release_manifest_rejects_missing_apk_webview_assets_command(tmp_path):

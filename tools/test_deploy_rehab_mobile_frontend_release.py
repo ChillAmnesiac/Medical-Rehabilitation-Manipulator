@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import shutil
 import sys
 from pathlib import Path
 
@@ -58,6 +59,10 @@ def _write_l1_ready_frontend(source_dir: Path) -> None:
     )
 
 
+def _mirror_to_android_www(source_dir: Path, android_www_dir: Path) -> None:
+    shutil.copytree(source_dir, android_www_dir)
+
+
 def _write_browser_metrics_gate(output_dir: Path, *, status: str = "PASS") -> None:
     failed = 0 if status == "PASS" else 1
     payload = {
@@ -89,10 +94,13 @@ def _write_browser_metrics_gate(output_dir: Path, *, status: str = "PASS") -> No
 def _build_manifest(tmp_path: Path) -> Path:
     prepare = _load_module(PREPARE_MODULE_PATH, "prepare_rehab_mobile_frontend_release")
     source_dir = tmp_path / "rehab-arm-mobile"
+    android_www_dir = tmp_path / "rehab-arm-android" / "www"
     output_dir = tmp_path / "release"
     _write_l1_ready_frontend(source_dir)
+    _mirror_to_android_www(source_dir, android_www_dir)
     manifest = prepare.build_release_bundle(
         source_dir=source_dir,
+        android_www_dir=android_www_dir,
         output_dir=output_dir,
         generated_at="2026-07-06T16:00:00Z",
     )

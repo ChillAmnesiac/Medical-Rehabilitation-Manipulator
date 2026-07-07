@@ -17,9 +17,11 @@ if str(TOOLS_DIR) not in sys.path:
     sys.path.insert(0, str(TOOLS_DIR))
 
 import qa_rehab_mobile_l1_frontend  # noqa: E402
+import verify_rehab_mobile_webview_mirror  # noqa: E402
 
 
 DEFAULT_SOURCE_DIR = Path("apps/web/public/rehab-arm-mobile")
+DEFAULT_ANDROID_WWW_DIR = Path("apps/mobile/rehab-arm-android/www")
 DEFAULT_OUTPUT_DIR = Path("artifacts/rehab-mobile-frontend-release")
 DEFAULT_API_BASE = "http://106.55.62.122:8011"
 DEFAULT_WEB_BASE = "http://106.55.62.122:3001/rehab-arm-mobile"
@@ -36,6 +38,7 @@ FINAL_BROWSER_SCREENSHOTS = (
 )
 FINAL_BROWSER_METRICS_REPORT = "browser-metrics-l1-390x844.json"
 FINAL_BROWSER_METRICS_GATE = "browser-metrics-gate.json"
+WEBVIEW_MIRROR_REPORT = "webview-mirror-verification.json"
 
 
 def _utc_now() -> str:
@@ -129,9 +132,24 @@ def run_frontend_l1_preflight(source_dir: Path, report_path: Path, timeout: int 
     return summary
 
 
+def run_webview_mirror_verification(
+    *,
+    web_dir: Path,
+    android_www_dir: Path,
+    report_path: Path,
+) -> dict[str, Any]:
+    payload = verify_rehab_mobile_webview_mirror.verify_webview_mirror(web_dir, android_www_dir)
+    report_path.parent.mkdir(parents=True, exist_ok=True)
+    report_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    summary = dict(payload.get("summary") or {})
+    summary["report_path"] = str(report_path)
+    return summary
+
+
 def build_release_bundle(
     *,
     source_dir: Path,
+    android_www_dir: Path = DEFAULT_ANDROID_WWW_DIR,
     output_dir: Path,
     generated_at: str | None = None,
     api_base: str = DEFAULT_API_BASE,
@@ -141,6 +159,7 @@ def build_release_bundle(
 ) -> dict[str, Any]:
     generated_at = generated_at or _utc_now()
     source_dir = Path(source_dir)
+    android_www_dir = Path(android_www_dir)
     output_dir = Path(output_dir)
     _validate_source(source_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -149,6 +168,15 @@ def build_release_bundle(
     if preflight_summary.get("overall") != "PASS":
         failed = preflight_summary.get("failed")
         raise ValueError(f"frontend L1 local preflight failed: {failed} failing gates")
+    webview_mirror_report_path = output_dir / WEBVIEW_MIRROR_REPORT
+    webview_mirror_summary = run_webview_mirror_verification(
+        web_dir=source_dir,
+        android_www_dir=android_www_dir,
+        report_path=webview_mirror_report_path,
+    )
+    if webview_mirror_summary.get("overall") != "PASS":
+        failed = webview_mirror_summary.get("failed")
+        raise ValueError(f"Android WebView mirror verification failed: {failed} failing gates")
 
     zip_path = output_dir / "rehab-mobile-frontend-release.zip"
     manifest_path = output_dir / "rehab-mobile-frontend-release-manifest.json"
@@ -171,8 +199,10 @@ def build_release_bundle(
             "required_pages_present": True,
             "missing_required_pages": [],
             "required_page_artifacts": required_pages,
+            "android_www_dir": str(android_www_dir),
         },
         "frontend_l1_preflight": preflight_summary,
+        "webview_mirror": webview_mirror_summary,
         "artifact": {
             "zip_path": str(zip_path),
             "zip_sha256": _sha256(zip_path),
@@ -200,6 +230,7 @@ def build_release_bundle(
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--source-dir", type=Path, default=DEFAULT_SOURCE_DIR)
+    parser.add_argument("--android-www-dir", type=Path, default=DEFAULT_ANDROID_WWW_DIR)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--generated-at")
     parser.add_argument("--api-base", default=DEFAULT_API_BASE)
@@ -213,6 +244,7 @@ def main(argv: list[str]) -> int:
     args = parse_args(argv)
     manifest = build_release_bundle(
         source_dir=args.source_dir,
+        android_www_dir=args.android_www_dir,
         output_dir=args.output_dir,
         generated_at=args.generated_at,
         api_base=args.api_base,

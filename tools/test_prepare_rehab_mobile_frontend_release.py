@@ -1,6 +1,7 @@
 import hashlib
 import importlib.util
 import json
+import shutil
 import sys
 import zipfile
 from pathlib import Path
@@ -56,6 +57,10 @@ def _write_frontend(source_dir: Path) -> None:
     (source_dir / "assets" / "style.css").write_text("body { color: #111; }\n", encoding="utf-8")
 
 
+def _mirror_to_android_www(source_dir: Path, android_www_dir: Path) -> None:
+    shutil.copytree(source_dir, android_www_dir)
+
+
 def _load_frontend_gate_module():
     gate_path = Path(__file__).with_name("qa_rehab_mobile_l1_frontend.py")
     spec = importlib.util.spec_from_file_location("qa_rehab_mobile_l1_frontend", gate_path)
@@ -69,11 +74,14 @@ def _load_frontend_gate_module():
 def test_build_release_bundle_validates_pages_and_manifest(tmp_path):
     module = _load_module()
     source_dir = tmp_path / "rehab-arm-mobile"
+    android_www_dir = tmp_path / "rehab-arm-android" / "www"
     output_dir = tmp_path / "release"
     _write_frontend(source_dir)
+    _mirror_to_android_www(source_dir, android_www_dir)
 
     manifest = module.build_release_bundle(
         source_dir=source_dir,
+        android_www_dir=android_www_dir,
         output_dir=output_dir,
         generated_at="2026-07-06T14:00:00Z",
         api_base="http://106.55.62.122:8011",
@@ -85,18 +93,24 @@ def test_build_release_bundle_validates_pages_and_manifest(tmp_path):
     artifact_path = Path(manifest["artifact"]["zip_path"])
     manifest_path = Path(manifest["artifact"]["manifest_path"])
     preflight_path = Path(manifest["frontend_l1_preflight"]["report_path"])
+    mirror_path = Path(manifest["webview_mirror"]["report_path"])
     assert artifact_path.exists()
     assert manifest_path.exists()
     assert preflight_path.exists()
+    assert mirror_path.exists()
     assert manifest["schema"] == "rehab-mobile-frontend-release/v1"
     assert manifest["source"]["required_pages_present"] is True
     assert manifest["source"]["missing_required_pages"] == []
     assert set(manifest["source"]["required_pages"]) == {"home.html", "profile.html", "device.html", "ai-plan.html"}
+    assert manifest["source"]["android_www_dir"] == str(android_www_dir)
     assert manifest["artifact"]["file_count"] == 6
     assert manifest["artifact"]["zip_sha256"] == hashlib.sha256(artifact_path.read_bytes()).hexdigest()
     assert manifest["frontend_l1_preflight"]["overall"] == "PASS"
     assert manifest["frontend_l1_preflight"]["failed"] == 0
     assert json.loads(preflight_path.read_text(encoding="utf-8"))["summary"]["overall"] == "PASS"
+    assert manifest["webview_mirror"]["overall"] == "PASS"
+    assert manifest["webview_mirror"]["failed"] == 0
+    assert json.loads(mirror_path.read_text(encoding="utf-8"))["summary"]["overall"] == "PASS"
     assert manifest["deploy"]["remote_web_root"].endswith("/rehab-arm-mobile")
     assert "deploy_rehab_mobile_frontend_release.py" in manifest["deploy"]["executor_command"]
     assert "verify_rehab_mobile_frontend_release.py" in "\n".join(manifest["verification"]["powershell"])
@@ -201,16 +215,50 @@ def test_build_release_bundle_rejects_frontend_that_fails_l1_preflight(tmp_path)
     assert payload["summary"]["overall"] == "FAIL"
 
 
+def test_build_release_bundle_rejects_missing_android_webview_mirror(tmp_path):
+    module = _load_module()
+    source_dir = tmp_path / "rehab-arm-mobile"
+    android_www_dir = tmp_path / "rehab-arm-android" / "www"
+    output_dir = tmp_path / "release"
+    _write_frontend(source_dir)
+
+    try:
+        module.build_release_bundle(
+            source_dir=source_dir,
+            android_www_dir=android_www_dir,
+            output_dir=output_dir,
+            generated_at="2026-07-06T14:00:00Z",
+        )
+    except ValueError as exc:
+        message = str(exc)
+    else:
+        raise AssertionError("expected missing Android WebView mirror to raise ValueError")
+
+    assert "Android WebView mirror verification failed" in message
+    mirror_report = output_dir / "webview-mirror-verification.json"
+    assert mirror_report.exists()
+    payload = json.loads(mirror_report.read_text(encoding="utf-8"))
+    assert payload["summary"]["overall"] == "FAIL"
+    directory_gate = next(
+        result for result in payload["results"] if result["gate"] == "WEBVIEW-MIRROR-DIRECTORIES"
+    )
+    assert directory_gate["status"] == "FAIL"
+
+
 def test_cli_writes_release_manifest(tmp_path):
     module = _load_module()
     source_dir = tmp_path / "rehab-arm-mobile"
+    android_www_dir = tmp_path / "rehab-arm-android" / "www"
     output_dir = tmp_path / "release"
     _write_frontend(source_dir)
+    _mirror_to_android_www(source_dir, android_www_dir)
 
     exit_code = module.main(
         [
             "--source-dir",
             str(source_dir),
+            "--android-www-dir",
+            str(android_www_dir),
             "--output-dir",
             str(output_dir),
             "--generated-at",

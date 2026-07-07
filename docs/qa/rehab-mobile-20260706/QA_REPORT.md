@@ -2734,3 +2734,72 @@ Acceptance boundary:
 
 - No cloud deployment or APK rebuild was performed because no clean Stitch
   export passed promotion.
+
+## 2026-07-07 Frontend Release Requires WebView Mirror Evidence
+
+Codex tightened the frontend release packaging path so a future Stitch export
+cannot be packaged for cloud/APK promotion unless the Android WebView source
+mirror has already been verified.
+
+Tooling changes:
+
+- `tools/prepare_rehab_mobile_frontend_release.py` now accepts
+  `--android-www-dir`, defaults it to `apps/mobile/rehab-arm-android/www`,
+  runs `tools/verify_rehab_mobile_webview_mirror.py`, writes
+  `webview-mirror-verification.json`, and refuses to create the release zip if
+  the WebView mirror result is not `PASS`.
+- The generated release manifest now records `source.android_www_dir` and a
+  top-level `webview_mirror` summary with `report_path`.
+- `tools/verify_rehab_mobile_frontend_release.py` now includes
+  `FRONTEND-RELEASE-WEBVIEW-MIRROR` and rejects manifests when
+  `webview-mirror-verification.json` is missing or reports `FAIL`.
+- Deploy planning already verifies the release manifest, so a cloud deploy with
+  `tools/deploy_rehab_mobile_frontend_release.py` is blocked before any `scp`
+  or `ssh` command can run if the Android WebView mirror evidence is missing.
+
+Why this matters:
+
+- L1 requires the web app and packaged Android experience to be the same
+  patient-facing product.
+- The current real App checkout still lacks the expected
+  `apps/mobile/rehab-arm-android/www/` directory, and current APK evidence
+  still fails because stale/debug assets remain in the packaged WebView bundle.
+- This gate prevents a visually corrected web frontend from being released
+  while the APK source mirror is missing or stale.
+
+TDD evidence:
+
+- Red packaging tests first failed because `build_release_bundle()` did not
+  accept `android_www_dir` and could package without Android WebView mirror
+  evidence.
+- Red manifest-verifier tests first failed because
+  `FRONTEND-RELEASE-WEBVIEW-MIRROR` did not exist and missing/failed mirror
+  reports still allowed the release manifest to verify as `PASS`.
+- Implementation added `run_webview_mirror_verification()` in the release
+  packager and `_check_webview_mirror()` in the release verifier.
+
+Fresh verification:
+
+- Focused red/green packaging tests:
+  `tools/test_prepare_rehab_mobile_frontend_release.py` -> `5 passed`.
+- Release/deploy verifier tests:
+  `tools/test_verify_rehab_mobile_frontend_release.py`,
+  `tools/test_deploy_rehab_mobile_frontend_release.py`, and
+  `tools/test_prepare_rehab_mobile_frontend_release.py` -> `24 passed`.
+- Related Stitch/frontend/release/APK regression suite:
+  `tools/test_promote_rehab_mobile_stitch_frontend.py`,
+  `tools/test_qa_rehab_mobile_l1_frontend.py`,
+  `tools/test_prepare_rehab_mobile_frontend_release.py`,
+  `tools/test_verify_rehab_mobile_frontend_release.py`,
+  `tools/test_deploy_rehab_mobile_frontend_release.py`,
+  `tools/test_verify_rehab_mobile_webview_mirror.py`, and
+  `tools/test_verify_rehab_mobile_apk_webview_assets.py` -> `51 passed`.
+
+Current L1 boundary:
+
+- No frontend UI files were manually edited; frontend generation remains
+  delegated to Stitch.
+- No frontend assets were copied into the real App branch.
+- No cloud deployment or APK rebuild was performed because this pass only
+  changes release verification tooling/docs, and no clean Stitch export has
+  passed promotion yet.

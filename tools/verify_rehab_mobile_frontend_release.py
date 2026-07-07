@@ -307,6 +307,46 @@ def _check_browser_metrics(manifest_path: Path, manifest: dict[str, Any]) -> Res
     )
 
 
+def _check_webview_mirror(manifest_path: Path, manifest: dict[str, Any]) -> Result:
+    manifest_summary = manifest.get("webview_mirror")
+    if not isinstance(manifest_summary, dict):
+        return _result(
+            "FRONTEND-RELEASE-WEBVIEW-MIRROR",
+            False,
+            "Android WebView mirror verification passed before release packaging.",
+            {"reason": "webview_mirror_summary_missing"},
+        )
+
+    report_path = _resolve_manifest_path(manifest_path, manifest_summary.get("report_path"))
+    detail: dict[str, Any] = {
+        "manifest_summary": manifest_summary,
+        "report_path": str(report_path) if report_path else None,
+    }
+    report_summary: dict[str, Any] | None = None
+    if report_path and report_path.is_file():
+        report = _load_json(report_path)
+        raw_report_summary = report.get("summary")
+        if isinstance(raw_report_summary, dict):
+            report_summary = raw_report_summary
+            detail["report_summary"] = report_summary
+    else:
+        detail["reason"] = "webview_mirror_report_missing"
+
+    ok = (
+        manifest_summary.get("overall") == "PASS"
+        and manifest_summary.get("failed") == 0
+        and report_summary is not None
+        and report_summary.get("overall") == "PASS"
+        and report_summary.get("failed") == 0
+    )
+    return _result(
+        "FRONTEND-RELEASE-WEBVIEW-MIRROR",
+        ok,
+        "Android WebView mirror verification passed before release packaging.",
+        detail,
+    )
+
+
 def _check_apk_webview_assets_command(manifest: dict[str, Any]) -> Result:
     verification = manifest.get("verification") if isinstance(manifest.get("verification"), dict) else {}
     commands = verification.get("powershell") if isinstance(verification.get("powershell"), list) else []
@@ -343,6 +383,7 @@ def verify_release_manifest(manifest_path: Path) -> dict[str, Any]:
         _check_deployment(manifest),
         _check_browser_evidence(manifest),
         _check_browser_metrics(manifest_path, manifest),
+        _check_webview_mirror(manifest_path, manifest),
         _check_apk_webview_assets_command(manifest),
     ]
     failed = [result for result in results if result.status == "FAIL"]
