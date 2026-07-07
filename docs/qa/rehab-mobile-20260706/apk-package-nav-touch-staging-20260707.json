@@ -1,0 +1,191 @@
+{
+  "schema": "rehab-mobile-apk-webview-package/v1",
+  "summary": {
+    "overall": "PASS",
+    "output_apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging.apk",
+    "unsigned_apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging-unsigned.apk",
+    "aligned_apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging-aligned.apk"
+  },
+  "package": {
+    "schema": "rehab-mobile-apk-webview-package/v1",
+    "target": {
+      "template_apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-debug.apk",
+      "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www",
+      "output_apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging-unsigned.apk",
+      "asset_prefix": "assets/public"
+    },
+    "summary": {
+      "overall": "PASS",
+      "added_webview_files": 5,
+      "removed_template_webview_files": 5,
+      "removed_signature_files": 3
+    },
+    "results": [
+      {
+        "gate": "APK-PACKAGE-INPUTS",
+        "level": "L1",
+        "status": "PASS",
+        "summary": "Template APK, accepted Android WebView assets, and output target are available.",
+        "detail": {
+          "template_apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-debug.apk",
+          "template_apk_exists": true,
+          "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www",
+          "android_www_dir_exists": true,
+          "output_apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging-unsigned.apk",
+          "asset_prefix": "assets/public",
+          "missing_required_pages": []
+        }
+      },
+      {
+        "gate": "APK-PACKAGE-WEBVIEW-ASSETS",
+        "level": "L1",
+        "status": "PASS",
+        "summary": "Template APK was rebundled with accepted WebView assets and without old signature entries.",
+        "detail": {
+          "kept_template_files": 438,
+          "added_webview_files": 5,
+          "removed_template_webview_files": 5,
+          "removed_signature_files": 3
+        }
+      }
+    ]
+  },
+  "signing": {
+    "toolchain": {
+      "gate": "APK-PACKAGE-TOOLCHAIN",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "JDK keytool, Android zipalign, and apksigner are available.",
+      "detail": {
+        "java_home": "F:\\Java\\temurin-17\\jdk-17.0.19+10",
+        "build_tools_dir": "F:\\Android\\Sdk\\build-tools\\36.0.0",
+        "keytool": "F:\\Java\\temurin-17\\jdk-17.0.19+10\\bin\\keytool.exe",
+        "keytool_exists": true,
+        "zipalign": "F:\\Android\\Sdk\\build-tools\\36.0.0\\zipalign.exe",
+        "zipalign_exists": true,
+        "apksigner": "F:\\Android\\Sdk\\build-tools\\36.0.0\\apksigner.bat",
+        "apksigner_exists": true
+      }
+    },
+    "keystore": {
+      "status": "PASS",
+      "created": false,
+      "keystore": "artifacts\\rehab-mobile-apk-signing\\rehab-mobile-l1-debug.keystore",
+      "command": null,
+      "returncode": 0
+    },
+    "zipalign": {
+      "command": [
+        "F:\\Android\\Sdk\\build-tools\\36.0.0\\zipalign.exe",
+        "-f",
+        "-p",
+        "4",
+        "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging-unsigned.apk",
+        "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging-aligned.apk"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "sign": {
+      "command": [
+        "cmd.exe",
+        "/c",
+        "F:\\Android\\Sdk\\build-tools\\36.0.0\\apksigner.bat",
+        "sign",
+        "--ks",
+        "artifacts\\rehab-mobile-apk-signing\\rehab-mobile-l1-debug.keystore",
+        "--ks-pass",
+        "pass:<redacted>",
+        "--key-pass",
+        "pass:<redacted>",
+        "--ks-key-alias",
+        "androiddebugkey",
+        "--out",
+        "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging.apk",
+        "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging-aligned.apk"
+      ],
+      "returncode": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    "verify": {
+      "command": [
+        "cmd.exe",
+        "/c",
+        "F:\\Android\\Sdk\\build-tools\\36.0.0\\apksigner.bat",
+        "verify",
+        "--verbose",
+        "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging.apk"
+      ],
+      "returncode": 0,
+      "stdout": "Verifies\nVerified using v1 scheme (JAR signing): false\nVerified using v2 scheme (APK Signature Scheme v2): true\nVerified using v3 scheme (APK Signature Scheme v3): true\nVerified using v3.1 scheme (APK Signature Scheme v3.1): false\nVerified using v4 scheme (APK Signature Scheme v4): false\nVerified for SourceStamp: false\nNumber of signers: 1\n",
+      "stderr": ""
+    }
+  },
+  "webview_verification": {
+    "schema": "rehab-mobile-apk-webview-assets-verification/v1",
+    "target": {
+      "apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging.apk",
+      "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www",
+      "asset_prefix": "assets/public",
+      "required_pages": [
+        "home.html",
+        "profile.html",
+        "device.html",
+        "ai-plan.html"
+      ]
+    },
+    "summary": {
+      "overall": "PASS",
+      "failed": 0,
+      "total": 3,
+      "android_file_count": 5,
+      "apk_webview_file_count": 5
+    },
+    "results": [
+      {
+        "gate": "APK-WEBVIEW-INPUTS",
+        "level": "L1",
+        "status": "PASS",
+        "summary": "APK file, Android WebView source directory, and APK asset prefix are available.",
+        "detail": {
+          "apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-l1-staging.apk",
+          "apk_exists": true,
+          "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www",
+          "android_www_dir_exists": true,
+          "asset_prefix": "assets/public",
+          "asset_prefix_valid": true
+        }
+      },
+      {
+        "gate": "APK-WEBVIEW-REQUIRED-PAGES",
+        "level": "L1",
+        "status": "PASS",
+        "summary": "Required L1 mobile pages are present and byte-identical inside the APK WebView assets.",
+        "detail": {
+          "required_pages": [
+            "home.html",
+            "profile.html",
+            "device.html",
+            "ai-plan.html"
+          ],
+          "missing_android_pages": [],
+          "missing_apk_pages": [],
+          "changed_required_pages": []
+        }
+      },
+      {
+        "gate": "APK-WEBVIEW-FILE-PARITY",
+        "level": "L1",
+        "status": "PASS",
+        "summary": "Every Android WebView asset is present in the APK without stale extras or changed bytes.",
+        "detail": {
+          "missing_files": [],
+          "extra_files": [],
+          "changed_files": []
+        }
+      }
+    ]
+  }
+}

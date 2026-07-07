@@ -1,0 +1,29 @@
+{
+  "summary": {
+    "overall": "PASS",
+    "failed": 0,
+    "total": 1
+  },
+  "results": [
+    {
+      "gate": "L1-BROWSER-METRICS-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Rendered mobile browser QA covers all L1 pages and has no fake copy, small touch targets, input overlap, overflow, or vertical text.",
+      "detail": {
+        "checked_pages": [
+          "home",
+          "profile",
+          "device",
+          "ai-plan"
+        ],
+        "missing_pages": [],
+        "fake_hits": [],
+        "touch_issues": [],
+        "input_issues": [],
+        "overflow_issues": [],
+        "vertical_text_issues": []
+      }
+    }
+  ]
+}

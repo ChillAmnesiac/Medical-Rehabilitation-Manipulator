@@ -1,0 +1,42 @@
+[
+  {
+    "page": "home",
+    "metrics": {
+      "fakeHits": [],
+      "inputIssues": [],
+      "overflows": [],
+      "touchIssues": [],
+      "verticalTextIssues": []
+    }
+  },
+  {
+    "page": "profile",
+    "metrics": {
+      "fakeHits": [],
+      "inputIssues": [],
+      "overflows": [],
+      "touchIssues": [],
+      "verticalTextIssues": []
+    }
+  },
+  {
+    "page": "device",
+    "metrics": {
+      "fakeHits": [],
+      "inputIssues": [],
+      "overflows": [],
+      "touchIssues": [],
+      "verticalTextIssues": []
+    }
+  },
+  {
+    "page": "ai-plan",
+    "metrics": {
+      "fakeHits": [],
+      "inputIssues": [],
+      "overflows": [],
+      "touchIssues": [],
+      "verticalTextIssues": []
+    }
+  }
+]

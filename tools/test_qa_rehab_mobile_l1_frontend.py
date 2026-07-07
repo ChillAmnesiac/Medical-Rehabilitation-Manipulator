@@ -16,6 +16,13 @@ def test_frontend_integration_contract_passes_when_stitch_uses_required_api_cont
           fetch('/api/rehab-arm/app/v1/me', { headers: { Authorization: `Bearer ${token}` } });
           const home = response.data.patient_view.home;
           const agent = response.data.patient_view.agent;
+          <button class="primary-action" data-nav-target="ai-plan.html">Review therapist suggestion</button>
+          <button class="ask-therapist-action" data-nav-target="ai-plan.html">Ask therapist</button>
+          document.querySelectorAll('[data-nav-target]').forEach((control) => {
+            control.addEventListener('click', () => {
+              window.location.href = control.getAttribute('data-nav-target');
+            });
+          });
           <button aria-label="问康复师">问康复师</button>
         """,
         "profile.html": """
@@ -97,6 +104,48 @@ def test_frontend_integration_contract_requires_l1_interaction_states():
     assert "device_already_bound" in result.detail["missing_requirements"]
     assert "phone_resend_cooldown" in result.detail["missing_requirements"]
     assert "ask_therapist_accessibility" in result.detail["missing_requirements"]
+
+
+def test_frontend_integration_contract_requires_home_actions_to_leave_first_screen():
+    module = _load_module()
+
+    sources = {
+        "home.html": """
+          localStorage.setItem('access_token', token);
+          fetch('/api/auth/session');
+          fetch('/api/rehab-arm/app/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+          const home = response.data.patient_view.home;
+          const agent = response.data.patient_view.agent;
+          <button class="primary-action">Review therapist suggestion</button>
+          <button class="ask-therapist-action" aria-label="&#38382;&#24247;&#22797;&#24072;">Ask therapist</button>
+        """,
+        "profile.html": """
+          const profile = response.data.patient_view.profile;
+          fetch('/api/rehab-arm/app/v1/account/phone-verifications', { method: 'POST' });
+          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`, { method: 'POST' });
+          if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
+          if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
+          if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
+        """,
+        "device.html": """
+          const device = response.data.patient_view.device;
+          fetch('/api/rehab-arm/app/v1/devices/bind', { method: 'POST' });
+          if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
+        """,
+        "ai-plan.html": """
+          const agent = response.data.patient_view.agent;
+          fetch('/api/rehab-arm/app/v1/agent/messages', { method: 'POST' });
+          if (error.code === 'UNSAFE_MOTION_REQUEST') showSafeRefusal();
+          renderModelStatus(response.data.model_status);
+        """,
+    }
+
+    result = module.check_frontend_integration_contract(sources)
+
+    assert result.status == "FAIL"
+    assert "home_primary_action_navigation" in result.detail["missing_requirements"]
+    assert "home_ask_therapist_navigation" in result.detail["missing_requirements"]
+    assert "home_navigation_click_handler" in result.detail["missing_requirements"]
 
 
 def test_frontend_integration_contract_accepts_html_entity_accessibility_label():

@@ -1,0 +1,41 @@
+{
+  "schema": "rehab-mobile-browser-home-nav-hotfix/v1",
+  "target": "http://106.55.62.122:3001/rehab-arm-mobile/home.html",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "results": [
+    {
+      "action": "ask_therapist_action",
+      "from": "home.html",
+      "to": "ai-plan.html",
+      "status": "PASS",
+      "evidence": {
+        "title": "AI康复助手",
+        "hasAskTherapist": true
+      }
+    },
+    {
+      "action": "primary_action_view_suggestion",
+      "from": "home.html",
+      "to": "ai-plan.html",
+      "status": "PASS",
+      "evidence": {
+        "title": "AI康复助手",
+        "hasAskTherapist": true
+      }
+    },
+    {
+      "action": "recommended_training_play",
+      "from": "home.html",
+      "to": "device.html",
+      "status": "PASS",
+      "evidence": {
+        "title": "绑定设备 - 领动康复手臂",
+        "hasDeviceBinding": true
+      }
+    }
+  ],
+  "screenshot": "docs/qa/rehab-mobile-20260706/screenshots/home-nav-hotfix-ai-plan-20260707-390x844.png"
+}

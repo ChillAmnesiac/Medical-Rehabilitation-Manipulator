@@ -114,6 +114,11 @@ POST_ACTION_REQUIREMENTS = {
     "agent_messages_post": ("/api/rehab-arm/app/v1/agent/messages",),
 }
 
+HOME_NAVIGATION_REQUIREMENTS = {
+    "home_primary_action_navigation": ("primary-action", "ai-plan.html"),
+    "home_ask_therapist_navigation": ("ask-therapist-action", "ai-plan.html"),
+}
+
 PRIVACY_SOURCE_PATTERNS = {
     "hardcoded_email": re.compile(r"(?i)\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b"),
     "hardcoded_bearer_token": re.compile(r"(?i)\bBearer\s+[A-Z0-9._~+/\-=]{20,}\b"),
@@ -186,8 +191,30 @@ def _has_post_action(source: str, tokens: tuple[str, ...]) -> bool:
     return False
 
 
+def _has_navigation_control(source: str, class_name: str, target: str) -> bool:
+    decoded_source = unescape(source)
+    for candidate in (source, decoded_source):
+        for match in re.finditer(r"(?is)<button\b[^>]*>", candidate):
+            tag = match.group(0)
+            if class_name in tag and "data-nav-target" in tag and target in tag:
+                return True
+    return False
+
+
+def _has_home_navigation_click_handler(source: str) -> bool:
+    decoded_source = unescape(source)
+    return any(
+        "data-nav-target" in candidate
+        and "addEventListener" in candidate
+        and "click" in candidate
+        and "window.location.href" in candidate
+        for candidate in (source, decoded_source)
+    )
+
+
 def check_frontend_integration_contract(sources: dict[str, str]) -> Result:
     combined_source = "\n".join(sources.get(path, "") for path in sorted(sources))
+    home_source = sources.get("home.html", "")
     missing_requirements = [
         name
         for name, alternatives in INTEGRATION_REQUIREMENTS.items()
@@ -204,6 +231,13 @@ def check_frontend_integration_contract(sources: dict[str, str]) -> Result:
         for name, tokens in POST_ACTION_REQUIREMENTS.items()
         if not _has_post_action(combined_source, tokens)
     )
+    missing_requirements.extend(
+        name
+        for name, (class_name, target) in HOME_NAVIGATION_REQUIREMENTS.items()
+        if not _has_navigation_control(home_source, class_name, target)
+    )
+    if not _has_home_navigation_click_handler(home_source):
+        missing_requirements.append("home_navigation_click_handler")
     return Result(
         gate="L1-FRONTEND-INTEGRATION-001",
         level="L1",
