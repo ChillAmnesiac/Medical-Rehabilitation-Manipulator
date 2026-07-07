@@ -367,6 +367,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def emit_json(payload: dict[str, Any], stdout: Any = sys.stdout) -> None:
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    buffer = getattr(stdout, "buffer", None)
+    if buffer is not None:
+        buffer.write(rendered.encode("utf-8"))
+        return
+    stdout.write(rendered)
+
+
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
     release_args = qa_rehab_mobile_l1_release.parse_args(
@@ -393,7 +402,7 @@ def main(argv: list[str]) -> int:
     )
     _, release_payload = qa_rehab_mobile_l1_release.run(release_args)
     payload = audit_objective(release_payload, args.screenshots_dir, args.browser_metrics_json)
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    emit_json(payload)
     return 0 if payload["summary"]["overall"] == "PASS" else 1
 
 

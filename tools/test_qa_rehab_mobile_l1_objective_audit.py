@@ -1,4 +1,5 @@
 import importlib.util
+import io
 import json
 import sys
 from pathlib import Path
@@ -367,3 +368,22 @@ def test_browser_evidence_accepts_browser_jpeg_screenshots_with_png_extension(tm
     assert ok
     assert detail["missing"] == []
     assert detail["invalid_dimensions"] == {}
+
+
+def test_emit_json_writes_utf8_when_console_encoding_cannot_represent_text():
+    module = _load_module()
+
+    class GbkLikeStdout:
+        def __init__(self):
+            self.buffer = io.BytesIO()
+
+        def write(self, text):
+            raise UnicodeEncodeError("gbk", text, 0, 1, "illegal multibyte sequence")
+
+    payload = {"summary": {"overall": "FAIL"}, "text": "‹ 问康复师"}
+    stdout = GbkLikeStdout()
+
+    module.emit_json(payload, stdout=stdout)
+
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    assert stdout.buffer.getvalue() == rendered.encode("utf-8")

@@ -1,4 +1,6 @@
 import importlib.util
+import io
+import json
 import sys
 from pathlib import Path
 
@@ -111,3 +113,22 @@ def test_release_summary_blocks_l1_without_apk_webview_assets_evidence():
     assert payload["summary"]["overall"] == "FAIL"
     assert payload["summary"]["apk_webview_assets_overall"] is None
     assert "apk_webview_assets" in payload["summary"]["blocking_gates"]
+
+
+def test_emit_json_writes_utf8_when_console_encoding_cannot_represent_text():
+    module = _load_module()
+
+    class GbkLikeStdout:
+        def __init__(self):
+            self.buffer = io.BytesIO()
+
+        def write(self, text):
+            raise UnicodeEncodeError("gbk", text, 0, 1, "illegal multibyte sequence")
+
+    payload = {"summary": {"overall": "FAIL"}, "text": "‹ 问康复师"}
+    stdout = GbkLikeStdout()
+
+    module.emit_json(payload, stdout=stdout)
+
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    assert stdout.buffer.getvalue() == rendered.encode("utf-8")

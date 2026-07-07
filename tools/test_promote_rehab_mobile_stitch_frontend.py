@@ -60,6 +60,10 @@ def _write_l1_ready_stitch_source(source_dir: Path) -> None:
         """,
         encoding="utf-8",
     )
+    (source_dir / "index.html").write_text(
+        '<html><head><meta http-equiv="refresh" content="0; url=home.html"></head><body><a href="home.html">首页</a></body></html>\n',
+        encoding="utf-8",
+    )
     (source_dir / "assets").mkdir()
     (source_dir / "assets" / "style.css").write_text("body { color: #123; }\n", encoding="utf-8")
 
@@ -144,6 +148,7 @@ def test_dry_run_accepts_l1_ready_stitch_source_without_copying(tmp_path):
         "assets/style.css",
         "device.html",
         "home.html",
+        "index.html",
         "mobile-bridge.js",
         "profile.html",
     ]
@@ -225,6 +230,38 @@ def test_dry_run_rejects_l1_ready_source_with_debug_routes_mixed_in(tmp_path):
     assert payload["package_cleanliness"]["unexpected_files"] == ["bluetooth-debug.html", "emg.html"]
     saved = json.loads((output_dir / "stitch-frontend-promotion.json").read_text(encoding="utf-8"))
     assert saved["package_cleanliness"]["unexpected_files"] == ["bluetooth-debug.html", "emg.html"]
+
+
+def test_dry_run_rejects_l1_ready_source_missing_root_index(tmp_path):
+    module = _load_module()
+    stitch_source = tmp_path / "stitch"
+    web_dir = tmp_path / "web"
+    android_dir = tmp_path / "android" / "www"
+    output_dir = tmp_path / "promotion"
+    _write_l1_ready_stitch_source(stitch_source)
+    (stitch_source / "index.html").unlink()
+
+    exit_code, payload = module.run(
+        [
+            "--stitch-source-dir",
+            str(stitch_source),
+            "--web-dir",
+            str(web_dir),
+            "--android-www-dir",
+            str(android_dir),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+
+    assert exit_code == 2
+    assert payload["summary"]["overall"] == "FAIL"
+    assert payload["summary"]["copied"] is False
+    assert payload["frontend_l1_preflight"]["overall"] == "PASS"
+    assert payload["package_cleanliness"]["status"] == "FAIL"
+    assert payload["package_cleanliness"]["missing_required_files"] == ["index.html"]
+    saved = json.loads((output_dir / "stitch-frontend-promotion.json").read_text(encoding="utf-8"))
+    assert saved["package_cleanliness"]["missing_required_files"] == ["index.html"]
 
 
 def test_execute_promotes_l1_ready_source_and_verifies_android_mirror(tmp_path):

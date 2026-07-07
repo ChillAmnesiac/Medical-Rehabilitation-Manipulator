@@ -53,6 +53,8 @@ def _resolve_manifest_path(manifest_path: Path, raw_path: Any) -> Path | None:
     path = Path(raw_path)
     if path.is_absolute():
         return path
+    if path.exists():
+        return path
     return manifest_path.parent / path
 
 

@@ -1,0 +1,67 @@
+{
+  "schema": "rehab-mobile-stitch-frontend-promotion/v1",
+  "summary": {
+    "overall": "PASS",
+    "dry_run": false,
+    "copied": true
+  },
+  "source": {
+    "stitch_source_dir": "artifacts\\stitch\\l1-clean-candidate-runtime-indexed-20260707"
+  },
+  "targets": {
+    "web_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\rehab-arm-mobile",
+    "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www"
+  },
+  "plan": {
+    "files_to_promote": [
+      "ai-plan.html",
+      "device.html",
+      "home.html",
+      "index.html",
+      "profile.html"
+    ],
+    "replace_targets": [
+      "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\rehab-arm-mobile",
+      "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www"
+    ]
+  },
+  "frontend_l1_preflight": {
+    "overall": "PASS",
+    "failed": 0,
+    "total": 6,
+    "web_base": null,
+    "source_dir": "artifacts\\stitch\\l1-clean-candidate-runtime-indexed-20260707",
+    "report_path": "docs\\qa\\rehab-mobile-20260706\\stitch-promotion-runtime-indexed-candidate-execute-20260707\\stitch-frontend-l1-preflight.json"
+  },
+  "package_cleanliness": {
+    "status": "PASS",
+    "missing_required_files": [],
+    "unexpected_files": [],
+    "required_files": [
+      "index.html",
+      "home.html",
+      "profile.html",
+      "device.html",
+      "ai-plan.html"
+    ],
+    "forbidden_patterns": [
+      "bluetooth-debug.html",
+      "legacy-debug.html",
+      "emg.html",
+      "frontend-l1-*.json",
+      "browser-qa*.json",
+      "browser-metrics*.json",
+      "stitch-frontend-*.json",
+      "webview-mirror-verification.json",
+      "rehab-mobile-frontend-release-manifest.json"
+    ]
+  },
+  "webview_mirror": {
+    "overall": "PASS",
+    "failed": 0,
+    "total": 3,
+    "web_file_count": 5,
+    "android_file_count": 5,
+    "report_path": "docs\\qa\\rehab-mobile-20260706\\stitch-promotion-runtime-indexed-candidate-execute-20260707\\webview-mirror-verification.json"
+  }
+}

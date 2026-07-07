@@ -232,6 +232,31 @@ def test_verify_release_manifest_rejects_missing_apk_webview_assets_command(tmp_
     assert failed_gates == {"FRONTEND-RELEASE-APK-WEBVIEW-ASSETS"}
 
 
+def test_verify_release_manifest_accepts_manifest_paths_relative_to_cwd(tmp_path, monkeypatch):
+    verify = _load_module(VERIFY_MODULE_PATH, "verify_rehab_mobile_frontend_release")
+    prepare = _load_module(PREPARE_MODULE_PATH, "prepare_rehab_mobile_frontend_release")
+    repo_dir = tmp_path / "repo"
+    source_dir = repo_dir / "apps" / "web" / "public" / "rehab-arm-mobile"
+    android_www_dir = repo_dir / "apps" / "mobile" / "rehab-arm-android" / "www"
+    output_dir = Path("artifacts") / "release"
+    _write_l1_ready_frontend(source_dir)
+    _mirror_to_android_www(source_dir, android_www_dir)
+    monkeypatch.chdir(repo_dir)
+
+    manifest = prepare.build_release_bundle(
+        source_dir=Path("apps") / "web" / "public" / "rehab-arm-mobile",
+        android_www_dir=Path("apps") / "mobile" / "rehab-arm-android" / "www",
+        output_dir=output_dir,
+        generated_at="2026-07-07T00:00:00Z",
+    )
+    _write_browser_metrics_gate(output_dir)
+
+    payload = verify.verify_release_manifest(Path(manifest["artifact"]["manifest_path"]))
+
+    assert payload["summary"]["overall"] == "PASS"
+    assert payload["summary"]["failed"] == 0
+
+
 def test_verify_release_manifest_rejects_missing_browser_metrics_gate(tmp_path):
     verify = _load_module(VERIFY_MODULE_PATH, "verify_rehab_mobile_frontend_release")
     manifest_path = _build_manifest(tmp_path)

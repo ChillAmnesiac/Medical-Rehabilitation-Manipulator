@@ -143,9 +143,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def emit_json(payload: dict[str, Any], stdout: Any = sys.stdout) -> None:
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    buffer = getattr(stdout, "buffer", None)
+    if buffer is not None:
+        buffer.write(rendered.encode("utf-8"))
+        return
+    stdout.write(rendered)
+
+
 def main(argv: list[str]) -> int:
     exit_code, payload = run(parse_args(argv))
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    emit_json(payload)
     return exit_code
 
 

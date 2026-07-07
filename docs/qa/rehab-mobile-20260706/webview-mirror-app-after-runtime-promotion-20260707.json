@@ -1,0 +1,62 @@
+{
+  "schema": "rehab-mobile-webview-mirror-verification/v1",
+  "target": {
+    "web_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\rehab-arm-mobile",
+    "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www",
+    "required_pages": [
+      "home.html",
+      "profile.html",
+      "device.html",
+      "ai-plan.html"
+    ]
+  },
+  "summary": {
+    "overall": "PASS",
+    "failed": 0,
+    "total": 3,
+    "web_file_count": 4,
+    "android_file_count": 4
+  },
+  "results": [
+    {
+      "gate": "WEBVIEW-MIRROR-DIRECTORIES",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Web frontend source and Android WebView mirror directories exist.",
+      "detail": {
+        "web_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\rehab-arm-mobile",
+        "web_dir_exists": true,
+        "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www",
+        "android_www_dir_exists": true
+      }
+    },
+    {
+      "gate": "WEBVIEW-MIRROR-REQUIRED-PAGES",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Required mobile pages are present and byte-identical in the Android WebView mirror.",
+      "detail": {
+        "required_pages": [
+          "home.html",
+          "profile.html",
+          "device.html",
+          "ai-plan.html"
+        ],
+        "missing_web_pages": [],
+        "missing_android_pages": [],
+        "mismatched_required_pages": []
+      }
+    },
+    {
+      "gate": "WEBVIEW-MIRROR-FILE-PARITY",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Every accepted web frontend file is mirrored into Android www without stale extras.",
+      "detail": {
+        "missing_files": [],
+        "extra_files": [],
+        "changed_files": []
+      }
+    }
+  ]
+}

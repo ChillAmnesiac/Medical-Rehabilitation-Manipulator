@@ -1,0 +1,92 @@
+{
+  "schema": "rehab-mobile-apk-webview-assets-verification/v1",
+  "target": {
+    "apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-debug.apk",
+    "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www",
+    "asset_prefix": "assets/public",
+    "required_pages": [
+      "home.html",
+      "profile.html",
+      "device.html",
+      "ai-plan.html"
+    ]
+  },
+  "summary": {
+    "overall": "FAIL",
+    "failed": 2,
+    "total": 3,
+    "android_file_count": 5,
+    "apk_webview_file_count": 20
+  },
+  "results": [
+    {
+      "gate": "APK-WEBVIEW-INPUTS",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "APK file, Android WebView source directory, and APK asset prefix are available.",
+      "detail": {
+        "apk": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\downloads\\rehab-arm\\lingdong-rehab-arm-debug.apk",
+        "apk_exists": true,
+        "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www",
+        "android_www_dir_exists": true,
+        "asset_prefix": "assets/public",
+        "asset_prefix_valid": true
+      }
+    },
+    {
+      "gate": "APK-WEBVIEW-REQUIRED-PAGES",
+      "level": "L1",
+      "status": "FAIL",
+      "summary": "Required L1 mobile pages are present and byte-identical inside the APK WebView assets.",
+      "detail": {
+        "required_pages": [
+          "home.html",
+          "profile.html",
+          "device.html",
+          "ai-plan.html"
+        ],
+        "missing_android_pages": [],
+        "missing_apk_pages": [],
+        "changed_required_pages": [
+          "home.html",
+          "profile.html",
+          "device.html",
+          "ai-plan.html"
+        ]
+      }
+    },
+    {
+      "gate": "APK-WEBVIEW-FILE-PARITY",
+      "level": "L1",
+      "status": "FAIL",
+      "summary": "Every Android WebView asset is present in the APK without stale extras or changed bytes.",
+      "detail": {
+        "missing_files": [],
+        "extra_files": [
+          "apple-touch-icon.png",
+          "bluetooth-debug.html",
+          "cordova.js",
+          "cordova_plugins.js",
+          "emg.html",
+          "icon-192.png",
+          "icon-512.png",
+          "icon-maskable-512.png",
+          "icon.svg",
+          "manifest.json",
+          "mobile-bridge.js",
+          "report.html",
+          "sw.js",
+          "training-library.html",
+          "training-session.html"
+        ],
+        "changed_files": [
+          "ai-plan.html",
+          "device.html",
+          "home.html",
+          "index.html",
+          "profile.html"
+        ]
+      }
+    }
+  ]
+}

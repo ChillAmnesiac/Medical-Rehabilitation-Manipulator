@@ -1,6 +1,9 @@
 import importlib.util
+import io
+import json
 import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 
 def test_frontend_integration_contract_passes_when_stitch_uses_required_api_contracts():
@@ -388,3 +391,76 @@ def test_home_gate_requires_clear_therapist_next_action_copy():
 
     assert "查看康复师建议" in required_terms
     assert "问康复师" in required_terms
+
+
+def test_emit_json_writes_utf8_when_console_encoding_cannot_represent_text():
+    module = _load_module()
+
+    class GbkLikeStdout:
+        def __init__(self):
+            self.buffer = io.BytesIO()
+
+        def write(self, text):
+            raise UnicodeEncodeError("gbk", text, 0, 1, "illegal multibyte sequence")
+
+    payload = {"summary": {"overall": "PASS"}, "text": "‹康复师›"}
+    stdout = GbkLikeStdout()
+
+    module.emit_json(payload, stdout=stdout)
+
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    assert stdout.buffer.getvalue() == rendered.encode("utf-8")
+
+
+def test_run_web_base_fails_when_root_entry_serves_404_shell():
+    module = _load_module()
+    base = "http://example.test/rehab-arm-mobile"
+    contract_sources = {
+        "home.html": """
+          localStorage.setItem('access_token', token);
+          fetch('/api/auth/session');
+          fetch('/api/rehab-arm/app/v1/me', { headers: { Authorization: `Bearer ${token}` } });
+          const home = response.data.patient_view.home;
+          const agent = response.data.patient_view.agent;
+          <button aria-label="&#38382;&#24247;&#22797;&#24072;">&#38382;&#24247;&#22797;&#24072;</button>
+        """,
+        "profile.html": """
+          const profile = response.data.patient_view.profile;
+          fetch('/api/rehab-arm/app/v1/account/phone-verifications', { method: 'POST' });
+          fetch(`/api/rehab-arm/app/v1/account/phone-verifications/${verificationId}/confirm`, { method: 'POST' });
+          if (error.code === 'PHONE_CODE_RESEND_TOO_SOON') showRetry(error.retry_after);
+          if (error.code === 'PHONE_SMS_NOT_CONFIGURED') showSmsUnavailable();
+          if (error.code === 'PHONE_SMS_DELIVERY_FAILED') showSmsFailed();
+        """,
+        "device.html": """
+          const device = response.data.patient_view.device;
+          fetch('/api/rehab-arm/app/v1/devices/bind', { method: 'POST' });
+          if (error.code === 'DEVICE_ALREADY_BOUND') showAlreadyBound();
+        """,
+        "ai-plan.html": """
+          const agent = response.data.patient_view.agent;
+          fetch('/api/rehab-arm/app/v1/agent/messages', { method: 'POST' });
+          if (error.code === 'UNSAFE_MOTION_REQUEST') showSafeRefusal();
+          renderModelStatus(response.data.model_status);
+        """,
+    }
+
+    def fake_fetch_source_bundle(url, timeout):
+        page = url.rsplit("/", 1)[-1]
+        return contract_sources[page]
+
+    def fake_fetch_text(url, timeout):
+        if url == base:
+            return 404, "页面未找到", {"x-nextjs-page": "/_not-found"}
+        page = url.rsplit("/", 1)[-1]
+        return 200, " ".join(module.PAGE_GATES[page]["required_terms"]), {}
+
+    module.fetch_source_bundle = fake_fetch_source_bundle
+    module.fetch_text = fake_fetch_text
+
+    exit_code, payload = module.run(SimpleNamespace(web_base=base, source_dir=None, timeout=1))
+
+    assert exit_code == 1
+    root_result = next(result for result in payload["results"] if result["gate"] == "L1-FRONTEND-ROOT-001")
+    assert root_result["status"] == "FAIL"
+    assert root_result["detail"]["status_code"] == 404

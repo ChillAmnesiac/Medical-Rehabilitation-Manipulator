@@ -1,4 +1,6 @@
 import importlib.util
+import io
+import json
 import sys
 from pathlib import Path
 
@@ -31,6 +33,14 @@ def test_agent_model_status_accepts_cloud_and_fallback_modes():
             }
         }
     )
+
+
+def test_web_page_contract_requires_l1_pages_and_blocks_legacy_debug_routes():
+    module = _load_module()
+
+    assert set(module.REQUIRED_WEB_PAGES) == {"home.html", "profile.html", "device.html", "ai-plan.html"}
+    assert "bluetooth-debug.html" not in module.REQUIRED_WEB_PAGES
+    assert {"bluetooth-debug.html", "emg.html", "report.html"}.issubset(module.FORBIDDEN_WEB_PAGES)
     assert module.agent_model_status_ok(
         {
             "data": {
@@ -450,3 +460,22 @@ def test_device_already_bound_conflict_flow_rejects_second_account_claim():
     assert detail["owner_bind_status_code"] == 200
     assert detail["second_bind_status_code"] == 409
     assert detail["second_error_code"] == "DEVICE_ALREADY_BOUND"
+
+
+def test_emit_json_writes_utf8_when_console_encoding_cannot_represent_text():
+    module = _load_module()
+
+    class GbkLikeStdout:
+        def __init__(self):
+            self.buffer = io.BytesIO()
+
+        def write(self, text):
+            raise UnicodeEncodeError("gbk", text, 0, 1, "illegal multibyte sequence")
+
+    payload = {"summary": {"overall": "FAIL"}, "text": "‹ 问康复师"}
+    stdout = GbkLikeStdout()
+
+    module.emit_json(payload, stdout=stdout)
+
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    assert stdout.buffer.getvalue() == rendered.encode("utf-8")

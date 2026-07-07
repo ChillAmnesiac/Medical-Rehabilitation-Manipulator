@@ -26,6 +26,7 @@ DEFAULT_OUTPUT_DIR = Path("artifacts/rehab-mobile-stitch-promotion")
 PREFLIGHT_REPORT = "stitch-frontend-l1-preflight.json"
 PROMOTION_REPORT = "stitch-frontend-promotion.json"
 MIRROR_REPORT = "webview-mirror-verification.json"
+REQUIRED_PROMOTION_FILES = ("index.html", "home.html", "profile.html", "device.html", "ai-plan.html")
 FORBIDDEN_PROMOTION_FILE_PATTERNS = (
     "bluetooth-debug.html",
     "legacy-debug.html",
@@ -45,14 +46,18 @@ def _source_files(source_dir: Path) -> list[str]:
 
 def check_package_cleanliness(source_dir: Path) -> dict[str, Any]:
     files = _source_files(source_dir) if source_dir.is_dir() else []
+    file_set = set(files)
+    missing_required_files = [name for name in REQUIRED_PROMOTION_FILES if name not in file_set]
     unexpected_files = [
         rel_path
         for rel_path in files
         if any(fnmatch.fnmatch(Path(rel_path).name, pattern) for pattern in FORBIDDEN_PROMOTION_FILE_PATTERNS)
     ]
     return {
-        "status": "PASS" if not unexpected_files else "FAIL",
+        "status": "PASS" if not unexpected_files and not missing_required_files else "FAIL",
+        "missing_required_files": missing_required_files,
         "unexpected_files": unexpected_files,
+        "required_files": list(REQUIRED_PROMOTION_FILES),
         "forbidden_patterns": list(FORBIDDEN_PROMOTION_FILE_PATTERNS),
     }
 

@@ -331,10 +331,33 @@ def _append_page_result(
     results.append(result)
 
 
+def check_web_root_entry(web_base: str, timeout: int) -> Result:
+    status, text, headers = fetch_text(web_base, timeout)
+    required_terms = PAGE_GATES["home.html"]["required_terms"]
+    missing_terms = [term for term in required_terms if term not in text]
+    ok = status == 200 and not missing_terms
+    return Result(
+        gate="L1-FRONTEND-ROOT-001",
+        level="L1",
+        status="PASS" if ok else "FAIL",
+        summary="App root URL opens the patient-facing mobile home entry.",
+        detail={
+            "url": web_base,
+            "status_code": status,
+            "missing_terms": missing_terms,
+            "headers": headers,
+            "text_prefix": text[:500],
+        },
+    )
+
+
 def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
     results: list[Result] = []
     base = args.web_base.rstrip("/") if not args.source_dir else None
     sources: dict[str, str] = {}
+
+    if base:
+        results.append(check_web_root_entry(base, args.timeout))
 
     for path, config in PAGE_GATES.items():
         if args.source_dir:
@@ -410,6 +433,15 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def emit_json(payload: dict[str, Any], stdout: Any = sys.stdout) -> None:
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    buffer = getattr(stdout, "buffer", None)
+    if buffer is not None:
+        buffer.write(rendered.encode("utf-8"))
+        return
+    stdout.write(rendered)
+
+
 def main(argv: list[str]) -> int:
     args = parse_args(argv)
     exit_code, payload = run(args)
@@ -417,7 +449,7 @@ def main(argv: list[str]) -> int:
     if args.output:
         args.output.parent.mkdir(parents=True, exist_ok=True)
         args.output.write_text(rendered + "\n", encoding="utf-8")
-    print(rendered)
+    emit_json(payload)
     return exit_code
 
 

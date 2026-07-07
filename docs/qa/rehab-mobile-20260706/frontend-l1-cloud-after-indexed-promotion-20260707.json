@@ -1,0 +1,98 @@
+{
+  "summary": {
+    "overall": "PASS",
+    "failed": 0,
+    "total": 6,
+    "web_base": "http://106.55.62.122:3001/rehab-arm-mobile",
+    "source_dir": null
+  },
+  "results": [
+    {
+      "gate": "L1-HOME-STATIC-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Home static page is patient-facing and free of raw workflow/debug terms.",
+      "detail": {
+        "missing_terms": [],
+        "forbidden_hits": [],
+        "status_code": 200,
+        "url": "http://106.55.62.122:3001/rehab-arm-mobile/home.html",
+        "length": 202,
+        "text_prefix": "领动康复手臂 - 首页 领动康复手臂 sync 数据同步：正常 您好， 今日是您康复之旅的又一步。 本周康复进度 60% 一 check 二 check 三 check 四 今天 五 六 日 下一个任务 基础屈伸训练 预计耗时: 15分钟 强度: 低 play_arrow 查看康复师建议 问康复师 home 首页 fitness_center 训练 group 社区 mail 消息 person 我的"
+      }
+    },
+    {
+      "gate": "L1-PROFILE-STATIC-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Profile static page is cloud-account oriented and does not show demo medical data.",
+      "detail": {
+        "missing_terms": [],
+        "forbidden_hits": [],
+        "status_code": 200,
+        "url": "http://106.55.62.122:3001/rehab-arm-mobile/profile.html",
+        "length": 130,
+        "text_prefix": "个人中心 - 领动康复手臂 ‹ 领动康复手臂 ⚙ 👤 您好 请完善资料 隐私合规保护中 云端账户 已同步 手机号 验证码 获取验证码 绑定手机号 我的康复档案 暂无数据 📁 暂无数据 完成首次评测即可生成档案 🏠 首页 🏋️ 训练 👥 社区 💬 消息 👤 我的"
+      }
+    },
+    {
+      "gate": "L1-DEVICE-STATIC-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Device page avoids debug transport language in normal user flow.",
+      "detail": {
+        "missing_terms": [],
+        "forbidden_hits": [],
+        "status_code": 200,
+        "url": "http://106.55.62.122:3001/rehab-arm-mobile/device.html",
+        "length": 310,
+        "text_prefix": "绑定设备 - 领动康复手臂 arrow_back 领动康复手臂 您好，准备开始康复训练之旅 绑定设备 1 准备 2 搜索并连接 3 绑定完成 power_settings_new 打开康复设备电源 请确保设备已接通电源，且指示灯呈蓝色闪烁状态，准备就绪。 开始搜索设备 bluetooth_searching 正在搜索附近的设备... precision_manufacturing 领动康复手臂 v2 信号强 · 距离近 连接 error 连接失败 此设备已被他人占用，请联系客服或重置设备后再试。 联系客服协助 home 首页 fitness_center 训练 group 社区 mail 消息 person 我的"
+      }
+    },
+    {
+      "gate": "L1-AGENT-STATIC-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Agent page exposes the rehab therapist entry.",
+      "detail": {
+        "missing_terms": [],
+        "forbidden_hits": [],
+        "status_code": 200,
+        "url": "http://106.55.62.122:3001/rehab-arm-mobile/ai-plan.html",
+        "length": 448,
+        "text_prefix": "AI康复助手 arrow_back AI康复助手 medical_services 问康复师 今天 09:41 训练后感觉手臂有点酸痛，这正常吗？ smart_toy check_circle 康复建议 您好，训练后出现轻微的肌肉酸痛是正常的生理反应，这说明您的肌肉正在适应新的负荷并进行重建。 建议您： 适当休息，避免连续进行高强度训练。 可以进行轻柔的拉伸动作缓解紧张。 如果酸痛持续超过48小时或伴有刺痛感，请及时咨询康复师。 请继续保持平稳的心态，您的康复进展很好。 我可以尝试快速加大力度吗？ smart_toy warning 安全回复 抱歉，为了您的安全，我无法执行直接调整设备参数或提供可能导致过度训练的建议。 康复训练需要循序渐进。过快增加力度可能会导致肌肉拉伤或关节受损。强烈建议您在增加训练强度前，咨询专业的康复师以获取个性化的安全评估。 smart_toy send home 首页 fitness_center 训练 group 社区 mail 消息 person 我的"
+      }
+    },
+    {
+      "gate": "L1-FRONTEND-INTEGRATION-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Frontend source is wired to the required auth, patient_view, phone, device, and Agent API contracts.",
+      "detail": {
+        "missing_requirements": [],
+        "forbidden_source_hits": [],
+        "checked_pages": [
+          "ai-plan.html",
+          "device.html",
+          "home.html",
+          "profile.html"
+        ]
+      }
+    },
+    {
+      "gate": "L1-FRONTEND-PRIVACY-001",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Frontend source does not hardcode staging credentials, tokens, SMS codes, or API keys.",
+      "detail": {
+        "privacy_hits": [],
+        "checked_pages": [
+          "ai-plan.html",
+          "device.html",
+          "home.html",
+          "profile.html"
+        ]
+      }
+    }
+  ]
+}

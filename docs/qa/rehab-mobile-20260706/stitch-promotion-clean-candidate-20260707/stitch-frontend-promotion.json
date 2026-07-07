@@ -1,0 +1,92 @@
+{
+  "schema": "rehab-mobile-stitch-frontend-promotion/v1",
+  "summary": {
+    "overall": "FAIL",
+    "dry_run": true,
+    "copied": false
+  },
+  "source": {
+    "stitch_source_dir": "artifacts\\stitch\\l1-clean-candidate-20260707"
+  },
+  "targets": {
+    "web_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\rehab-arm-mobile",
+    "android_www_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www"
+  },
+  "plan": {
+    "files_to_promote": [
+      "ai-plan-generate-response.json",
+      "ai-plan-inner.json",
+      "ai-plan-v2-generate-response.json",
+      "ai-plan-v2-inner.json",
+      "ai-plan-v3-generate-response.json",
+      "ai-plan-v3-inner.json",
+      "ai-plan-v4-touch-edit-request.json",
+      "ai-plan-v4-touch-generate-request.json",
+      "ai-plan.html",
+      "ai-plan.jpg",
+      "browser-metrics-gate-clean-pass-390x844.json",
+      "browser-metrics-gate-live-strict-390x844.json",
+      "browser-metrics-gate-live-strict-rerun-390x844.json",
+      "browser-qa-390x844.json",
+      "browser-qa-clean-pass-390x844.json",
+      "browser-qa-live-strict-390x844.json",
+      "device-generate-response.json",
+      "device-inner.json",
+      "device.html",
+      "device.jpg",
+      "frontend-l1-source-gate-rerun.json",
+      "frontend-l1-source-gate.json",
+      "generation-summary.json",
+      "home-generate-response.json",
+      "home-inner.json",
+      "home.html",
+      "home.jpg",
+      "profile-generate-response.json",
+      "profile-inner.json",
+      "profile-v2-generate-response.json",
+      "profile-v2-inner.json",
+      "profile-v3-plaincss-inner.json",
+      "profile-v3-plaincss-response.json",
+      "profile-v4-direct-chinese-inner.json",
+      "profile-v4-direct-chinese-response.json",
+      "profile.html",
+      "profile.jpg"
+    ],
+    "replace_targets": [
+      "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\rehab-arm-mobile",
+      "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\mobile\\rehab-arm-android\\www"
+    ]
+  },
+  "frontend_l1_preflight": {
+    "overall": "PASS",
+    "failed": 0,
+    "total": 6,
+    "web_base": null,
+    "source_dir": "artifacts\\stitch\\l1-clean-candidate-20260707",
+    "report_path": "docs\\qa\\rehab-mobile-20260706\\stitch-promotion-clean-candidate-20260707\\stitch-frontend-l1-preflight.json"
+  },
+  "package_cleanliness": {
+    "status": "FAIL",
+    "unexpected_files": [
+      "browser-metrics-gate-clean-pass-390x844.json",
+      "browser-metrics-gate-live-strict-390x844.json",
+      "browser-metrics-gate-live-strict-rerun-390x844.json",
+      "browser-qa-390x844.json",
+      "browser-qa-clean-pass-390x844.json",
+      "browser-qa-live-strict-390x844.json",
+      "frontend-l1-source-gate-rerun.json",
+      "frontend-l1-source-gate.json"
+    ],
+    "forbidden_patterns": [
+      "bluetooth-debug.html",
+      "legacy-debug.html",
+      "emg.html",
+      "frontend-l1-*.json",
+      "browser-qa*.json",
+      "browser-metrics*.json",
+      "stitch-frontend-*.json",
+      "webview-mirror-verification.json",
+      "rehab-mobile-frontend-release-manifest.json"
+    ]
+  }
+}

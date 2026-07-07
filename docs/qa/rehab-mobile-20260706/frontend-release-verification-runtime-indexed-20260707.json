@@ -1,0 +1,186 @@
+{
+  "summary": {
+    "overall": "PASS",
+    "failed": 0,
+    "total": 9,
+    "manifest_path": "artifacts\\rehab-mobile-frontend-release-runtime-indexed-20260707\\rehab-mobile-frontend-release-manifest.json"
+  },
+  "results": [
+    {
+      "gate": "FRONTEND-RELEASE-SCHEMA",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Release manifest uses the expected rehab mobile frontend schema.",
+      "detail": {
+        "expected_schema": "rehab-mobile-frontend-release/v1",
+        "actual_schema": "rehab-mobile-frontend-release/v1"
+      }
+    },
+    {
+      "gate": "FRONTEND-RELEASE-ZIP-INTEGRITY",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Release zip exists and matches the manifest sha256.",
+      "detail": {
+        "zip_path": "artifacts\\rehab-mobile-frontend-release-runtime-indexed-20260707\\rehab-mobile-frontend-release.zip",
+        "expected_sha256": "efc51aae6cecbda1582e5ced56089003bc0e33d10b8e64f9b49ccf4a7c20588c",
+        "actual_sha256": "efc51aae6cecbda1582e5ced56089003bc0e33d10b8e64f9b49ccf4a7c20588c",
+        "bytes": 16720
+      }
+    },
+    {
+      "gate": "FRONTEND-RELEASE-PREFLIGHT",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Local frontend L1 preflight passed before packaging.",
+      "detail": {
+        "manifest_summary": {
+          "overall": "PASS",
+          "failed": 0,
+          "total": 6,
+          "web_base": null,
+          "source_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\rehab-arm-mobile",
+          "report_path": "artifacts\\rehab-mobile-frontend-release-runtime-indexed-20260707\\frontend-l1-preflight.json"
+        },
+        "report_path": "artifacts\\rehab-mobile-frontend-release-runtime-indexed-20260707\\frontend-l1-preflight.json",
+        "report_summary": {
+          "overall": "PASS",
+          "failed": 0,
+          "total": 6,
+          "web_base": null,
+          "source_dir": "artifacts\\external\\rehab-arm-mobile-stitch\\apps\\web\\public\\rehab-arm-mobile"
+        }
+      }
+    },
+    {
+      "gate": "FRONTEND-RELEASE-PAGES",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Release manifest accounts for every required mobile page artifact.",
+      "detail": {
+        "required_pages": [
+          "home.html",
+          "profile.html",
+          "device.html",
+          "ai-plan.html"
+        ],
+        "expected_pages": [
+          "home.html",
+          "profile.html",
+          "device.html",
+          "ai-plan.html"
+        ],
+        "missing_required_pages": [],
+        "missing_artifacts": [],
+        "invalid_artifacts": []
+      }
+    },
+    {
+      "gate": "FRONTEND-RELEASE-DEPLOYMENT",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Release manifest includes cloud deploy and post-deploy verification commands.",
+      "detail": {
+        "mode": "manual_review_then_ssh",
+        "remote_web_root": "/home/ubuntu/apps/ai-collab/apps/web/public/rehab-arm-mobile",
+        "executor_command": ".\\cloud\\rehab-platform\\.venv\\Scripts\\python.exe tools\\deploy_rehab_mobile_frontend_release.py --manifest artifacts/rehab-mobile-frontend-release-runtime-indexed-20260707/rehab-mobile-frontend-release-manifest.json",
+        "command_count": 2,
+        "verification_command_count": 11
+      }
+    },
+    {
+      "gate": "FRONTEND-RELEASE-BROWSER-EVIDENCE",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Release manifest preserves the exact final browser QA screenshot requirements.",
+      "detail": {
+        "expected": [
+          "l1-home-390.png",
+          "l1-ask-therapist-chat-390.png",
+          "l1-unsafe-agent-refusal-390.png",
+          "l1-device-binding-wizard-390.png",
+          "l1-profile-phone-medical-390.png"
+        ],
+        "actual": [
+          "l1-home-390.png",
+          "l1-ask-therapist-chat-390.png",
+          "l1-unsafe-agent-refusal-390.png",
+          "l1-device-binding-wizard-390.png",
+          "l1-profile-phone-medical-390.png"
+        ],
+        "missing": [],
+        "unexpected": []
+      }
+    },
+    {
+      "gate": "FRONTEND-RELEASE-BROWSER-METRICS",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Release manifest requires a passing rendered browser metrics gate before L1 acceptance.",
+      "detail": {
+        "required_report": "browser-metrics-l1-390x844.json",
+        "actual_report": "browser-metrics-l1-390x844.json",
+        "required_output": "browser-metrics-gate.json",
+        "actual_output": "browser-metrics-gate.json",
+        "output_path": "artifacts\\rehab-mobile-frontend-release-runtime-indexed-20260707\\browser-metrics-gate.json",
+        "has_command": true,
+        "gate_summary": {
+          "overall": "PASS",
+          "failed": 0,
+          "total": 1
+        },
+        "gate_status": "PASS",
+        "required_pages": [
+          "ai-plan",
+          "device",
+          "home",
+          "profile"
+        ],
+        "checked_pages": [
+          "home",
+          "profile",
+          "device",
+          "ai-plan"
+        ],
+        "missing_pages": []
+      }
+    },
+    {
+      "gate": "FRONTEND-RELEASE-WEBVIEW-MIRROR",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Android WebView mirror verification passed before release packaging.",
+      "detail": {
+        "manifest_summary": {
+          "overall": "PASS",
+          "failed": 0,
+          "total": 3,
+          "web_file_count": 5,
+          "android_file_count": 5,
+          "report_path": "artifacts\\rehab-mobile-frontend-release-runtime-indexed-20260707\\webview-mirror-verification.json"
+        },
+        "report_path": "artifacts\\rehab-mobile-frontend-release-runtime-indexed-20260707\\webview-mirror-verification.json",
+        "report_summary": {
+          "overall": "PASS",
+          "failed": 0,
+          "total": 3,
+          "web_file_count": 5,
+          "android_file_count": 5
+        }
+      }
+    },
+    {
+      "gate": "FRONTEND-RELEASE-APK-WEBVIEW-ASSETS",
+      "level": "L1",
+      "status": "PASS",
+      "summary": "Release manifest requires verifying APK WebView assets match the accepted Android www bundle.",
+      "detail": {
+        "has_command": true,
+        "expected_apk": "apps/web/public/downloads/rehab-arm/lingdong-rehab-arm-debug.apk",
+        "expected_android_www_dir": "apps/mobile/rehab-arm-android/www",
+        "expected_asset_prefix": "assets/public",
+        "expected_output": "artifacts/rehab-mobile-frontend-release/apk-webview-assets-verification.json"
+      }
+    }
+  ]
+}

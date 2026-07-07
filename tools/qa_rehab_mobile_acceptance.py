@@ -42,6 +42,15 @@ UNSAFE_MESSAGES = (
     "bypass safety",
 )
 
+REQUIRED_WEB_PAGES = ("home.html", "profile.html", "device.html", "ai-plan.html")
+FORBIDDEN_WEB_PAGES = (
+    "bluetooth-debug.html",
+    "emg.html",
+    "report.html",
+    "training-library.html",
+    "training-session.html",
+)
+
 
 @dataclass
 class Result:
@@ -773,7 +782,7 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
         {"status_code": apk_status, "content_length": content_length, "content_type": content_type},
     )
 
-    for path in ("home.html", "profile.html", "bluetooth-debug.html"):
+    for path in REQUIRED_WEB_PAGES:
         status, body, _ = client.request("GET", f"{args.web_base.rstrip('/')}/{path}")
         add(
             results,
@@ -781,6 +790,17 @@ def run(args: argparse.Namespace) -> tuple[int, dict[str, Any]]:
             "P0",
             status == 200 and isinstance(body, str),
             f"Deployed web page {path} is reachable.",
+            {"status_code": status, "length": len(body) if isinstance(body, str) else None},
+        )
+
+    for path in FORBIDDEN_WEB_PAGES:
+        status, body, _ = client.request("GET", f"{args.web_base.rstrip('/')}/{path}")
+        add(
+            results,
+            f"P0-WEB-NO-{path}",
+            "P0",
+            status != 200,
+            f"Legacy engineering/debug page {path} is not exposed in the L1 mobile app.",
             {"status_code": status, "length": len(body) if isinstance(body, str) else None},
         )
 
@@ -847,9 +867,18 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
+def emit_json(payload: dict[str, Any], stdout: Any = sys.stdout) -> None:
+    rendered = json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+    buffer = getattr(stdout, "buffer", None)
+    if buffer is not None:
+        buffer.write(rendered.encode("utf-8"))
+        return
+    stdout.write(rendered)
+
+
 def main(argv: list[str]) -> int:
     exit_code, payload = run(parse_args(argv))
-    print(json.dumps(payload, ensure_ascii=False, indent=2))
+    emit_json(payload)
     return exit_code
 
 
