@@ -185,7 +185,7 @@
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT4_GEAR_RATIO
-#define CONTROL_MOTOR_JOINT4_GEAR_RATIO    (1.0f)
+#define CONTROL_MOTOR_JOINT4_GEAR_RATIO    (7.1844f)
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT5_GEAR_RATIO
@@ -229,15 +229,15 @@
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT4_CALIBRATED
-#define CONTROL_MOTOR_JOINT4_CALIBRATED    0U
+#define CONTROL_MOTOR_JOINT4_CALIBRATED    1U
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT5_CALIBRATED
-#define CONTROL_MOTOR_JOINT5_CALIBRATED    0U
+#define CONTROL_MOTOR_JOINT5_CALIBRATED    1U
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT6_CALIBRATED
-#define CONTROL_MOTOR_JOINT6_CALIBRATED    0U
+#define CONTROL_MOTOR_JOINT6_CALIBRATED    1U
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT7_CALIBRATED
@@ -257,7 +257,7 @@
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT4_DIRECTION
-#define CONTROL_MOTOR_JOINT4_DIRECTION     (1.0f)
+#define CONTROL_MOTOR_JOINT4_DIRECTION     (-1.0f)
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT5_DIRECTION
@@ -285,15 +285,15 @@
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT4_ZERO_OFFSET_RAD
-#define CONTROL_MOTOR_JOINT4_ZERO_OFFSET_RAD (0.0f)
+#define CONTROL_MOTOR_JOINT4_ZERO_OFFSET_RAD (0.312f)
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT5_ZERO_OFFSET_RAD
-#define CONTROL_MOTOR_JOINT5_ZERO_OFFSET_RAD (0.0f)
+#define CONTROL_MOTOR_JOINT5_ZERO_OFFSET_RAD (6.010f)
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT6_ZERO_OFFSET_RAD
-#define CONTROL_MOTOR_JOINT6_ZERO_OFFSET_RAD (0.0f)
+#define CONTROL_MOTOR_JOINT6_ZERO_OFFSET_RAD (4.543f)
 #endif
 
 #ifndef CONTROL_MOTOR_JOINT7_ZERO_OFFSET_RAD
@@ -557,11 +557,23 @@
 #endif
 
 #ifndef CONTROL_MOTOR_STATUS_THREAD_STACK_SIZE
-#define CONTROL_MOTOR_STATUS_THREAD_STACK_SIZE 1536
+#define CONTROL_MOTOR_STATUS_THREAD_STACK_SIZE 4096
 #endif
 
 #ifndef CONTROL_MOTOR_STATUS_THREAD_PRIORITY
 #define CONTROL_MOTOR_STATUS_THREAD_PRIORITY 20
+#endif
+
+#ifndef CONTROL_MOTOR_STATUS_THREAD_ENABLE
+#define CONTROL_MOTOR_STATUS_THREAD_ENABLE 0U
+#endif
+
+#ifndef CONTROL_CAN_RX_THREAD_ENABLE
+#define CONTROL_CAN_RX_THREAD_ENABLE 0U
+#endif
+
+#ifndef CONTROL_ROS_CMD_THREAD_ENABLE
+#define CONTROL_ROS_CMD_THREAD_ENABLE 0U
 #endif
 
 #ifndef CONTROL_ROS_CMD_OP_ENABLE
@@ -742,27 +754,25 @@
  * mirror the NanoPi bridge limits and are expressed in 0.1 degree units.
  */
 #ifndef CONTROL_ROS_JOINT_COUNT
-#define CONTROL_ROS_JOINT_COUNT            5U
+#define CONTROL_ROS_JOINT_COUNT            3U
 #endif
 
 /* Formal ROS trajectory joint ids are 0-based and map onto the currently
- * confirmed bench motor slots 3..7:
- *   0 shoulder_lift_joint      -> motor/joint slot 3 (Sitaiwei)
- *   1 elbow_lift_joint         -> motor/joint slot 4 (Lingzu RS00)
- *   2 shoulder_abduction_joint -> motor/joint slot 5 (Lingzu RS00)
- *   3 upper_arm_rotation_joint -> motor/joint slot 6 (Lingzu EL05)
- *   4 forearm_rotation_joint   -> motor/joint slot 7 (Lingzu EL05)
+ * mounted 4/5/6 motor set:
+ *   0 elbow_lift_joint         -> motor/joint slot 4 (Lingzu RS00)
+ *   1 shoulder_abduction_joint -> motor/joint slot 5 (Lingzu RS00)
+ *   2 upper_arm_rotation_joint -> motor/joint slot 6 (Lingzu EL05)
  */
 #ifndef CONTROL_ROS_JOINT0_MOTOR_JOINT
-#define CONTROL_ROS_JOINT0_MOTOR_JOINT     3U
+#define CONTROL_ROS_JOINT0_MOTOR_JOINT     4U
 #endif
 
 #ifndef CONTROL_ROS_JOINT1_MOTOR_JOINT
-#define CONTROL_ROS_JOINT1_MOTOR_JOINT     4U
+#define CONTROL_ROS_JOINT1_MOTOR_JOINT     5U
 #endif
 
 #ifndef CONTROL_ROS_JOINT2_MOTOR_JOINT
-#define CONTROL_ROS_JOINT2_MOTOR_JOINT     5U
+#define CONTROL_ROS_JOINT2_MOTOR_JOINT     6U
 #endif
 
 #ifndef CONTROL_ROS_JOINT3_MOTOR_JOINT
@@ -774,19 +784,19 @@
 #endif
 
 #ifndef CONTROL_ROS_JOINT0_MIN_01DEG
-#define CONTROL_ROS_JOINT0_MIN_01DEG       (-600)
+#define CONTROL_ROS_JOINT0_MIN_01DEG       0
 #endif
 
 #ifndef CONTROL_ROS_JOINT0_MAX_01DEG
-#define CONTROL_ROS_JOINT0_MAX_01DEG       600
+#define CONTROL_ROS_JOINT0_MAX_01DEG       1031
 #endif
 
 #ifndef CONTROL_ROS_JOINT1_MIN_01DEG
-#define CONTROL_ROS_JOINT1_MIN_01DEG       (-600)
+#define CONTROL_ROS_JOINT1_MIN_01DEG       0
 #endif
 
 #ifndef CONTROL_ROS_JOINT1_MAX_01DEG
-#define CONTROL_ROS_JOINT1_MAX_01DEG       600
+#define CONTROL_ROS_JOINT1_MAX_01DEG       1500
 #endif
 
 #ifndef CONTROL_ROS_JOINT2_MIN_01DEG
@@ -814,11 +824,11 @@
 #endif
 
 #ifndef CONTROL_ROS_MAX_TARGET_RPM
-#define CONTROL_ROS_MAX_TARGET_RPM         5
+#define CONTROL_ROS_MAX_TARGET_RPM         10
 #endif
 
 #ifndef CONTROL_ROS_MAX_TARGET_TORQUE_MA
-#define CONTROL_ROS_MAX_TARGET_TORQUE_MA   0
+#define CONTROL_ROS_MAX_TARGET_TORQUE_MA   3000
 #endif
 
 #ifndef CONTROL_ROS_HEARTBEAT_TIMEOUT_MS
@@ -902,8 +912,9 @@
 #endif
 
 /* Rehab mode manager defaults.
- * v1 only opens ROS lift joints 0/1. App and ROS2 may request a narrower mask,
- * but firmware rejects masks outside this default until calibration is expanded.
+ * Bench demo assist/resist drives M33 joints 4/5/6 as one guarded group.
+ * App and ROS2 may request a narrower mask, but firmware rejects masks outside
+ * this default until calibration is expanded.
  */
 #ifndef CONTROL_REHAB_MODE_CMD_MARKER
 #define CONTROL_REHAB_MODE_CMD_MARKER      0xC1U
@@ -914,7 +925,7 @@
 #endif
 
 #ifndef CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK
-#define CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK 0x03U
+#define CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK 0x38U
 #endif
 
 #ifndef CONTROL_REHAB_ASSIST_TORQUE_ENTER_NM
@@ -1182,7 +1193,7 @@
  * safety inputs and per-joint limits are confirmed on the real mechanism.
  */
 #ifndef CONTROL_PREARM_REQUIRED_JOINT_MASK
-#define CONTROL_PREARM_REQUIRED_JOINT_MASK 0x7FU
+#define CONTROL_PREARM_REQUIRED_JOINT_MASK 0x38U
 #endif
 
 #ifndef CONTROL_PREARM_ESTOP_INPUT_CONFIRMED

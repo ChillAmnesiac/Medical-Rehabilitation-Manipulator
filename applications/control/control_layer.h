@@ -216,6 +216,7 @@ typedef struct
 
 /* 初始化控制层：打开/初始化 CAN，创建后台线程，初始化传感器子模块。 */
 int control_layer_init(const char *can_name);
+void control_layer_poll_once(void);
 
 /* 使能指定关节电机。joint_id 为机械臂关节编号，不是底层 motor_id。 */
 rt_err_t control_motor_enable(rt_uint8_t joint_id);
@@ -254,6 +255,11 @@ rt_err_t control_motor_current_control(rt_uint8_t joint_id, float current_a);
 rt_err_t control_motor_speed_control(rt_uint8_t joint_id, float speed_rad_s, float limit_cur);
 /* 私有协议位置控制：csp_mode 为真时使用 CSP 参数流，否则走普通位置参数流。 */
 rt_err_t control_motor_position_control(rt_uint8_t joint_id, float pos_rad, float limit_spd, rt_bool_t csp_mode);
+rt_err_t control_motor_position_control_with_current_limit(rt_uint8_t joint_id,
+                                                           float pos_rad,
+                                                           float limit_spd,
+                                                           float limit_cur_a,
+                                                           rt_bool_t csp_mode);
 /* CANSimple 位置控制：用于 CANSimple/ODrive-like 电机。 */
 rt_err_t control_motor_cansimple_set_input_pos(rt_uint8_t joint_id, float pos_rad, float vel_ff_rad_s, float torque_ff_nm);
 /* CANSimple 速度控制：用于 CANSimple/ODrive-like 电机。 */
@@ -273,6 +279,7 @@ rt_err_t control_joint_motor_set_target(rt_uint8_t joint_id,
 rt_err_t control_joint_motor_stop(rt_uint8_t joint_id);
 
 /* 配置传感器上报：设置周期并启动/停止 F103 与旧传感控制帧。 */
+rt_err_t control_sensor_request_status(void);
 rt_err_t control_sensor_report_enable(rt_bool_t enable, rt_uint16_t period_ms);
 /* 读取最近一次肌电报告。 */
 rt_err_t control_get_emg_report(control_emg_report_t *out);

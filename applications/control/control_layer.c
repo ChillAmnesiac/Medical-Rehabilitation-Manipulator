@@ -12,6 +12,8 @@
 #include "rehab_service.h"
 #include "sensor.h"
 
+#define rt_kprintf(...) do { } while (0)
+
 /*
  * M33 控制层分类说明：
  *
@@ -727,10 +729,17 @@ static rt_err_t ctrl_can_send(rt_uint32_t id, rt_uint8_t ide, const rt_uint8_t *
     struct rt_can_msg msg;
     rt_ssize_t written;
 
-    if ((s_can_dev == RT_NULL) || (len > 8U) || ((data == RT_NULL) && (len > 0U)))
+    if ((len > 8U) || ((data == RT_NULL) && (len > 0U)))
     {
         return -RT_EINVAL;
     }
+
+#if !CONTROL_CAN_USE_DIRECT_PDL
+    if (s_can_dev == RT_NULL)
+    {
+        return -RT_EINVAL;
+    }
+#endif
 
     rt_memset(&msg, 0, sizeof(msg));
     msg.id = id;
@@ -1514,29 +1523,59 @@ static const char *ctrl_ros_command_name(control_ros_command_type_t command)
 
 static const rt_int16_t s_ros_joint_min_01deg[CONTROL_ROS_JOINT_COUNT] =
 {
+#if (CONTROL_ROS_JOINT_COUNT > 0U)
     CONTROL_ROS_JOINT0_MIN_01DEG,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 1U)
     CONTROL_ROS_JOINT1_MIN_01DEG,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 2U)
     CONTROL_ROS_JOINT2_MIN_01DEG,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 3U)
     CONTROL_ROS_JOINT3_MIN_01DEG,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 4U)
     CONTROL_ROS_JOINT4_MIN_01DEG,
+#endif
 };
 
 static const rt_int16_t s_ros_joint_max_01deg[CONTROL_ROS_JOINT_COUNT] =
 {
+#if (CONTROL_ROS_JOINT_COUNT > 0U)
     CONTROL_ROS_JOINT0_MAX_01DEG,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 1U)
     CONTROL_ROS_JOINT1_MAX_01DEG,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 2U)
     CONTROL_ROS_JOINT2_MAX_01DEG,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 3U)
     CONTROL_ROS_JOINT3_MAX_01DEG,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 4U)
     CONTROL_ROS_JOINT4_MAX_01DEG,
+#endif
 };
 
 static const rt_uint8_t s_ros_joint_motor_joint_map[CONTROL_ROS_JOINT_COUNT] =
 {
+#if (CONTROL_ROS_JOINT_COUNT > 0U)
     (rt_uint8_t)CONTROL_ROS_JOINT0_MOTOR_JOINT,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 1U)
     (rt_uint8_t)CONTROL_ROS_JOINT1_MOTOR_JOINT,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 2U)
     (rt_uint8_t)CONTROL_ROS_JOINT2_MOTOR_JOINT,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 3U)
     (rt_uint8_t)CONTROL_ROS_JOINT3_MOTOR_JOINT,
+#endif
+#if (CONTROL_ROS_JOINT_COUNT > 4U)
     (rt_uint8_t)CONTROL_ROS_JOINT4_MOTOR_JOINT,
+#endif
 };
 
 static rt_bool_t ctrl_ros_joint_limit(rt_uint8_t joint_id, rt_int16_t *min_01deg, rt_int16_t *max_01deg)
@@ -2495,6 +2534,20 @@ static control_ros_reject_reason_t ctrl_ros_first_reject_reason(const control_ro
 /* 对一条 NanoPi/ROS 命令做完整安全审核。
  * 这里只判断是否允许执行，并填写 assessment，不直接发送任何电机命令。
  */
+static rt_bool_t ctrl_rehab_mode_value_supported(rt_uint8_t mode)
+{
+    switch ((rehab_mode_t)mode)
+    {
+    case REHAB_MODE_PASSIVE:
+    case REHAB_MODE_ACTIVE:
+    case REHAB_MODE_ASSIST:
+    case REHAB_MODE_RESIST:
+        return RT_TRUE;
+    default:
+        return RT_FALSE;
+    }
+}
+
 static void ctrl_assess_ros_command_safety(const control_ros_command_t *cmd,
                                            control_ros_safety_assessment_t *assessment)
 {
@@ -2527,6 +2580,29 @@ static void ctrl_assess_ros_command_safety(const control_ros_command_t *cmd,
         if (!assessment->joint_known)
         {
             assessment->reason = CONTROL_ROS_REJECT_UNKNOWN_JOINT;
+            assessment->state = CONTROL_ROS_SAFETY_LIMITED;
+            assessment->decision = CONTROL_ROS_DECISION_REJECT;
+            return;
+        }
+
+        assessment->reason = CONTROL_ROS_REJECT_NONE;
+        assessment->state = CONTROL_ROS_SAFETY_READY;
+        assessment->decision = CONTROL_ROS_DECISION_ACCEPT;
+        return;
+    }
+
+    if (cmd->command == CONTROL_ROS_CMD_SET_MODE)
+    {
+        if (!ctrl_rehab_mode_value_supported(cmd->mode))
+        {
+            assessment->reason = CONTROL_ROS_REJECT_UNSUPPORTED_CMD;
+            assessment->state = CONTROL_ROS_SAFETY_LIMITED;
+            assessment->decision = CONTROL_ROS_DECISION_REJECT;
+            return;
+        }
+        if ((cmd->mode != (rt_uint8_t)REHAB_MODE_PASSIVE) && !assessment->heartbeat_ok)
+        {
+            assessment->reason = CONTROL_ROS_REJECT_HEARTBEAT_TIMEOUT;
             assessment->state = CONTROL_ROS_SAFETY_LIMITED;
             assessment->decision = CONTROL_ROS_DECISION_REJECT;
             return;
@@ -2752,6 +2828,7 @@ static void ctrl_log_ros_command_assessment(const struct rt_can_msg *msg,
 static rt_bool_t ctrl_handle_nanopi_heartbeat(const struct rt_can_msg *msg)
 {
     rt_uint8_t payload[8] = {0};
+    rt_err_t tx_ret;
 
     if ((msg == RT_NULL) || (msg->ide != RT_CAN_STDID) ||
         (msg->id != CONTROL_CAN_ID_NANOPI_HEARTBEAT))
@@ -2765,6 +2842,7 @@ static rt_bool_t ctrl_handle_nanopi_heartbeat(const struct rt_can_msg *msg)
     payload[3] = 0U;
     s_last_nanopi_heartbeat_tick = rt_tick_get();
     s_has_nanopi_heartbeat = RT_TRUE;
+    rehab_mode_manager_note_heartbeat();
 #if CONTROL_ROS_COMMAND_LOGGING_ONLY
     payload[4] = CONTROL_STATUS_SAFETY_LIMITED;
     payload[5] = CONTROL_STATUS_MODE_LOGGING_ONLY;
@@ -2774,7 +2852,28 @@ static rt_bool_t ctrl_handle_nanopi_heartbeat(const struct rt_can_msg *msg)
 #endif
     payload[7] = 0U;
 
-    (void)ctrl_can_send(CONTROL_CAN_ID_M33_STATUS, RT_CAN_STDID, payload, sizeof(payload));
+    tx_ret = ctrl_can_send(CONTROL_CAN_ID_M33_STATUS, RT_CAN_STDID, payload, sizeof(payload));
+#if CONTROL_CAN_USE_DIRECT_PDL
+    if (tx_ret != RT_EOK)
+    {
+        struct rt_can_msg direct_msg;
+
+        rt_memset(&direct_msg, 0, sizeof(direct_msg));
+        direct_msg.id = CONTROL_CAN_ID_M33_STATUS;
+        direct_msg.ide = RT_CAN_STDID;
+        direct_msg.rtr = RT_CAN_DTR;
+        direct_msg.len = sizeof(payload);
+        direct_msg.hdr_index = -1;
+        rt_memcpy(direct_msg.data, payload, sizeof(payload));
+        (void)ifx_can_direct_send(&direct_msg);
+    }
+#endif
+    rt_kprintf("[control] nanopi hb seq=%u -> 0x%03X ret=%d status=%u detail=%u\n",
+               (unsigned int)payload[1],
+               (unsigned int)CONTROL_CAN_ID_M33_STATUS,
+               tx_ret,
+               (unsigned int)payload[4],
+               (unsigned int)payload[6]);
     return RT_TRUE;
 }
 
@@ -2972,6 +3071,40 @@ static void ctrl_can_rx_entry(void *parameter)
     }
 }
 
+void control_layer_poll_once(void)
+{
+    ctrl_poll_can_messages();
+}
+
+static rt_err_t ctrl_apply_rehab_mode_command(const control_ros_command_t *cmd)
+{
+    rehab_mode_command_t mode_cmd;
+
+    if (cmd == RT_NULL)
+    {
+        return -RT_EINVAL;
+    }
+    if (!ctrl_rehab_mode_value_supported(cmd->mode))
+    {
+        return -RT_EINVAL;
+    }
+
+    rt_memset(&mode_cmd, 0, sizeof(mode_cmd));
+    mode_cmd.mode = (rehab_mode_t)cmd->mode;
+    mode_cmd.submode = REHAB_MODE_SUBMODE_IDLE;
+    mode_cmd.joint_mask = CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK;
+    mode_cmd.assist_direction_mask = 0U;
+    mode_cmd.max_velocity_rad_s =
+        (mode_cmd.mode == REHAB_MODE_RESIST) ?
+            CONTROL_REHAB_RESIST_MAX_VEL_RAD_S :
+            CONTROL_REHAB_ASSIST_MAX_VEL_RAD_S;
+    mode_cmd.assist_torque_enter_nm = CONTROL_REHAB_ASSIST_TORQUE_ENTER_NM;
+    mode_cmd.sequence = cmd->joint_id;
+    mode_cmd.timestamp = cmd->timestamp;
+
+    return rehab_mode_manager_apply_command(&mode_cmd);
+}
+
 static rt_err_t ctrl_apply_ros_command(const control_ros_command_t *cmd)
 {
     rt_uint8_t motor_joint;
@@ -2999,7 +3132,7 @@ static rt_err_t ctrl_apply_ros_command(const control_ros_command_t *cmd)
                                               RT_TRUE);
 
     case CONTROL_ROS_CMD_SET_MODE:
-        return -RT_EINVAL;
+        return ctrl_apply_rehab_mode_command(cmd);
 
     case CONTROL_ROS_CMD_SET_ZERO:
         return -RT_EINVAL;
@@ -3143,6 +3276,7 @@ int control_layer_init(const char *can_name)
     rt_kprintf("[control] init step8 rx indicate ok\n");
 #endif
 
+#if CONTROL_CAN_RX_THREAD_ENABLE
     s_can_rx_thread = rt_thread_create("ctrl_can",
                                        ctrl_can_rx_entry,
                                        RT_NULL,
@@ -3160,7 +3294,12 @@ int control_layer_init(const char *can_name)
     }
 
     rt_kprintf("[control] init step9 can thread created\n");
+#else
+    s_can_rx_thread = RT_NULL;
+    rt_kprintf("[control] init step9 can thread disabled\n");
+#endif
 
+#if CONTROL_ROS_CMD_THREAD_ENABLE
     s_ros_cmd_thread = rt_thread_create("ros_cmd",
                                         ctrl_ros_cmd_entry,
                                         RT_NULL,
@@ -3169,8 +3308,11 @@ int control_layer_init(const char *can_name)
                                         CONTROL_ROS_THREAD_TICK);
     if (s_ros_cmd_thread == RT_NULL)
     {
-        rt_thread_delete(s_can_rx_thread);
-        s_can_rx_thread = RT_NULL;
+        if (s_can_rx_thread != RT_NULL)
+        {
+            rt_thread_delete(s_can_rx_thread);
+            s_can_rx_thread = RT_NULL;
+        }
         rt_device_close(s_can_dev);
         rt_mq_detach(&s_ros_cmd_mq);
         rt_mutex_detach(&s_data_lock);
@@ -3180,7 +3322,12 @@ int control_layer_init(const char *can_name)
     }
 
     rt_kprintf("[control] init step10 ros thread created\n");
+#else
+    s_ros_cmd_thread = RT_NULL;
+    rt_kprintf("[control] init step10 ros thread disabled\n");
+#endif
 
+#if CONTROL_MOTOR_STATUS_THREAD_ENABLE
     s_motor_status_thread = rt_thread_create("m_status",
                                              ctrl_motor_status_entry,
                                              RT_NULL,
@@ -3189,10 +3336,16 @@ int control_layer_init(const char *can_name)
                                              CONTROL_ROS_THREAD_TICK);
     if (s_motor_status_thread == RT_NULL)
     {
-        rt_thread_delete(s_ros_cmd_thread);
-        s_ros_cmd_thread = RT_NULL;
-        rt_thread_delete(s_can_rx_thread);
-        s_can_rx_thread = RT_NULL;
+        if (s_ros_cmd_thread != RT_NULL)
+        {
+            rt_thread_delete(s_ros_cmd_thread);
+            s_ros_cmd_thread = RT_NULL;
+        }
+            if (s_can_rx_thread != RT_NULL)
+            {
+                rt_thread_delete(s_can_rx_thread);
+                s_can_rx_thread = RT_NULL;
+            }
         rt_device_close(s_can_dev);
         rt_mq_detach(&s_ros_cmd_mq);
         rt_mutex_detach(&s_data_lock);
@@ -3202,16 +3355,29 @@ int control_layer_init(const char *can_name)
     }
 
     rt_kprintf("[control] init step10b motor status thread created\n");
+#else
+    s_motor_status_thread = RT_NULL;
+    rt_kprintf("[control] init step10b motor status thread disabled\n");
+#endif
 
     result = control_sensor_module_init(ctrl_can_send, ctrl_next_tx_seq);
     if (result != RT_EOK)
     {
-        rt_thread_delete(s_motor_status_thread);
-        s_motor_status_thread = RT_NULL;
-        rt_thread_delete(s_ros_cmd_thread);
-        s_ros_cmd_thread = RT_NULL;
-        rt_thread_delete(s_can_rx_thread);
-        s_can_rx_thread = RT_NULL;
+        if (s_motor_status_thread != RT_NULL)
+        {
+            rt_thread_delete(s_motor_status_thread);
+            s_motor_status_thread = RT_NULL;
+        }
+        if (s_ros_cmd_thread != RT_NULL)
+        {
+            rt_thread_delete(s_ros_cmd_thread);
+            s_ros_cmd_thread = RT_NULL;
+        }
+        if (s_can_rx_thread != RT_NULL)
+        {
+            rt_thread_delete(s_can_rx_thread);
+            s_can_rx_thread = RT_NULL;
+        }
         rt_device_close(s_can_dev);
         rt_mq_detach(&s_ros_cmd_mq);
         rt_mutex_detach(&s_data_lock);
@@ -3227,12 +3393,21 @@ int control_layer_init(const char *can_name)
     if (result != RT_EOK)
     {
         s_is_inited = RT_FALSE;
-        rt_thread_delete(s_motor_status_thread);
-        s_motor_status_thread = RT_NULL;
-        rt_thread_delete(s_ros_cmd_thread);
-        s_ros_cmd_thread = RT_NULL;
-        rt_thread_delete(s_can_rx_thread);
-        s_can_rx_thread = RT_NULL;
+        if (s_motor_status_thread != RT_NULL)
+        {
+            rt_thread_delete(s_motor_status_thread);
+            s_motor_status_thread = RT_NULL;
+        }
+        if (s_ros_cmd_thread != RT_NULL)
+        {
+            rt_thread_delete(s_ros_cmd_thread);
+            s_ros_cmd_thread = RT_NULL;
+        }
+        if (s_can_rx_thread != RT_NULL)
+        {
+            rt_thread_delete(s_can_rx_thread);
+            s_can_rx_thread = RT_NULL;
+        }
         rt_device_close(s_can_dev);
         rt_mq_detach(&s_ros_cmd_mq);
         rt_mutex_detach(&s_data_lock);
@@ -3247,12 +3422,21 @@ int control_layer_init(const char *can_name)
     if (result != RT_EOK)
     {
         s_is_inited = RT_FALSE;
-        rt_thread_delete(s_motor_status_thread);
-        s_motor_status_thread = RT_NULL;
-        rt_thread_delete(s_ros_cmd_thread);
-        s_ros_cmd_thread = RT_NULL;
-        rt_thread_delete(s_can_rx_thread);
-        s_can_rx_thread = RT_NULL;
+        if (s_motor_status_thread != RT_NULL)
+        {
+            rt_thread_delete(s_motor_status_thread);
+            s_motor_status_thread = RT_NULL;
+        }
+        if (s_ros_cmd_thread != RT_NULL)
+        {
+            rt_thread_delete(s_ros_cmd_thread);
+            s_ros_cmd_thread = RT_NULL;
+        }
+        if (s_can_rx_thread != RT_NULL)
+        {
+            rt_thread_delete(s_can_rx_thread);
+            s_can_rx_thread = RT_NULL;
+        }
         rt_device_close(s_can_dev);
         rt_mq_detach(&s_ros_cmd_mq);
         rt_mutex_detach(&s_data_lock);
@@ -3263,9 +3447,18 @@ int control_layer_init(const char *can_name)
 
     rt_kprintf("[control] init step10e rehab mode manager ok\n");
 
-    rt_thread_startup(s_can_rx_thread);
-    rt_thread_startup(s_ros_cmd_thread);
-    rt_thread_startup(s_motor_status_thread);
+    if (s_can_rx_thread != RT_NULL)
+    {
+        rt_thread_startup(s_can_rx_thread);
+    }
+    if (s_ros_cmd_thread != RT_NULL)
+    {
+        rt_thread_startup(s_ros_cmd_thread);
+    }
+    if (s_motor_status_thread != RT_NULL)
+    {
+        rt_thread_startup(s_motor_status_thread);
+    }
 
     rt_kprintf("[control] init step11 threads started\n");
 
@@ -3941,12 +4134,17 @@ rt_err_t control_motor_speed_control(rt_uint8_t joint_id, float speed_rad_s, flo
  * csp_mode=true 时按 RobStride CSP 流程写 run_mode=CSP、limit_spd、loc_ref。
  * CANSimple 电机则使用 position/passthrough。
  */
-rt_err_t control_motor_position_control(rt_uint8_t joint_id, float pos_rad, float limit_spd, rt_bool_t csp_mode)
+rt_err_t control_motor_position_control_with_current_limit(rt_uint8_t joint_id,
+                                                           float pos_rad,
+                                                           float limit_spd,
+                                                           float limit_cur_a,
+                                                           rt_bool_t csp_mode)
 {
     rt_err_t ret;
     control_motor_run_mode_t mode = csp_mode ? CONTROL_MOTOR_RUN_MODE_CSP : CONTROL_MOTOR_RUN_MODE_PP;
     float motor_pos_rad;
     float motor_limit_spd;
+    float position_limit_current;
 
     if (!ctrl_motor_joint_is_calibrated(joint_id))
     {
@@ -3981,9 +4179,12 @@ rt_err_t control_motor_position_control(rt_uint8_t joint_id, float pos_rad, floa
         }
 
         rt_thread_mdelay(1);
+        position_limit_current = (limit_cur_a > 0.0f)
+            ? limit_cur_a
+            : CONTROL_CANSIMPLE_POSITION_LIMIT_CURRENT;
         ctrl_float_to_le(motor_limit_spd * CONTROL_CANSIMPLE_VEL_REV_PER_RAD_S,
                          &payload[0]);
-        ctrl_float_to_le(CONTROL_CANSIMPLE_POSITION_LIMIT_CURRENT, &payload[4]);
+        ctrl_float_to_le(position_limit_current, &payload[4]);
         ret = ctrl_cansimple_send(motor_id, CANSIMPLE_CMD_SET_LIMITS, payload, sizeof(payload));
         if (ret != RT_EOK)
         {
@@ -4015,6 +4216,16 @@ rt_err_t control_motor_position_control(rt_uint8_t joint_id, float pos_rad, floa
     }
 
     rt_thread_mdelay(2);
+    if (csp_mode && (limit_cur_a > 0.0f))
+    {
+        ret = control_motor_write_parameter(joint_id, MOTOR_PARAM_INDEX_LIMIT_CUR, limit_cur_a, RT_FALSE);
+        if (ret != RT_EOK)
+        {
+            return ret;
+        }
+        rt_thread_mdelay(1);
+    }
+
     if (csp_mode)
     {
         ret = control_motor_write_parameter(joint_id, MOTOR_PARAM_INDEX_LIMIT_SPD, motor_limit_spd, RT_FALSE);
@@ -4044,6 +4255,11 @@ rt_err_t control_motor_position_control(rt_uint8_t joint_id, float pos_rad, floa
 
     rt_thread_mdelay(1);
     return control_motor_write_parameter(joint_id, MOTOR_PARAM_INDEX_LOC_REF, motor_pos_rad, RT_FALSE);
+}
+
+rt_err_t control_motor_position_control(rt_uint8_t joint_id, float pos_rad, float limit_spd, rt_bool_t csp_mode)
+{
+    return control_motor_position_control_with_current_limit(joint_id, pos_rad, limit_spd, 0.0f, csp_mode);
 }
 
 /* 速度保持线程。
@@ -4182,6 +4398,7 @@ rt_err_t control_joint_motor_set_target(rt_uint8_t joint_id,
 {
     float pos_rad;
     float limit_spd_rad_s;
+    float limit_cur_a;
 
     if (!enable)
     {
@@ -4190,6 +4407,11 @@ rt_err_t control_joint_motor_set_target(rt_uint8_t joint_id,
 
     pos_rad = ((float)target_pos_01deg) * 0.1f * RT_PI / 180.0f;
     limit_spd_rad_s = ((float)target_vel_rpm) * 2.0f * RT_PI / 60.0f;
+    limit_cur_a = ((float)target_torque_ma) / 1000.0f;
+    if (limit_cur_a < 0.0f)
+    {
+        limit_cur_a = -limit_cur_a;
+    }
     if (limit_spd_rad_s < 0.0f)
     {
         limit_spd_rad_s = -limit_spd_rad_s;
@@ -4208,7 +4430,11 @@ rt_err_t control_joint_motor_set_target(rt_uint8_t joint_id,
         return -RT_EINVAL;
     }
 
-    return control_motor_position_control(joint_id, pos_rad, limit_spd_rad_s, RT_TRUE);
+    return control_motor_position_control_with_current_limit(joint_id,
+                                                            pos_rad,
+                                                            limit_spd_rad_s,
+                                                            limit_cur_a,
+                                                            RT_TRUE);
 }
 
 /* 兼容旧接口：停止关节。 */
@@ -5467,6 +5693,11 @@ static int cmd_m33_prearm_check(int argc, char **argv)
     {
         rt_kprintf("usage: m33_prearm_check [required_joint_mask_hex]\n");
         rt_kprintf("example: m33_prearm_check 0x40  # slot6 / 0x336 / current motor7 check\n");
+        return -1;
+    }
+    if (!s_is_inited)
+    {
+        rt_kprintf("PREARM: control layer not initialized; run cmd_control_init can0 first\n");
         return -1;
     }
 

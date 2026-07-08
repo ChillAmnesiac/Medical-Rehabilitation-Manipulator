@@ -13,8 +13,8 @@ typedef struct
     rt_thread_t thread;
     rehab_service_status_t status;
     rehab_strategy_params_t params;
-    rehab_assist_strategy_state_t assist_state;
-    rehab_resist_strategy_state_t resist_state;
+    rehab_assist_strategy_state_t assist_state[CONTROL_MOTOR_JOINT_COUNT];
+    rehab_resist_strategy_state_t resist_state[CONTROL_MOTOR_JOINT_COUNT];
     rt_tick_t last_record_tick;
     rt_bool_t initialized;
     rt_bool_t stopped_for_fault;
@@ -73,6 +73,91 @@ static float rehab_service_clamp_current_limit(float value, float fallback)
         return CONTROL_MOTOR_CURRENT_CONTROL_MAX_A;
     }
     return value;
+}
+
+static rt_uint8_t rehab_service_supported_joint_mask(void)
+{
+    rt_uint8_t mask = 0U;
+    rt_uint8_t joint;
+
+    for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+    {
+        mask |= (rt_uint8_t)(1U << (joint - 1U));
+    }
+    return mask;
+}
+
+static rt_uint8_t rehab_service_m33_joint_to_mask(rt_uint8_t m33_joint)
+{
+    if ((m33_joint == 0U) || (m33_joint > CONTROL_MOTOR_JOINT_COUNT))
+    {
+        return 0U;
+    }
+    return (rt_uint8_t)(1U << (m33_joint - 1U));
+}
+
+static rt_bool_t rehab_service_joint_mask_has(rt_uint8_t joint_mask, rt_uint8_t m33_joint)
+{
+    return ((joint_mask & rehab_service_m33_joint_to_mask(m33_joint)) != 0U) ? RT_TRUE : RT_FALSE;
+}
+
+static rt_uint8_t rehab_service_first_joint_in_mask(rt_uint8_t joint_mask)
+{
+    rt_uint8_t joint;
+
+    for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+    {
+        if (rehab_service_joint_mask_has(joint_mask, joint))
+        {
+            return joint;
+        }
+    }
+    return 0U;
+}
+
+static rt_bool_t rehab_service_joint_mask_valid(rt_uint8_t joint_mask)
+{
+    rt_uint8_t supported_mask = rehab_service_supported_joint_mask();
+
+    if (joint_mask == 0U)
+    {
+        return RT_FALSE;
+    }
+    return ((joint_mask & (rt_uint8_t)~supported_mask) == 0U) ? RT_TRUE : RT_FALSE;
+}
+
+static void rehab_service_reset_all_strategy_states_locked(void)
+{
+    rt_uint8_t index;
+
+    for (index = 0U; index < CONTROL_MOTOR_JOINT_COUNT; index++)
+    {
+        rehab_assist_strategy_reset(&s_rehab.assist_state[index]);
+        rehab_resist_strategy_reset(&s_rehab.resist_state[index]);
+    }
+}
+
+static rt_err_t rehab_service_stop_joint_mask(rt_uint8_t joint_mask, rt_bool_t clear_fault)
+{
+    rt_err_t first_error = RT_EOK;
+    rt_uint8_t joint;
+
+    for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+    {
+        rt_err_t ret;
+
+        if (!rehab_service_joint_mask_has(joint_mask, joint))
+        {
+            continue;
+        }
+
+        ret = control_motor_stop(joint, clear_fault);
+        if ((first_error == RT_EOK) && (ret != RT_EOK))
+        {
+            first_error = ret;
+        }
+    }
+    return first_error;
 }
 
 static void rehab_service_default_params(rehab_strategy_params_t *out)
@@ -439,30 +524,51 @@ static void rehab_service_apply_status_locked(rehab_demo_mode_t mode,
                                               rehab_joint_id_t joint,
                                               rehab_cmd_source_t source,
                                               rt_uint8_t m33_joint,
+                                              rt_uint8_t active_joint_mask,
                                               rt_uint8_t detail,
                                               rt_err_t result)
 {
+    if (mode == REHAB_DEMO_MODE_PASSIVE)
+    {
+        active_joint_mask = 0U;
+    }
+    else if (!rehab_service_joint_mask_valid(active_joint_mask))
+    {
+        active_joint_mask = rehab_service_m33_joint_to_mask(m33_joint);
+    }
+
     s_rehab.status.mode = mode;
     s_rehab.status.source = source;
     s_rehab.status.joint = joint;
     s_rehab.status.m33_joint_id = m33_joint;
+    s_rehab.status.active_joint_mask = active_joint_mask;
     s_rehab.status.detail = detail;
     s_rehab.status.last_result = result;
     s_rehab.status.feedback_fresh = RT_FALSE;
     s_rehab.status.assist_engaged = RT_FALSE;
+    s_rehab.status.assist_engaged_mask = 0U;
     rehab_service_clear_observation_locked();
     s_rehab.status.timestamp = rt_tick_get();
     rehab_service_update_flags_locked();
 }
 
-static void rehab_service_note_fault(rt_uint8_t m33_joint, rt_uint8_t detail, rt_err_t result)
+static void rehab_service_note_fault_mask(rt_uint8_t joint_mask,
+                                          rt_uint8_t m33_joint,
+                                          rt_uint8_t detail,
+                                          rt_err_t result)
 {
     rt_bool_t should_stop;
+
+    if (!rehab_service_joint_mask_valid(joint_mask))
+    {
+        joint_mask = rehab_service_m33_joint_to_mask(m33_joint);
+    }
 
     rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
     should_stop = !s_rehab.stopped_for_fault;
     s_rehab.status.feedback_fresh = RT_FALSE;
     s_rehab.status.assist_engaged = RT_FALSE;
+    s_rehab.status.assist_engaged_mask = 0U;
     rehab_service_clear_observation_locked();
     s_rehab.stopped_for_fault = RT_TRUE;
     rehab_service_set_result_locked(detail, result);
@@ -470,8 +576,16 @@ static void rehab_service_note_fault(rt_uint8_t m33_joint, rt_uint8_t detail, rt
 
     if (should_stop)
     {
-        (void)control_motor_stop(m33_joint, RT_FALSE);
+        (void)rehab_service_stop_joint_mask(joint_mask, RT_FALSE);
     }
+}
+
+static void rehab_service_note_fault(rt_uint8_t m33_joint, rt_uint8_t detail, rt_err_t result)
+{
+    rehab_service_note_fault_mask(rehab_service_m33_joint_to_mask(m33_joint),
+                                  m33_joint,
+                                  detail,
+                                  result);
 }
 
 static void rehab_service_complete_to_passive(rt_uint8_t m33_joint, rt_err_t result)
@@ -481,11 +595,12 @@ static void rehab_service_complete_to_passive(rt_uint8_t m33_joint, rt_err_t res
     rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
     s_rehab.status.mode = REHAB_DEMO_MODE_PASSIVE;
     s_rehab.status.assist_engaged = RT_FALSE;
+    s_rehab.status.active_joint_mask = 0U;
+    s_rehab.status.assist_engaged_mask = 0U;
     s_rehab.status.feedback_fresh = RT_TRUE;
     rehab_service_clear_observation_locked();
     s_rehab.stopped_for_fault = RT_FALSE;
-    rehab_assist_strategy_reset(&s_rehab.assist_state);
-    rehab_resist_strategy_reset(&s_rehab.resist_state);
+    rehab_service_reset_all_strategy_states_locked();
     rehab_service_set_result_locked(CONTROL_STATUS_DETAIL_NONE, result);
     rt_mutex_release(&s_rehab.lock);
 }
@@ -568,15 +683,15 @@ static void rehab_service_playback_step(rt_uint8_t m33_joint)
     }
 }
 
-static void rehab_service_apply_strategy_output(rt_uint8_t m33_joint,
-                                                rehab_demo_mode_t mode,
-                                                const rehab_strategy_output_t *out)
+static rt_err_t rehab_service_apply_strategy_output(rt_uint8_t m33_joint,
+                                                    rehab_demo_mode_t mode,
+                                                    const rehab_strategy_output_t *out)
 {
     rt_err_t ret = RT_EOK;
 
     if (out == RT_NULL)
     {
-        return;
+        return -RT_EINVAL;
     }
 
     if (out->type == REHAB_STRATEGY_OUTPUT_CURRENT)
@@ -598,6 +713,8 @@ static void rehab_service_apply_strategy_output(rt_uint8_t m33_joint,
     }
     rehab_service_update_flags_locked();
     rt_mutex_release(&s_rehab.lock);
+
+    return ret;
 }
 
 static void rehab_service_worker(void *parameter)
@@ -608,16 +725,16 @@ static void rehab_service_worker(void *parameter)
     {
         rehab_demo_mode_t mode;
         rt_uint8_t m33_joint;
-        control_motor_feedback_t fb;
-        rehab_strategy_output_t out;
+        rt_uint8_t active_joint_mask;
         rehab_strategy_params_t params;
-        rt_bool_t fresh;
         rt_bool_t stopped_for_fault;
         rt_tick_t now;
+        rt_bool_t active_control_mode;
 
         rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
         mode = s_rehab.status.mode;
         m33_joint = s_rehab.status.m33_joint_id;
+        active_joint_mask = s_rehab.status.active_joint_mask;
         params = s_rehab.params;
         stopped_for_fault = s_rehab.stopped_for_fault;
         rt_mutex_release(&s_rehab.lock);
@@ -628,73 +745,221 @@ static void rehab_service_worker(void *parameter)
             continue;
         }
 
-        now = rt_tick_get();
-        fresh = (control_get_motor_feedback(m33_joint, &fb) == RT_EOK) &&
-                rehab_feedback_is_fresh(&fb, now);
-        if (!fresh)
+        if (!rehab_service_joint_mask_valid(active_joint_mask))
         {
-            rehab_service_note_fault(m33_joint, CONTROL_STATUS_DETAIL_MOTOR_FAULT, -RT_ETIMEOUT);
-            rt_thread_mdelay(CONTROL_REHAB_SERVICE_PERIOD_MS);
-            continue;
+            active_joint_mask = rehab_service_m33_joint_to_mask(m33_joint);
         }
 
-        if (stopped_for_fault)
+        now = rt_tick_get();
+        active_control_mode =
+            ((mode == REHAB_DEMO_MODE_ACTIVE_FOLLOW) ||
+             (mode == REHAB_DEMO_MODE_ASSIST) ||
+             (mode == REHAB_DEMO_MODE_RESIST))
+                ? RT_TRUE
+                : RT_FALSE;
+
+        if (active_control_mode)
         {
+            control_motor_feedback_t last_fb;
+            rehab_strategy_output_t last_out;
+            rt_bool_t have_observation = RT_FALSE;
+            rt_bool_t any_engaged = RT_FALSE;
+            rt_uint8_t assist_engaged_mask = 0U;
+            rt_uint8_t joint;
+            rt_uint8_t fault_joint = m33_joint;
+            rt_err_t output_ret = RT_EOK;
+
+            for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+            {
+                control_motor_feedback_t fb;
+
+                if (!rehab_service_joint_mask_has(active_joint_mask, joint))
+                {
+                    continue;
+                }
+                if ((control_get_motor_feedback(joint, &fb) != RT_EOK) ||
+                    !rehab_feedback_is_fresh(&fb, now))
+                {
+                    fault_joint = joint;
+                    rehab_service_note_fault_mask(active_joint_mask,
+                                                  fault_joint,
+                                                  CONTROL_STATUS_DETAIL_MOTOR_FAULT,
+                                                  -RT_ETIMEOUT);
+                    output_ret = -RT_ETIMEOUT;
+                    break;
+                }
+            }
+
+            if (output_ret != RT_EOK)
+            {
+                rt_thread_mdelay(CONTROL_REHAB_SERVICE_PERIOD_MS);
+                continue;
+            }
+
+            if (stopped_for_fault)
+            {
+                for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+                {
+                    if (!rehab_service_joint_mask_has(active_joint_mask, joint))
+                    {
+                        continue;
+                    }
+                    if (control_get_motor_feedback(joint, &last_fb) == RT_EOK)
+                    {
+                        have_observation = RT_TRUE;
+                        break;
+                    }
+                }
+
+                rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+                s_rehab.status.feedback_fresh = RT_TRUE;
+                s_rehab.status.active_joint_mask = active_joint_mask;
+                s_rehab.status.assist_engaged = RT_FALSE;
+                s_rehab.status.assist_engaged_mask = 0U;
+                rehab_service_update_observation_locked(have_observation ? &last_fb : RT_NULL,
+                                                        RT_NULL);
+                s_rehab.status.timestamp = now;
+                rehab_service_update_flags_locked();
+                rt_mutex_release(&s_rehab.lock);
+
+                rt_thread_mdelay(CONTROL_REHAB_SERVICE_PERIOD_MS);
+                continue;
+            }
+
+            for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+            {
+                control_motor_feedback_t fb;
+                rehab_strategy_output_t out;
+                rt_uint8_t index;
+
+                if (!rehab_service_joint_mask_has(active_joint_mask, joint))
+                {
+                    continue;
+                }
+                if ((control_get_motor_feedback(joint, &fb) != RT_EOK) ||
+                    !rehab_feedback_is_fresh(&fb, now))
+                {
+                    fault_joint = joint;
+                    output_ret = -RT_ETIMEOUT;
+                    break;
+                }
+
+                rt_memset(&out, 0, sizeof(out));
+                out.type = REHAB_STRATEGY_OUTPUT_STOP;
+                index = (rt_uint8_t)(joint - 1U);
+
+                if (mode == REHAB_DEMO_MODE_ACTIVE_FOLLOW)
+                {
+                    rehab_active_follow_step(&params, &fb, &out);
+                }
+                else if (mode == REHAB_DEMO_MODE_ASSIST)
+                {
+                    rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+                    rehab_assist_strategy_step(&s_rehab.assist_state[index],
+                                               &params,
+                                               &fb,
+                                               1.0f,
+                                               &out);
+                    rt_mutex_release(&s_rehab.lock);
+                }
+                else
+                {
+                    rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+                    rehab_resist_strategy_step(&s_rehab.resist_state[index],
+                                               &params,
+                                               &fb,
+                                               &out);
+                    rt_mutex_release(&s_rehab.lock);
+                }
+
+                output_ret = rehab_service_apply_strategy_output(joint, mode, &out);
+                last_fb = fb;
+                last_out = out;
+                have_observation = RT_TRUE;
+                if (out.engaged)
+                {
+                    any_engaged = RT_TRUE;
+                    assist_engaged_mask |= rehab_service_m33_joint_to_mask(joint);
+                }
+                if (output_ret != RT_EOK)
+                {
+                    fault_joint = joint;
+                    break;
+                }
+            }
+
+            if (output_ret != RT_EOK)
+            {
+                rehab_service_note_fault_mask(active_joint_mask,
+                                              fault_joint,
+                                              CONTROL_STATUS_DETAIL_MOTOR_FAULT,
+                                              output_ret);
+                rt_thread_mdelay(CONTROL_REHAB_SERVICE_PERIOD_MS);
+                continue;
+            }
+
             rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
             s_rehab.status.feedback_fresh = RT_TRUE;
-            rehab_service_update_observation_locked(&fb, RT_NULL);
+            s_rehab.status.active_joint_mask = active_joint_mask;
+            s_rehab.status.assist_engaged = any_engaged;
+            s_rehab.status.assist_engaged_mask = assist_engaged_mask;
+            rehab_service_update_observation_locked(have_observation ? &last_fb : RT_NULL,
+                                                    have_observation ? &last_out : RT_NULL);
+            s_rehab.status.record_count = rehab_trajectory_bank_count(s_rehab.status.active_slot);
             s_rehab.status.timestamp = now;
             rehab_service_update_flags_locked();
             rt_mutex_release(&s_rehab.lock);
-
-            rt_thread_mdelay(CONTROL_REHAB_SERVICE_PERIOD_MS);
-            continue;
         }
-
-        rt_memset(&out, 0, sizeof(out));
-        out.type = REHAB_STRATEGY_OUTPUT_STOP;
-
-        switch (mode)
+        else
         {
-        case REHAB_DEMO_MODE_ACTIVE_FOLLOW:
-            rehab_active_follow_step(&params, &fb, &out);
-            break;
-        case REHAB_DEMO_MODE_ASSIST:
-            rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
-            rehab_assist_strategy_step(&s_rehab.assist_state, &params, &fb, 1.0f, &out);
-            rt_mutex_release(&s_rehab.lock);
-            break;
-        case REHAB_DEMO_MODE_RESIST:
-            rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
-            rehab_resist_strategy_step(&s_rehab.resist_state, &params, &fb, &out);
-            rt_mutex_release(&s_rehab.lock);
-            break;
-        case REHAB_DEMO_MODE_MEMORY_RECORD:
-            rehab_service_record_sample(&fb, now);
-            break;
-        case REHAB_DEMO_MODE_MEMORY_PLAYBACK:
-            rehab_service_playback_step(m33_joint);
-            break;
-        case REHAB_DEMO_MODE_PASSIVE:
-        default:
-            break;
-        }
+            control_motor_feedback_t fb;
+            rehab_strategy_output_t out;
+            rt_bool_t fresh;
 
-        if ((mode == REHAB_DEMO_MODE_ACTIVE_FOLLOW) ||
-            (mode == REHAB_DEMO_MODE_ASSIST) ||
-            (mode == REHAB_DEMO_MODE_RESIST))
-        {
-            rehab_service_apply_strategy_output(m33_joint, mode, &out);
-        }
+            fresh = (control_get_motor_feedback(m33_joint, &fb) == RT_EOK) &&
+                    rehab_feedback_is_fresh(&fb, now);
+            if (!fresh)
+            {
+                rehab_service_note_fault(m33_joint, CONTROL_STATUS_DETAIL_MOTOR_FAULT, -RT_ETIMEOUT);
+                rt_thread_mdelay(CONTROL_REHAB_SERVICE_PERIOD_MS);
+                continue;
+            }
 
-        rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
-        s_rehab.status.feedback_fresh = RT_TRUE;
-        s_rehab.status.assist_engaged = out.engaged;
-        rehab_service_update_observation_locked(&fb, &out);
-        s_rehab.status.record_count = rehab_trajectory_bank_count(s_rehab.status.active_slot);
-        s_rehab.status.timestamp = now;
-        rehab_service_update_flags_locked();
-        rt_mutex_release(&s_rehab.lock);
+            if (stopped_for_fault)
+            {
+                rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+                s_rehab.status.feedback_fresh = RT_TRUE;
+                rehab_service_update_observation_locked(&fb, RT_NULL);
+                s_rehab.status.timestamp = now;
+                rehab_service_update_flags_locked();
+                rt_mutex_release(&s_rehab.lock);
+
+                rt_thread_mdelay(CONTROL_REHAB_SERVICE_PERIOD_MS);
+                continue;
+            }
+
+            rt_memset(&out, 0, sizeof(out));
+            out.type = REHAB_STRATEGY_OUTPUT_STOP;
+
+            if (mode == REHAB_DEMO_MODE_MEMORY_RECORD)
+            {
+                rehab_service_record_sample(&fb, now);
+            }
+            else if (mode == REHAB_DEMO_MODE_MEMORY_PLAYBACK)
+            {
+                rehab_service_playback_step(m33_joint);
+            }
+
+            rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+            s_rehab.status.feedback_fresh = RT_TRUE;
+            s_rehab.status.assist_engaged = RT_FALSE;
+            s_rehab.status.assist_engaged_mask = 0U;
+            rehab_service_update_observation_locked(&fb, &out);
+            s_rehab.status.record_count = rehab_trajectory_bank_count(s_rehab.status.active_slot);
+            s_rehab.status.timestamp = now;
+            rehab_service_update_flags_locked();
+            rt_mutex_release(&s_rehab.lock);
+        }
 
         rt_thread_mdelay(CONTROL_REHAB_SERVICE_PERIOD_MS);
     }
@@ -725,7 +990,9 @@ rt_err_t rehab_service_init(void)
     s_rehab.status.source = REHAB_CMD_SOURCE_BENCH_MSH;
     s_rehab.status.joint = REHAB_JOINT_ELBOW;
     s_rehab.status.m33_joint_id = entry.m33_joint_id;
+    s_rehab.status.active_joint_mask = 0U;
     s_rehab.status.detail = CONTROL_STATUS_DETAIL_NONE;
+    s_rehab.status.assist_engaged_mask = 0U;
     s_rehab.status.active_slot = 0U;
     s_rehab.status.timestamp = rt_tick_get();
     rehab_service_update_flags_locked();
@@ -807,6 +1074,7 @@ static rt_err_t rehab_service_enter_mode_on_m33(rehab_demo_mode_t mode,
                                           joint,
                                           source,
                                           m33_joint_id,
+                                          0U,
                                           detail,
                                           ret);
         rt_mutex_release(&s_rehab.lock);
@@ -818,6 +1086,7 @@ static rt_err_t rehab_service_enter_mode_on_m33(rehab_demo_mode_t mode,
                                       joint,
                                       source,
                                       m33_joint_id,
+                                      rehab_service_m33_joint_to_mask(m33_joint_id),
                                       CONTROL_STATUS_DETAIL_NONE,
                                       RT_EOK);
     s_rehab.status.active_slot = slot;
@@ -825,8 +1094,7 @@ static rt_err_t rehab_service_enter_mode_on_m33(rehab_demo_mode_t mode,
     s_rehab.status.record_count = rehab_trajectory_bank_count(slot);
     s_rehab.last_record_tick = 0U;
     s_rehab.stopped_for_fault = RT_FALSE;
-    rehab_assist_strategy_reset(&s_rehab.assist_state);
-    rehab_resist_strategy_reset(&s_rehab.resist_state);
+    rehab_service_reset_all_strategy_states_locked();
     rehab_service_update_flags_locked();
     rt_mutex_release(&s_rehab.lock);
     return RT_EOK;
@@ -860,6 +1128,55 @@ rt_err_t rehab_service_set_mode(rehab_demo_mode_t mode,
     return rehab_service_enter_mode(mode, 0U, joint, source);
 }
 
+rt_err_t rehab_service_set_mode_mask(rehab_demo_mode_t mode,
+                                     rt_uint8_t active_joint_mask,
+                                     rehab_cmd_source_t source)
+{
+    rt_uint8_t primary_joint;
+    rt_err_t ret;
+
+    if (mode == REHAB_DEMO_MODE_PASSIVE)
+    {
+        return rehab_service_stop(source);
+    }
+    if ((mode == REHAB_DEMO_MODE_MEMORY_RECORD) ||
+        (mode == REHAB_DEMO_MODE_MEMORY_PLAYBACK) ||
+        !rehab_service_joint_mask_valid(active_joint_mask))
+    {
+        return -RT_EINVAL;
+    }
+
+    ret = rehab_service_init();
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    primary_joint = rehab_service_first_joint_in_mask(active_joint_mask);
+    if (primary_joint == 0U)
+    {
+        return -RT_EINVAL;
+    }
+
+    rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+    rehab_service_apply_status_locked(mode,
+                                      REHAB_JOINT_ELBOW,
+                                      source,
+                                      primary_joint,
+                                      active_joint_mask,
+                                      CONTROL_STATUS_DETAIL_NONE,
+                                      RT_EOK);
+    s_rehab.status.active_slot = 0U;
+    s_rehab.status.playback_index = 0U;
+    s_rehab.status.record_count = rehab_trajectory_bank_count(0U);
+    s_rehab.last_record_tick = 0U;
+    s_rehab.stopped_for_fault = RT_FALSE;
+    rehab_service_reset_all_strategy_states_locked();
+    rehab_service_update_flags_locked();
+    rt_mutex_release(&s_rehab.lock);
+    return RT_EOK;
+}
+
 rt_err_t rehab_service_set_mode_on_m33(rehab_demo_mode_t mode,
                                        rehab_joint_id_t joint,
                                        rt_uint8_t m33_joint_id,
@@ -876,22 +1193,28 @@ rt_err_t rehab_service_set_mode_on_m33(rehab_demo_mode_t mode,
 rt_err_t rehab_service_stop(rehab_cmd_source_t source)
 {
     rt_uint8_t m33_joint;
+    rt_uint8_t active_joint_mask;
 
     (void)rehab_service_init();
     rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
     m33_joint = s_rehab.status.m33_joint_id;
+    active_joint_mask = s_rehab.status.active_joint_mask;
+    if (!rehab_service_joint_mask_valid(active_joint_mask))
+    {
+        active_joint_mask = rehab_service_m33_joint_to_mask(m33_joint);
+    }
     rehab_service_apply_status_locked(REHAB_DEMO_MODE_PASSIVE,
                                       s_rehab.status.joint,
                                       source,
                                       m33_joint,
+                                      0U,
                                       CONTROL_STATUS_DETAIL_NONE,
                                       RT_EOK);
-    rehab_assist_strategy_reset(&s_rehab.assist_state);
-    rehab_resist_strategy_reset(&s_rehab.resist_state);
+    rehab_service_reset_all_strategy_states_locked();
     s_rehab.stopped_for_fault = RT_FALSE;
     rt_mutex_release(&s_rehab.lock);
 
-    return control_motor_stop(m33_joint, RT_FALSE);
+    return rehab_service_stop_joint_mask(active_joint_mask, RT_FALSE);
 }
 
 rt_err_t rehab_service_record_start(rt_uint8_t slot,
@@ -971,8 +1294,7 @@ rt_err_t rehab_service_set_params(const rehab_strategy_params_t *params)
 
     rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
     s_rehab.params = sanitized;
-    rehab_assist_strategy_reset(&s_rehab.assist_state);
-    rehab_resist_strategy_reset(&s_rehab.resist_state);
+    rehab_service_reset_all_strategy_states_locked();
     rehab_service_update_flags_locked();
     rt_mutex_release(&s_rehab.lock);
     return RT_EOK;

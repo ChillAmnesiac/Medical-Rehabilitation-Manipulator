@@ -41,8 +41,10 @@ typedef struct
     rehab_cmd_source_t source;
     rehab_joint_id_t joint;
     rt_uint8_t m33_joint_id;
+    rt_uint8_t active_joint_mask;
     rt_uint8_t detail;
     rt_uint8_t flags;
+    rt_uint8_t assist_engaged_mask;
     rt_bool_t feedback_fresh;
     rt_bool_t assist_engaged;
     float feedback_torque_nm;
@@ -75,6 +77,9 @@ rt_err_t rehab_service_init(void);
 rt_err_t rehab_service_set_mode(rehab_demo_mode_t mode,
                                 rehab_joint_id_t joint,
                                 rehab_cmd_source_t source);
+rt_err_t rehab_service_set_mode_mask(rehab_demo_mode_t mode,
+                                     rt_uint8_t active_joint_mask,
+                                     rehab_cmd_source_t source);
 rt_err_t rehab_service_set_mode_on_m33(rehab_demo_mode_t mode,
                                        rehab_joint_id_t joint,
                                        rt_uint8_t m33_joint_id,

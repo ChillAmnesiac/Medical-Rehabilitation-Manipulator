@@ -34,13 +34,13 @@ static rt_bool_t rehab_mode_adapter_heartbeat_ok(rt_tick_t now)
 
 static rt_bool_t rehab_mode_adapter_joint_mask_supported(rt_uint8_t joint_mask)
 {
-    const rt_uint8_t elbow_mask = 0x02U;
+    const rt_uint8_t supported_mask = CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK;
 
     if (joint_mask == 0U)
     {
         return RT_TRUE;
     }
-    return ((joint_mask & (rt_uint8_t)~elbow_mask) == 0U) ? RT_TRUE : RT_FALSE;
+    return ((joint_mask & (rt_uint8_t)~supported_mask) == 0U) ? RT_TRUE : RT_FALSE;
 }
 
 static rehab_demo_mode_t rehab_mode_adapter_to_service_mode(rehab_mode_t mode,
@@ -129,6 +129,7 @@ rt_err_t rehab_mode_manager_init(void)
 rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
 {
     rehab_demo_mode_t service_mode;
+    rt_uint8_t joint_mask;
     rt_err_t ret;
     rt_tick_t now;
 
@@ -153,7 +154,11 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
     }
     rt_mutex_release(&s_rehab_adapter.lock);
 
-    if (!rehab_mode_adapter_joint_mask_supported(cmd->joint_mask))
+    joint_mask = (cmd->joint_mask == 0U) ?
+                 CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK :
+                 cmd->joint_mask;
+
+    if (!rehab_mode_adapter_joint_mask_supported(joint_mask))
     {
         rehab_mode_adapter_store_reject(cmd->sequence, CONTROL_STATUS_DETAIL_UNKNOWN_JOINT);
         return -RT_EINVAL;
@@ -180,7 +185,7 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
     }
     else
     {
-        ret = rehab_service_set_mode(service_mode, REHAB_JOINT_ELBOW, REHAB_CMD_SOURCE_CAN);
+        ret = rehab_service_set_mode_mask(service_mode, joint_mask, REHAB_CMD_SOURCE_CAN);
     }
 
     rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
@@ -292,12 +297,12 @@ void rehab_mode_manager_get_status(rehab_mode_status_t *out)
 
     out->mode = rehab_mode_adapter_from_service_mode(service_status.mode, &submode);
     out->submode = submode;
-    out->active_joint_mask = 0x02U;
+    out->active_joint_mask = service_status.active_joint_mask;
     out->flags = flags;
     out->detail = (service_status.detail != CONTROL_STATUS_DETAIL_NONE) ?
                   service_status.detail :
                   adapter_detail;
-    out->assist_engaged_mask = service_status.assist_engaged ? 0x02U : 0U;
+    out->assist_engaged_mask = service_status.assist_engaged_mask;
     out->sequence = sequence;
     out->timestamp = service_status.timestamp;
 }
