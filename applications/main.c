@@ -1,5 +1,6 @@
 #include <rtthread.h>
 #include <rtdevice.h>
+#include <rthw.h>
 #include <board.h>
 #include <reent.h>
 #include <finsh.h>
@@ -7,11 +8,8 @@
 #include "common/m33_m55_comm.h"
 #include "m33/audio_capture.h"
 #include "m33/audio_playback.h"
-#include "m33/bt_board_bridge.h"
-#include "m33/app_ble_service.h"
-#include "m33/bt_app_gatt_handler.h"
-#include "m33/bt_hci_transport.h"
 #include "m33/can_driver.h"
+#include "drv_can.h"
 #include "m33/control_manager.h"
 #include "m33/http_server.h"
 #include "m33/input_buffer.h"
@@ -23,6 +21,7 @@
 #include "m33/safety_system.h"
 #include "m33/sensor_manager.h"
 #include "m33/xiaozhi_pcm_probe_data.h"
+#include "control/control_layer.h"
 
 __attribute__((weak)) struct _reent _impure_data;
 
@@ -44,14 +43,8 @@ __attribute__((weak)) struct _reent _impure_data;
 #define M33_AUTO_START_EMG_M55_INFERENCE 1
 #define M33_AUTO_EMG_SAMPLE_PERIOD_MS 20U
 #define M33_AUTO_EMG_MANAGE_F103 1
-
-#ifndef M33_ENABLE_APP_BLE_LINK
-#define M33_ENABLE_APP_BLE_LINK 1
-#endif
-
-#ifndef M33_ENABLE_BT_HCI
-#define M33_ENABLE_BT_HCI M33_ENABLE_APP_BLE_LINK
-#endif
+#define M33_ENABLE_M55_IPC_AUTO_INIT 0
+#define M33_ENABLE_NANOPI_HEARTBEAT_BRIDGE 0
 
 typedef enum
 {
@@ -84,12 +77,81 @@ static rt_thread_t g_ipc_init_thread = RT_NULL;
 static rt_bool_t g_m55_bridge_started = RT_FALSE;
 static sensor_data_t g_main_sensor;
 static control_status_t g_main_control;
+volatile rt_uint32_t g_m33_boot_marker = 0U;
+
+static void m33_minimal_spin_delay(void)
+{
+    volatile rt_uint32_t i;
+
+    for (i = 0U; i < 20000U; i++)
+    {
+        __asm volatile ("nop");
+    }
+}
 
 static void m33_publish_audio_capture(void);
 static rt_err_t m33_publish_pcm_shared_buffer(const rt_uint8_t *pcm, rt_uint32_t len);
 static void m33_handle_ipc_command(void);
 static void m33_flush_tts_audio_if_idle(void);
 static void m33_watchdog_cm55_voice_status(void);
+
+static rt_err_t m33_minimal_send_can_status(rt_uint8_t seq)
+{
+    struct rt_can_msg msg;
+
+    rt_memset(&msg, 0, sizeof(msg));
+    msg.id = 0x322U;
+    msg.ide = RT_CAN_STDID;
+    msg.rtr = RT_CAN_DTR;
+    msg.len = 8U;
+    msg.hdr_index = -1;
+    msg.data[0] = 0xA5U;
+    msg.data[1] = seq;
+    msg.data[2] = 7U;
+    return ifx_can_direct_send(&msg);
+}
+
+static void m33_minimal_poll_can_bridge(void)
+{
+    struct rt_can_msg msg;
+    rt_uint8_t drained = 0U;
+
+    while ((drained < 8U) && (ifx_can_direct_recv(&msg) == (rt_ssize_t)sizeof(msg)))
+    {
+        drained++;
+        if ((msg.ide == RT_CAN_STDID) && (msg.id == 0x321U))
+        {
+            (void)m33_minimal_send_can_status((msg.len > 0U) ? msg.data[0] : 0U);
+        }
+    }
+}
+
+static void m33_minimal_heartbeat_entry(void *parameter)
+{
+    RT_UNUSED(parameter);
+
+    while (1)
+    {
+        m33_minimal_poll_can_bridge();
+        rt_thread_mdelay(5);
+    }
+}
+
+static void m33_minimal_start_heartbeat_bridge(void)
+{
+    rt_thread_t thread;
+
+    thread = rt_thread_create("np_hb",
+                              m33_minimal_heartbeat_entry,
+                              RT_NULL,
+                              2048,
+                              8,
+                              10);
+    if (thread != RT_NULL)
+    {
+        rt_thread_startup(thread);
+    }
+}
 
 static void m33_log_cm55_boot_state(const char *tag)
 {
@@ -539,63 +601,6 @@ static void m33qa_xz_probe(int argc, char **argv)
 }
 MSH_CMD_EXPORT(m33qa_xz_probe, Publish built-in Xiaozhi PCM probe to CM55; use "full" for long sample);
 
-static void m33_handle_ble_command(void)
-{
-    app_ble_command_t cmd;
-
-    if (app_ble_service_peek_command(&cmd) != RT_EOK)
-    {
-        return;
-    }
-
-    switch (cmd.type)
-    {
-    case APP_BLE_CMD_SET_MODE:
-        (void)control_set_mode(cmd.mode);
-        break;
-
-    case APP_BLE_CMD_MOVE_JOINT:
-        (void)control_move_joint(cmd.joint, cmd.target);
-        break;
-
-    case APP_BLE_CMD_EMERGENCY_STOP:
-        (void)control_set_mode(CONTROL_MODE_PASSIVE);
-        break;
-
-    case APP_BLE_CMD_START_STREAM:
-    case APP_BLE_CMD_STOP_STREAM:
-    case APP_BLE_CMD_HEARTBEAT:
-    default:
-        break;
-    }
-}
-
-static void m33_handle_ble_command_minimal(void)
-{
-    app_ble_command_t cmd;
-
-    while (app_ble_service_peek_command(&cmd) == RT_EOK)
-    {
-        switch (cmd.type)
-        {
-        case APP_BLE_CMD_START_STREAM:
-        case APP_BLE_CMD_STOP_STREAM:
-        case APP_BLE_CMD_HEARTBEAT:
-            break;
-
-        case APP_BLE_CMD_EMERGENCY_STOP:
-            rt_kprintf("[ble] minimal framework received emergency stop\n");
-            break;
-
-        case APP_BLE_CMD_SET_MODE:
-        case APP_BLE_CMD_MOVE_JOINT:
-        default:
-            rt_kprintf("[ble] minimal framework ignored control command type=%d\n", cmd.type);
-            break;
-        }
-    }
-}
-
 static void m33_handle_ipc_command(void)
 {
     m33_m55_message_t msg;
@@ -879,6 +884,33 @@ static void m33_start_m55_bridges_once(void)
     g_m55_bridge_started = RT_TRUE;
 }
 
+static int cmd_m55_ipc_start(int argc, char **argv)
+{
+    RT_UNUSED(argc);
+    RT_UNUSED(argv);
+
+    if (!m33_m55_comm_is_ready())
+    {
+        rt_err_t ret = m33_m55_comm_init();
+        if (ret != RT_EOK)
+        {
+            rt_kprintf("[m33] m55_ipc_start init ret=%d\n", ret);
+            return ret;
+        }
+    }
+
+    if (!g_m55_bridge_started)
+    {
+        m55_model_bridge_init();
+        m55_qa_bridge_init();
+        g_m55_bridge_started = RT_TRUE;
+    }
+    m33_start_ipc_pump();
+    rt_kprintf("[m33] m55_ipc_start ready=%d\n", m33_m55_comm_is_ready() ? 1 : 0);
+    return RT_EOK;
+}
+MSH_CMD_EXPORT(cmd_m55_ipc_start, start CM55 IPC response pump without auto EMG stream);
+
 static void m33_ipc_init_entry(void *parameter)
 {
     rt_err_t ret;
@@ -928,97 +960,42 @@ static void m33_start_ipc_init_async(void)
     rt_thread_startup(g_ipc_init_thread);
 }
 
-static void m33_publish_ble_telemetry(const sensor_data_t *sensor,
-                                      const control_status_t *control,
-                                      const safety_monitor_t *safety)
-{
-    const app_ble_runtime_t *runtime;
-    const char *payload;
-    uint16_t payload_len;
-    uint16_t offset;
-    const uint16_t chunk_size = 20;
-
-    (void)app_ble_service_update_telemetry(sensor, control, safety);
-    runtime = app_ble_service_get_runtime();
-    if ((runtime == RT_NULL) || !runtime->connected || !runtime->streaming_enabled)
-    {
-        return;
-    }
-
-    payload = app_ble_service_get_last_payload();
-    if (payload == RT_NULL)
-    {
-        return;
-    }
-
-    payload_len = (uint16_t)rt_strlen(payload);
-
-    for (offset = 0; offset < payload_len; offset += chunk_size)
-    {
-        uint16_t send_len = (payload_len - offset) > chunk_size ? chunk_size : (payload_len - offset);
-        rt_err_t ret = bt_app_gatt_send((const uint8_t *)(payload + offset), send_len);
-        if (ret != RT_EOK)
-        {
-            rt_kprintf("[ble] Send failed at offset %u\n", offset);
-            break;
-        }
-
-        if (offset + chunk_size < payload_len)
-        {
-            rt_thread_mdelay(5);
-        }
-    }
-}
-
-static void m33_init_ble_app_link(void)
-{
-#if M33_ENABLE_APP_BLE_LINK
-#if M33_ENABLE_BT_HCI
-    rt_err_t bt_err;
-#endif
-
-    rt_kprintf("[m33] app ble link step1 bt_board_bridge\n");
-    bt_board_bridge_init();
-    rt_kprintf("[m33] app ble link step2 app_ble_service_init\n");
-    app_ble_service_init();
-    rt_kprintf("[m33] app ble link step3 app_ble_service_start\n");
-    app_ble_service_start();
-#if M33_ENABLE_BT_HCI
-    rt_kprintf("[m33] app ble link step4 bt_hci_transport_init\n");
-    bt_err = bt_hci_transport_init();
-    rt_kprintf("[m33] bt_hci_transport_init ret=%d state=%d\n",
-               bt_err,
-               bt_hci_transport_get_runtime()->state);
-    if (bt_err == RT_EOK)
-    {
-        bt_err = bt_hci_transport_start();
-        rt_kprintf("[m33] bt_hci_transport_start ret=%d state=%d\n",
-                   bt_err,
-                   bt_hci_transport_get_runtime()->state);
-    }
-
-    if (bt_err != RT_EOK)
-    {
-        rt_kprintf("[m33] bluetooth middleware not integrated yet, transport state=%d err=%d\n",
-                   bt_hci_transport_get_runtime()->state,
-                   bt_err);
-    }
-#else
-    rt_kprintf("[m33] app ble link HCI disabled by M33_ENABLE_BT_HCI\n");
-#endif
-#else
-    rt_kprintf("[m33] app ble link disabled by M33_ENABLE_APP_BLE_LINK\n");
-#endif
-}
-
 static void m33_init_framework(void)
 {
+    rt_err_t can_ret;
+
+    g_m33_boot_marker = 0x33010001U;
+#if M33_ENABLE_M55_IPC_AUTO_INIT
     m33_start_ipc_init_async();
+#endif
+    g_m33_boot_marker = 0x33010002U;
 #if M33_XIAOZHI_MINIMAL_FRAMEWORK
-    m33_init_ble_app_link();
+    g_m33_boot_marker = 0x33020001U;
+    can_ret = can_driver_init();
+    g_m33_boot_marker = 0x33020002U;
+    if (can_ret == RT_EOK)
+    {
+        rt_err_t sensor_ret;
+        rt_err_t first_tx_ret;
+
+        g_m33_boot_marker = 0x33030001U;
+        sensor_ret = control_sensor_report_enable(RT_TRUE,
+                                                  (rt_uint16_t)M33_AUTO_EMG_SAMPLE_PERIOD_MS);
+        RT_UNUSED(sensor_ret);
+        g_m33_boot_marker = 0x33030002U;
+
+        first_tx_ret = m33_minimal_send_can_status(0U);
+        RT_UNUSED(first_tx_ret);
+        g_m33_boot_marker = 0x33030003U;
+#if M33_ENABLE_NANOPI_HEARTBEAT_BRIDGE
+        m33_minimal_start_heartbeat_bridge();
+#endif
+        g_m33_boot_marker = 0x33030004U;
+    }
+    RT_UNUSED(can_ret);
+    g_m33_boot_marker = 0x3302FFFFU;
     return;
 #endif
-    m33_init_ble_app_link();
     rt_kprintf("[m33] init step5 sensor_manager_init\n");
     sensor_manager_init();
     rt_kprintf("[m33] init step6 input_buffer_init\n");
@@ -1052,21 +1029,19 @@ int main(void)
 #if M33_XIAOZHI_MINIMAL_FRAMEWORK
     while (1)
     {
-        m33_handle_ble_command_minimal();
-        m33_publish_ble_telemetry(&g_main_sensor, &g_main_control, &g_runtime.safety);
+        control_layer_poll_once();
         g_runtime.loop_count++;
 #if M33_ENABLE_LED_HEARTBEAT
         rt_pin_write(LED_PIN_B, ((g_runtime.loop_count % 10U) == 0U) ? PIN_HIGH : PIN_LOW);
 #endif
-        rt_thread_mdelay(FRAME_PERIOD_MS);
+        m33_minimal_spin_delay();
     }
 #endif
     rt_kprintf("[m33] framework ok\n");
     rt_thread_mdelay(100);
     control_set_mode(CONTROL_MODE_ACTIVE);
 
-    rt_kprintf("[m33] System ready. Waiting for BLE connection...\n");
-    rt_kprintf("[m33] Send 'stream:on' to start sensor data streaming\n");
+    rt_kprintf("[m33] System ready. CAN control path active.\n");
 
     while (1)
     {
@@ -1075,9 +1050,6 @@ int main(void)
         control_apply_sensor_feedback(&g_main_sensor);
         safety_monitor_update(&g_runtime.safety, &g_main_sensor);
         control_get_status(&g_main_control);
-        m33_handle_ble_command();
-        m33_publish_ble_telemetry(&g_main_sensor, &g_main_control, &g_runtime.safety);
-
         g_runtime.loop_count++;
 #if M33_ENABLE_LED_HEARTBEAT
         if ((g_runtime.loop_count % 10U) == 0U)
