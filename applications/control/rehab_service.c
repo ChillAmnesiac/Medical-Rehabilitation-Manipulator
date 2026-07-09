@@ -172,8 +172,16 @@ static void rehab_service_default_params(rehab_strategy_params_t *out)
     out->active_min_current_a = CONTROL_REHAB_ACTIVE_MIN_CUR_A;
     out->active_max_current_a = CONTROL_REHAB_ACTIVE_LIMIT_CUR_A;
     out->active_current_gain_a_per_nm = CONTROL_REHAB_ACTIVE_GAIN_A_PER_NM;
+    out->active_velocity_deadband_rad_s = CONTROL_REHAB_ACTIVE_VEL_DEADBAND_RAD_S;
     out->assist_max_current_a = CONTROL_REHAB_ASSIST_LIMIT_CUR_A;
     out->assist_current_gain_a_per_nm = CONTROL_REHAB_ASSIST_GAIN_A_PER_NM;
+    out->assist_velocity_fallback_enabled =
+        (CONTROL_REHAB_ASSIST_VELOCITY_FALLBACK_ENABLE != 0U) ? RT_TRUE : RT_FALSE;
+    out->assist_velocity_enter_rad_s = CONTROL_REHAB_ASSIST_VEL_ENTER_RAD_S;
+    out->assist_velocity_exit_rad_s = CONTROL_REHAB_ASSIST_VEL_EXIT_RAD_S;
+    out->assist_min_current_a = CONTROL_REHAB_ASSIST_MIN_CUR_A;
+    out->assist_velocity_gain_a_per_rad_s = CONTROL_REHAB_ASSIST_VEL_GAIN_A_PER_RAD_S;
+    out->assist_slew_current_a_per_step = CONTROL_REHAB_ASSIST_SLEW_A_PER_STEP;
     out->adaptive_assist_enabled =
         (CONTROL_REHAB_ASSIST_ADAPTIVE_ENABLE != 0U) ? RT_TRUE : RT_FALSE;
     out->adaptive_assist_base_gain_a_per_nm =
@@ -328,11 +336,38 @@ static void rehab_service_sanitize_params(rehab_strategy_params_t *params)
     params->active_current_gain_a_per_nm =
         rehab_service_positive_or_default(params->active_current_gain_a_per_nm,
                                           defaults.active_current_gain_a_per_nm);
+    params->active_velocity_deadband_rad_s =
+        rehab_service_nonnegative_or_default(params->active_velocity_deadband_rad_s,
+                                             defaults.active_velocity_deadband_rad_s);
     params->assist_max_current_a = rehab_service_clamp_current_limit(params->assist_max_current_a,
                                                                      defaults.assist_max_current_a);
     params->assist_current_gain_a_per_nm =
         rehab_service_positive_or_default(params->assist_current_gain_a_per_nm,
                                           defaults.assist_current_gain_a_per_nm);
+    params->assist_velocity_fallback_enabled =
+        params->assist_velocity_fallback_enabled ? RT_TRUE : RT_FALSE;
+    params->assist_velocity_enter_rad_s =
+        rehab_service_nonnegative_or_default(params->assist_velocity_enter_rad_s,
+                                             defaults.assist_velocity_enter_rad_s);
+    params->assist_velocity_exit_rad_s =
+        rehab_service_nonnegative_or_default(params->assist_velocity_exit_rad_s,
+                                             defaults.assist_velocity_exit_rad_s);
+    if (params->assist_velocity_exit_rad_s > params->assist_velocity_enter_rad_s)
+    {
+        params->assist_velocity_exit_rad_s = params->assist_velocity_enter_rad_s;
+    }
+    params->assist_min_current_a = rehab_service_clamp_current_limit(params->assist_min_current_a,
+                                                                    defaults.assist_min_current_a);
+    if (params->assist_min_current_a > params->assist_max_current_a)
+    {
+        params->assist_min_current_a = params->assist_max_current_a;
+    }
+    params->assist_velocity_gain_a_per_rad_s =
+        rehab_service_nonnegative_or_default(params->assist_velocity_gain_a_per_rad_s,
+                                             defaults.assist_velocity_gain_a_per_rad_s);
+    params->assist_slew_current_a_per_step =
+        rehab_service_nonnegative_or_default(params->assist_slew_current_a_per_step,
+                                             defaults.assist_slew_current_a_per_step);
     params->adaptive_assist_enabled =
         params->adaptive_assist_enabled ? RT_TRUE : RT_FALSE;
     params->adaptive_assist_base_gain_a_per_nm =

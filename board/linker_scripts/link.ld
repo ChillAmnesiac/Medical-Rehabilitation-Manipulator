@@ -190,7 +190,7 @@ SECTIONS
         /* Read only code (constants) */
         *(.rodata .rodata.* .constdata .constdata.* .conststring .conststring.*)
         /* Exclude certain files from this section as they will be placed in RAM */
-        *(EXCLUDE_FILE(*cy_syslib.* *cy_syslib_ext.* *cy_smif.* *cy_smif_memnum.* *cy_smif_memslot.* *cy_smif_sfdp.* *cy_smif_hb_flash.* *mtb_hal_memoryspi.* *mtb_serial_memory.* *freertos/Source*.* *cy_clib_support*.* *cy_mutex_pool*.* *cy_time.* *cyabs_*.* *cy_worker_thread.* *cmsis*.*) .text*)
+        *(EXCLUDE_FILE(*cy_syslib.* *cy_syslib_ext.* *cy_canfd.* *cy_smif.* *cy_smif_memnum.* *cy_smif_memslot.* *cy_smif_sfdp.* *cy_smif_hb_flash.* *mtb_hal_memoryspi.* *mtb_serial_memory.* *freertos/Source*.* *cy_clib_support*.* *cy_mutex_pool*.* *cy_time.* *cyabs_*.* *cy_worker_thread.* *cmsis*.* *kservice.* *scheduler_up.* *clock.* *timer.*) .text*)
 
 
     } > m33_nvm_sel
@@ -252,6 +252,7 @@ SECTIONS
         KEEP(*(.text.cy_os_common))
         *cy_syslib_ext.*(.text*)
         *cy_syslib.*(.text*)
+        *cy_canfd.*(.text*)
         *cy_smif.*(.text*)
         *cy_smif_memnum.*(.text*)
         *cy_smif_memslot.*(.text*)
@@ -266,6 +267,10 @@ SECTIONS
         *cyabs_*.*(.text*)
         *cy_worker_thread.*(.text*)
         *cmsis*.*(.text*)
+        *kservice.*(.text*)
+        *scheduler_up.*(.text*)
+        *clock.*(.text*)
+        *timer.*(.text*)
         
         /* section information for utest */
         . = ALIGN(4);

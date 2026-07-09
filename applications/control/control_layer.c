@@ -12,8 +12,6 @@
 #include "rehab_service.h"
 #include "sensor.h"
 
-#define rt_kprintf(...) do { } while (0)
-
 /*
  * M33 控制层分类说明：
  *
@@ -3075,6 +3073,32 @@ void control_layer_poll_once(void)
 {
     ctrl_poll_can_messages();
 }
+
+static int cmd_control_poll(int argc, char **argv)
+{
+    rt_uint32_t count = 1U;
+
+    if (argc >= 2)
+    {
+        count = (rt_uint32_t)strtoul(argv[1], RT_NULL, 0);
+    }
+    if (count == 0U)
+    {
+        count = 1U;
+    }
+    if (count > 1000U)
+    {
+        count = 1000U;
+    }
+
+    while (count-- > 0U)
+    {
+        ctrl_poll_can_messages();
+    }
+
+    return 0;
+}
+MSH_CMD_EXPORT(cmd_control_poll, poll control CAN RX FIFO: cmd_control_poll [count]);
 
 static rt_err_t ctrl_apply_rehab_mode_command(const control_ros_command_t *cmd)
 {

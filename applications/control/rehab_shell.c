@@ -95,14 +95,21 @@ static void rehab_shell_print_params(void)
         return;
     }
 
-    rt_kprintf("rehab cfg direction_x1000=%d resist_dir_x1000=%d active_min_x1000=%d active_max_x1000=%d active_gain_x1000=%d assist_max_x1000=%d assist_gain_x1000=%d adaptive=%u adaptive_base_x1000=%d adaptive_load_x1000=%d adaptive_max_x1000=%d adaptive_step_x1000=%d resist_max_x1000=%d resist_gain_x1000=%d\n",
+    rt_kprintf("rehab cfg direction_x1000=%d resist_dir_x1000=%d active_min_x1000=%d active_max_x1000=%d active_gain_x1000=%d active_vel_db_x1000=%d assist_max_x1000=%d assist_gain_x1000=%d assist_vel=%u assist_vel_enter_x1000=%d assist_vel_exit_x1000=%d assist_min_x1000=%d assist_vel_gain_x1000=%d assist_slew_x1000=%d adaptive=%u adaptive_base_x1000=%d adaptive_load_x1000=%d adaptive_max_x1000=%d adaptive_step_x1000=%d resist_max_x1000=%d resist_gain_x1000=%d\n",
                rehab_shell_scaled(params.follow_direction),
                rehab_shell_scaled(params.resist_direction),
                rehab_shell_scaled(params.active_min_current_a),
                rehab_shell_scaled(params.active_max_current_a),
                rehab_shell_scaled(params.active_current_gain_a_per_nm),
+               rehab_shell_scaled(params.active_velocity_deadband_rad_s),
                rehab_shell_scaled(params.assist_max_current_a),
                rehab_shell_scaled(params.assist_current_gain_a_per_nm),
+               params.assist_velocity_fallback_enabled ? 1U : 0U,
+               rehab_shell_scaled(params.assist_velocity_enter_rad_s),
+               rehab_shell_scaled(params.assist_velocity_exit_rad_s),
+               rehab_shell_scaled(params.assist_min_current_a),
+               rehab_shell_scaled(params.assist_velocity_gain_a_per_rad_s),
+               rehab_shell_scaled(params.assist_slew_current_a_per_step),
                params.adaptive_assist_enabled ? 1U : 0U,
                rehab_shell_scaled(params.adaptive_assist_base_gain_a_per_nm),
                rehab_shell_scaled(params.adaptive_assist_load_gain_a_per_nm2),
@@ -186,6 +193,11 @@ static rt_bool_t rehab_shell_apply_cfg(rehab_strategy_params_t *params, const ch
     {
         params->active_current_gain_a_per_nm = value;
     }
+    else if ((strcmp(key, "active_vel_deadband") == 0) ||
+             (strcmp(key, "active_vel_db") == 0))
+    {
+        params->active_velocity_deadband_rad_s = value;
+    }
     else if (strcmp(key, "assist_max") == 0)
     {
         params->assist_max_current_a = value;
@@ -193,6 +205,35 @@ static rt_bool_t rehab_shell_apply_cfg(rehab_strategy_params_t *params, const ch
     else if (strcmp(key, "assist_gain") == 0)
     {
         params->assist_current_gain_a_per_nm = value;
+    }
+    else if ((strcmp(key, "assist_vel_enable") == 0) ||
+             (strcmp(key, "assist_velocity_enable") == 0))
+    {
+        params->assist_velocity_fallback_enabled = (value != 0.0f) ? RT_TRUE : RT_FALSE;
+    }
+    else if ((strcmp(key, "assist_vel_enter") == 0) ||
+             (strcmp(key, "assist_velocity_enter") == 0))
+    {
+        params->assist_velocity_enter_rad_s = value;
+    }
+    else if ((strcmp(key, "assist_vel_exit") == 0) ||
+             (strcmp(key, "assist_velocity_exit") == 0))
+    {
+        params->assist_velocity_exit_rad_s = value;
+    }
+    else if (strcmp(key, "assist_min") == 0)
+    {
+        params->assist_min_current_a = value;
+    }
+    else if ((strcmp(key, "assist_vel_gain") == 0) ||
+             (strcmp(key, "assist_velocity_gain") == 0))
+    {
+        params->assist_velocity_gain_a_per_rad_s = value;
+    }
+    else if ((strcmp(key, "assist_slew") == 0) ||
+             (strcmp(key, "assist_slew_step") == 0))
+    {
+        params->assist_slew_current_a_per_step = value;
     }
     else if (strcmp(key, "adaptive_enable") == 0)
     {
@@ -455,7 +496,7 @@ int rehab(int argc, char **argv)
         }
         if (argc < 4)
         {
-            rt_kprintf("usage: rehab cfg direction|active_min|active_max|active_gain|assist_max|assist_gain|adaptive_enable|adaptive_base|adaptive_load|adaptive_max|adaptive_step|assist_pid_enable|resist_pid_enable|pid_load_low|pid_load_high|pid_speed_low|pid_speed_high|assist_pid_*|resist_pid_*|assist_adrc_*|resist_adrc_*|adrc_beta1|adrc_beta2|adrc_beta3|resist_dir|resist_max|resist_gain <value>\n");
+            rt_kprintf("usage: rehab cfg direction|active_min|active_max|active_gain|active_vel_deadband|assist_max|assist_gain|assist_vel_enable|assist_vel_enter|assist_vel_exit|assist_min|assist_vel_gain|assist_slew|adaptive_enable|adaptive_base|adaptive_load|adaptive_max|adaptive_step|assist_pid_enable|resist_pid_enable|pid_load_low|pid_load_high|pid_speed_low|pid_speed_high|assist_pid_*|resist_pid_*|assist_adrc_*|resist_adrc_*|adrc_beta1|adrc_beta2|adrc_beta3|resist_dir|resist_max|resist_gain <value>\n");
             rehab_shell_print_params();
             return 0;
         }
