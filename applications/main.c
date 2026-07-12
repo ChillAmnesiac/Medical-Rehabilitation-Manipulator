@@ -35,14 +35,12 @@ __attribute__((weak)) struct _reent _impure_data;
 #define M33_CM55_AUTO_RESTART_ENABLE 0
 #define M33_IPC_PUMP_PERIOD_MS 5U
 #define M33_IPC_PUMP_STACK_SIZE 4096U
-#define M33_IPC_PUMP_THREAD_PRIORITY 9
 #define M33_IPC_INIT_STACK_SIZE 4096U
 #define M33_IPC_INIT_DELAY_MS 1000U
 #define M33_IPC_INIT_RETRY_MS 2000U
 #define M33_ENABLE_LED_HEARTBEAT 1
 #define M33_XIAOZHI_MINIMAL_FRAMEWORK 1
-#define M33_AUTO_START_CAN_CONTROL 1
-#define M33_AUTO_START_EMG_M55_INFERENCE 0
+#define M33_AUTO_START_EMG_M55_INFERENCE 1
 #define M33_AUTO_EMG_SAMPLE_PERIOD_MS 20U
 #define M33_AUTO_EMG_MANAGE_F103 1
 #define M33_ENABLE_M55_IPC_AUTO_INIT 0
@@ -850,7 +848,7 @@ static void m33_start_ipc_pump(void)
                                          m33_ipc_pump_entry,
                                          RT_NULL,
                                          M33_IPC_PUMP_STACK_SIZE,
-                                         M33_IPC_PUMP_THREAD_PRIORITY,
+                                         12,
                                          10);
     if (g_ipc_pump_thread == RT_NULL)
     {
@@ -973,7 +971,6 @@ static void m33_init_framework(void)
     g_m33_boot_marker = 0x33010002U;
 #if M33_XIAOZHI_MINIMAL_FRAMEWORK
     g_m33_boot_marker = 0x33020001U;
-#if M33_AUTO_START_CAN_CONTROL
     can_ret = can_driver_init();
     g_m33_boot_marker = 0x33020002U;
     if (can_ret == RT_EOK)
@@ -996,10 +993,6 @@ static void m33_init_framework(void)
         g_m33_boot_marker = 0x33030004U;
     }
     RT_UNUSED(can_ret);
-#else
-    can_ret = RT_EOK;
-    RT_UNUSED(can_ret);
-#endif
     g_m33_boot_marker = 0x3302FFFFU;
     return;
 #endif
@@ -1036,9 +1029,7 @@ int main(void)
 #if M33_XIAOZHI_MINIMAL_FRAMEWORK
     while (1)
     {
-#if M33_AUTO_START_CAN_CONTROL
         control_layer_poll_once();
-#endif
         g_runtime.loop_count++;
 #if M33_ENABLE_LED_HEARTBEAT
         rt_pin_write(LED_PIN_B, ((g_runtime.loop_count % 10U) == 0U) ? PIN_HIGH : PIN_LOW);

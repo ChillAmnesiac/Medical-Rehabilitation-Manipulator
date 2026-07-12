@@ -14,8 +14,8 @@
 #define M55_EMG_DEFAULT_STEP_MS 100U
 #define M55_EMG_STALE_AFTER_MS 250U
 #define M55_EMG_SAMPLE_RATE_HZ 50U
-#define M55_EMG_THREAD_STACK_SIZE 6144
-#define M55_EMG_THREAD_PRIORITY 10
+#define M55_EMG_THREAD_STACK_SIZE 3072
+#define M55_EMG_THREAD_PRIORITY 16
 
 typedef struct
 {
@@ -163,6 +163,11 @@ rt_err_t m55_emg_stream_bridge_publish_once(void)
     if (ret == RT_EOK)
     {
         g_m55_emg_stream.published_windows++;
+        rt_kprintf("[m55_emg] publish seq=%lu samples=%lu stale=%lu len=%lu\n",
+                   (unsigned long)seq,
+                   (unsigned long)g_m55_emg_stream.sample_count,
+                   (unsigned long)stale_count,
+                   (unsigned long)len);
     }
     else
     {
@@ -190,10 +195,7 @@ static void m55_emg_stream_entry(void *parameter)
     {
         control_sensor_node_sample_t node;
         rt_tick_t now = rt_tick_get();
-        rt_err_t ret;
-
-        control_layer_poll_once();
-        ret = control_get_sensor_node_sample(&node);
+        rt_err_t ret = control_get_sensor_node_sample(&node);
 
         if ((ret == RT_EOK) && (node.sensor_timestamp != 0U))
         {

@@ -34,7 +34,7 @@ void rehab_active_follow_step(const rehab_strategy_params_t *params,
                        params->active_current_gain_a_per_nm);
         out->effective_gain = params->active_current_gain_a_per_nm;
     }
-    else if (abs_vel >= params->active_velocity_deadband_rad_s)
+    else if (abs_vel >= CONTROL_REHAB_ACTIVE_VEL_DEADBAND_RAD_S)
     {
         current_sign = rehab_strategy_signf(fb->vel_rad_s);
         current_mag = params->active_min_current_a;

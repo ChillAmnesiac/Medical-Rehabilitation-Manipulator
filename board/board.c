@@ -10,7 +10,6 @@
  */
 
 #include "board.h"
-#include "cy_smif.h"
 #define ES8388_CTRL             GET_PIN(16, 2)
 #define SPEAKER_OE_CTRL         GET_PIN(21, 6)
 #define WIFI_OE_CTRL            GET_PIN(16, 3)
@@ -29,8 +28,6 @@ void cy_bsp_all_init(void)
     {
         CY_ASSERT(0);
     }
-
-    (void)Cy_SMIF_CacheInvalidate(SMIF0_CORE, CY_SMIF_CACHE_BOTH);
 
     if (CY_SYSLIB_RESET_HIB_WAKEUP == (Cy_SysLib_GetResetReason() &
                                        CY_SYSLIB_RESET_HIB_WAKEUP))

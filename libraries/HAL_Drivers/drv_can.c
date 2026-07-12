@@ -964,10 +964,14 @@ rt_err_t ifx_can_direct_send(const struct rt_can_msg *msg)
 rt_ssize_t ifx_can_direct_recv(struct rt_can_msg *msg)
 {
 #ifdef BSP_USING_CANFD0
-    cy_en_canfd_status_t result;
     struct ifx_can *can = &can_obj[CANFD0_INDEX];
     rt_uint32_t f0s;
     rt_uint32_t fill;
+    volatile const rt_uint32_t *top_data;
+    rt_uint32_t r0;
+    rt_uint32_t r1;
+    rt_uint32_t data0;
+    rt_uint32_t data1;
     rt_uint8_t dlc;
     rt_uint8_t len;
 
@@ -1011,46 +1015,35 @@ rt_ssize_t ifx_can_direct_recv(struct rt_can_msg *msg)
 
     rt_memset(msg, 0, sizeof(*msg));
 
-    can->rx_buffer.r0_f = &can->rx_r0;
-    can->rx_buffer.r1_f = &can->rx_r1;
-    can->rx_buffer.data_area_f = can->rx_data;
-    rt_memset(can->rx_data, 0, sizeof(can->rx_data));
+    CANFD_RXFTOP_CTL(can->config->can_x, can->config->channel) |=
+        _VAL2FLD(CANFD_CH_RXFTOP_CTL_F0TPE, 1U);
+    top_data = (volatile const rt_uint32_t *)&CANFD_RXFTOP0_DATA(can->config->can_x,
+                                                                 can->config->channel);
+    r0 = *top_data;
+    r1 = *top_data;
+    data0 = *top_data;
+    data1 = *top_data;
 
-    result = Cy_CANFD_ExtractMsgFromRXBuffer(can->config->can_x,
-                                             can->config->channel,
-                                             true,
-                                             CY_CANFD_RX_FIFO0,
-                                             &can->rx_buffer,
-                                             &can->context);
-    if (result != CY_CANFD_SUCCESS)
-    {
-        g_can_direct_rx_extract_fail_count++;
-        rt_kprintf("[drv_can] direct recv failed ret=%d f0s=0x%08lx\n",
-                   result,
-                   (unsigned long)f0s);
-        return -RT_ERROR;
-    }
-
-    msg->id = can->rx_r0.id;
-    msg->ide = (can->rx_r0.xtd == CY_CANFD_XTD_EXTENDED_ID) ? 1U : 0U;
-    msg->rtr = (can->rx_r0.rtr == CY_CANFD_RTR_REMOTE_FRAME) ? 1U : 0U;
-    msg->hdr_index = (rt_int8_t)can->rx_r1.fidx;
+    msg->ide = ((r0 & (1UL << 30)) != 0U) ? 1U : 0U;
+    msg->rtr = ((r0 & (1UL << 29)) != 0U) ? 1U : 0U;
+    msg->id = (msg->ide != 0U) ? (r0 & 0x1FFFFFFFUL) : ((r0 >> 18) & 0x7FFU);
+    msg->hdr_index = (rt_int8_t)((r1 >> 24) & 0x7FU);
     msg->rxfifo = CY_CANFD_RX_FIFO0;
 
-    dlc = (rt_uint8_t)can->rx_r1.dlc;
+    dlc = (rt_uint8_t)((r1 >> 16) & 0x0FU);
     len = can_dlc_to_len(dlc);
-    if (len > sizeof(msg->data))
-    {
-        len = (rt_uint8_t)sizeof(msg->data);
-    }
     msg->len = len;
 #if defined(RT_CAN_USING_CANFD)
-    msg->fd_frame = 0U;
-    msg->brs = 0U;
+    msg->fd_frame = ((r1 & (1UL << 21)) != 0U) ? 1U : 0U;
+    msg->brs = ((r1 & (1UL << 20)) != 0U) ? 1U : 0U;
 #endif
     if (len > 0U)
     {
-        rt_memcpy(msg->data, can->rx_data, len);
+        rt_memcpy(&msg->data[0], &data0, (len > 4U) ? 4U : len);
+        if (len > 4U)
+        {
+            rt_memcpy(&msg->data[4], &data1, len - 4U);
+        }
     }
 
     return (rt_ssize_t)sizeof(*msg);
