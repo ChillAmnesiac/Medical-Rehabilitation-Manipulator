@@ -16,3 +16,17 @@ Use the matching M33 shell command `m55qa_xz_latency` and benchmark script. A va
 If 900 ms EOU clips speech, change `XIAOZHI_EOU_SILENCE_MS` to 1100 ms and rebuild. If 1 slot/80 ms causes underrun or queue loss, use 2 slots/120 ms. Never accept faster timing with truncation, `tts_send_timeout`, queue loss, I2S underrun, WebSocket failure, or wake failure.
 
 Do not run motor or motion commands during voice latency QA. Do not request a CM55 restart while M33 BLE is active.
+
+## Persistent provisioning check
+
+After setting WiFi and the scoped XiaoZhi relay token, require this status before treating provisioning as complete:
+
+```text
+saved=1 storage=0 wlan=1
+xz_token=1 xz_ws=1 xz_stage=70
+tx_pending=0
+```
+
+Perform one no-erase board reset and check the same fields again. `wifi_save ret=0` by itself is not proof of persistence. Never place a vendor model API key on the board; use only a scoped `rehab-relay.v1` token bound to the intended project and device.
+
+Application-only flashing at `0x60580400` does not erase the configuration sectors at `0x60FF0000-0x60FFFFFF`. Do not use a chip erase when updating M55 unless configuration loss is intentional and reprovisioning is planned.
