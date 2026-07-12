@@ -13,6 +13,12 @@ def test_m55_xiaozhi_latency_contract() -> None:
     assert "VOICE_LATENCY_FLAG_QA_TEXT" in comm
     assert "voice_latency" in comm
     assert '#define XIAOZHI_EOU_SILENCE_MS       900U' in voice
+    assert '#define XIAOZHI_EOU_MANUAL_MIN_RECORD_MS 900U' in voice
+    assert '#define XIAOZHI_EOU_VOICE_PEAK       1200U' in voice
+    assert '#define XIAOZHI_EOU_VOICE_AVG        400U' in voice
+    assert '(model_result->peak >= XIAOZHI_EOU_VOICE_PEAK) &&' in voice
+    assert '(model_result->avg_abs >= XIAOZHI_EOU_VOICE_AVG)' in voice
+    assert 'g_service.xiaozhi_voice_seen_frames = 0U;' in voice
     assert '#define VOICE_TTS_PREBUFFER_MIN_SLOTS 1U' in voice
     assert '#define VOICE_TTS_PREBUFFER_MAX_MS   80U' in voice
     assert '"m55-%08lx-%04lx"' in voice

@@ -57,11 +57,11 @@ extern rt_uint32_t ifx_i2s_tx_frame_ready_count(void);
 #define WAKE_GATE_MIN_ACTIVE_FRAMES  (20U)
 #define VOICE_STATUS_PUBLISH_EVERY_FRAMES 20U
 #define XIAOZHI_EOU_MIN_RECORD_MS    900U
-#define XIAOZHI_EOU_MANUAL_MIN_RECORD_MS 3500U
+#define XIAOZHI_EOU_MANUAL_MIN_RECORD_MS 900U
 #define XIAOZHI_EOU_SILENCE_MS       900U
 #define XIAOZHI_EOU_MAX_RECORD_MS    12000U
-#define XIAOZHI_EOU_SILENCE_PEAK     700U
-#define XIAOZHI_EOU_SILENCE_AVG      120U
+#define XIAOZHI_EOU_VOICE_PEAK       1200U
+#define XIAOZHI_EOU_VOICE_AVG        400U
 #define XIAOZHI_EOU_VOICE_FRAMES     3U
 #define XIAOZHI_THINKING_TIMEOUT_MS  12000U
 #define XIAOZHI_TALK_HELLO_WAIT_MS   8000U
@@ -3050,8 +3050,8 @@ static rt_bool_t voice_service_update_xiaozhi_eou(const voice_model_result_t *mo
     }
 
     now = rt_tick_get();
-    voice_seen = ((model_result->peak >= XIAOZHI_EOU_SILENCE_PEAK) ||
-                  (model_result->avg_abs >= XIAOZHI_EOU_SILENCE_AVG)) ? RT_TRUE : RT_FALSE;
+    voice_seen = ((model_result->peak >= XIAOZHI_EOU_VOICE_PEAK) &&
+                  (model_result->avg_abs >= XIAOZHI_EOU_VOICE_AVG)) ? RT_TRUE : RT_FALSE;
 
     rt_mutex_take(&g_service.lock, RT_WAITING_FOREVER);
     active = g_service.xiaozhi_listening_active;
@@ -3072,8 +3072,6 @@ static rt_bool_t voice_service_update_xiaozhi_eou(const voice_model_result_t *mo
 
     if (voice_seen)
     {
-        g_service.xiaozhi_last_voice_tick = now;
-        g_service.latency_last_voice_tick = now;
         if (g_service.xiaozhi_voice_seen_frames < XIAOZHI_EOU_VOICE_FRAMES)
         {
             g_service.xiaozhi_voice_seen_frames++;
@@ -3081,7 +3079,13 @@ static rt_bool_t voice_service_update_xiaozhi_eou(const voice_model_result_t *mo
         if (g_service.xiaozhi_voice_seen_frames >= XIAOZHI_EOU_VOICE_FRAMES)
         {
             g_service.xiaozhi_voice_seen = RT_TRUE;
+            g_service.xiaozhi_last_voice_tick = now;
+            g_service.latency_last_voice_tick = now;
         }
+    }
+    else
+    {
+        g_service.xiaozhi_voice_seen_frames = 0U;
     }
     started = g_service.xiaozhi_listening_start_tick;
     last_voice = g_service.xiaozhi_last_voice_tick;

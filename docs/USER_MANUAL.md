@@ -30,3 +30,9 @@ tx_pending=0
 Perform one no-erase board reset and check the same fields again. `wifi_save ret=0` by itself is not proof of persistence. Never place a vendor model API key on the board; use only a scoped `rehab-relay.v1` token bound to the intended project and device.
 
 Application-only flashing at `0x60580400` does not erase the configuration sectors at `0x60FF0000-0x60FFFFFF`. Do not use a chip erase when updating M55 unless configuration loss is intentional and reprovisioning is planned.
+
+## End-of-utterance behavior
+
+Both wake-word and manual/LVGL turns use the same rule: after speech has been confirmed, 900 ms of continuous silence ends listening and starts the next processing stage. The 12-second recording limit is a fault cap, not the normal interaction delay.
+
+Validate with short and long sentences. Pass requires listening to end near 900 ms after the last syllable with no clipped ending. If real speech endings are clipped, use 1100 ms; do not raise the room-noise activity sensitivity. PCM probe mode intentionally bypasses auto EOU for deterministic QA audio injection.

@@ -41,3 +41,24 @@ Unverified:
 
 Next:
 - Continue the planned XiaoZhi latency benchmark without reflashing or erasing the new configuration sectors.
+
+## 2026-07-12 - XiaoZhi local end-of-utterance no longer extends on room noise
+
+Completed:
+- Kept the product rule that a turn advances after 900 ms of continuous post-speech silence.
+- Replaced the permissive `peak >= 700 OR avg >= 120` activity check with a calibrated `peak >= 1200 AND avg >= 400` check.
+- Required three consecutive active frames before updating the last-voice timestamp and reset the streak on a quiet frame.
+- Reduced the manual/LVGL recording minimum from 3500 ms to 900 ms; the dedicated PCM probe path remains exempt from auto EOU.
+
+Validated:
+- All latency, SDIO, Opus, EMG bridge, and TFLM contract tests passed.
+- GCC 13.3 build passed: `text=1721108 data=81472 bss=4531724`.
+- Flashed HEX SHA256 `A463298A74B7933128CAC91072C5F031531A683140BCF7DE06AA28A75F478B3E`; OpenOCD wrote 1,806,336 bytes and verified 1,802,580 bytes.
+- After flash, the board retained `saved=1 storage=0 wlan=1 xz_token=1 xz_ws=1 xz_stage=70 tx_pending=0`.
+- Quiet-room samples such as `peak=709 avg=179` and `peak=550 avg=209` remain below the new gate instead of refreshing the last-voice timestamp.
+
+Unverified:
+- No new wake/listen transition occurred during the 45-second observation window, so a human-spoken turn still needs confirmation that stop occurs about 900 ms after speech ends without clipping the last syllable.
+
+Next:
+- Speak at least five short and five long real turns. Keep 900 ms if there is no clipping; use 1100 ms only if sentence endings are cut.

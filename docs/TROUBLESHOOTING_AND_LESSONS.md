@@ -42,3 +42,22 @@ Fix / trick:
 
 Status:
 - Fixed and hardware-validated on KitProg3 `1C161868022E2400`.
+
+## 2026-07-12 - Listening appeared to wait for the 12-second cap
+
+Symptoms:
+- The UI remained in listening after the operator stopped speaking even though `XIAOZHI_EOU_SILENCE_MS` was already 900 ms.
+- Manual/LVGL recording could not stop before 3500 ms.
+
+Root cause:
+- The EOU activity gate used `peak >= 700 OR avg >= 120`, while normal room noise measured roughly `peak=550-800` and `avg=179-300`. Noise therefore refreshed `xiaozhi_last_voice_tick` continuously.
+- The separate 3500 ms manual minimum added fixed delay that contradicted the silence-driven interaction rule.
+
+Fix / trick:
+- Calibrate the EOU gate from real idle PCM, not from the intended constant name.
+- Require both peak and average thresholds plus a short consecutive-frame confirmation.
+- Keep the 12-second limit only as a fault cap; normal turns should end through the 900 ms silence condition.
+- Keep real speech clipping as the rollback signal: move to 1100 ms if needed, but do not restore the noisy activity gate.
+
+Status:
+- Code, build, flash, persistence, and idle-noise checks passed. Real spoken-turn timing remains to be observed.
