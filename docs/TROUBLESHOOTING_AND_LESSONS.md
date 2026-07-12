@@ -1,5 +1,25 @@
 # Troubleshooting And Lessons
 
+## 2026-07-12 - A successful SCons exit code does not prove a flashable M33 image
+
+Symptoms:
+- `python -m SCons -j8` printed `toolchain path ... C:\Users\XXYYZZ is not exist` but returned exit code 0.
+- After a real GCC 13.3 build, `build/rtthread.hex` still began with `:020000040834BE` because secure packaging was skipped when the local boot config/tool wrapper was absent.
+- Windows showed no present `VID_04B4` device and no COM port, so OpenOCD/serial QA could not run.
+
+Root cause:
+- `rtconfig.py` contains a placeholder default and requires the Studio GCC path through `RTT_EXEC_PATH`.
+- A raw M33 ELF/HEX is linked at the `0x0834...` alias; the SMIF OpenOCD path requires the relocated `0x6034...` image.
+- Historical COM26 entries are not proof that KitProg is physically present.
+
+Fix / reusable trick:
+- Build with `RTT_EXEC_PATH=D:\RT-ThreadStudio\repo\Extract\ToolChain_Support_Packages\ARM\GNU_Tools_for_ARM_Embedded_Processors\13.3\bin`.
+- Relocate `rtthread.hex` with region `0x08000000 0x04000000 0x60000000`; require first line `:02000004603466` before flashing.
+- Require a present `USB\VID_04B4*` device and a live serial port before claiming flash or hardware validation.
+
+Status:
+- Build and relocation fixed. Hardware validation remains blocked until KitProg is reconnected.
+
 ## 2026-06-26 - Shallow `m55qa_status` Means CM55 IPC Attach May Be Rejected
 
 Symptoms:

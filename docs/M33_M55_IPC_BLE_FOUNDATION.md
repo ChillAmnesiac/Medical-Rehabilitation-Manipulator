@@ -47,6 +47,12 @@ The NUS TX mutex serializes a whole fragmented JSON frame with command acknowled
 - BLE callbacks and the BLE worker do not consume IPC and do not publish motion commands through IPC.
 - `m55qa_status` is the primary read-only shell check; a healthy idle state has `ipc_ready=1` and `tx_pending=0`.
 
+### XiaoZhi latency record
+
+`MSG_TYPE_VOICE_LATENCY` is a one-shot M55 -> M33 observation message emitted only after the first successful non-zero `sound0` write of a turn. It contains the turn sequence, path flags, and millisecond deltas for wake/listen, EOU, STT, LLM, TTS start, first packet, and first speaker write. It contains no credentials, transcript, raw audio, control request, or motion permission.
+
+M33 caches only the latest record and exposes it through `m55qa_xz_latency`. The existing single IPC pump remains the only consumer. Latency flags are `VALID=0x1`, `REAL_WAKE=0x2`, `MANUAL=0x4`, and `QA_TEXT=0x8`.
+
 ## Validation Boundary
 
 BLE validation may scan, connect, subscribe, send the three allowed commands, inspect telemetry, disconnect, and confirm advertising recovery. It must not execute `move`, mode changes, motor enable, speed, position, torque, or any other motion command.
