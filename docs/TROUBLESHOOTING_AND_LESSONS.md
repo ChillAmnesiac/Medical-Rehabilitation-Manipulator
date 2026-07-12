@@ -2257,3 +2257,21 @@ Fix / reusable trick:
 
 Status:
 - Operational restriction documented. A full system reset restored M55, Bluetooth, NUS, heartbeat, and zero Fault registers.
+
+## 2026-07-12 - An old feature branch can already be fully contained by M33
+
+Symptoms:
+- Comparing `codex/m33-emg-only-20260704`, formal `M33`, and the BLE recovery branch can look like a three-way code merge is required.
+- A clean build in a new worktree can produce a different HEX SHA256 even when the Git tree and linked size match the hardware-validated worktree.
+
+Root cause:
+- `codex/m33-emg-only-20260704@8854531d` is already an ancestor of `M33@24bae363`; it has zero unique commits and M33 has 18 later commits.
+- The linked image embeds worktree-dependent absolute paths, so byte hashes can differ across directories. The raw SCons HEX is also still at `0x0834...` until Edge Protect relocation/merge moves it to `0x6034...`.
+
+Fix / reusable trick:
+- Prove ancestry with `git merge-base`, `git rev-list --left-right --count`, and `git cherry` before replaying an old feature branch. Treat `Already up to date` as the correct merge result and do not manufacture an empty merge commit.
+- Require the expected firmware size and `:02000004603466` first line after Edge Protect. Preserve the exact hash of the image actually flashed, but do not use a hash from another worktree as the sole source-equivalence test.
+- Use the `WEN/` namespace for these recovery/integration branches; do not recreate them under `codex/`.
+
+Status:
+- Resolved. EMG tooling, the M55 EMG bridge, readonly BLE, heartbeat, IPC, CAN/control, and safety sources all remain in the current M33 tree; live external CAN/EMG input is still awaiting physical bus acknowledgement.

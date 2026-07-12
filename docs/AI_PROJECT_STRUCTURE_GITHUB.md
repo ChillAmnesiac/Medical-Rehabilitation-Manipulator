@@ -111,6 +111,7 @@ The repository uses branches as subsystem homes.
 |---|---|---|
 | `feature/rehab-arm-ros2-architecture` | ROS2, NanoPi bridge, MuJoCo, docs, protocols, dry-run, profile, main integration | This document, `CURRENT_MAINLINES.md`, `REHAB_ARM_SYSTEM_ARCHITECTURE.md`, `用户手册.md` |
 | `M33` | Infineon M33 firmware, CAN master, safety state machine, motor control, M33/M55 IPC, BLE near-field entry | `PSOC_CAN_PROTOCOL_V1.md`, `M33_SAFETY_INPUT_MAPPING.md`, `M33_M55_IPC_BLE_FOUNDATION.md` |
+| `WEN/m33-emg-ble-integrated-20260712` | M33 integration/audit branch based on `M33@24bae363`; includes the historical EMG training-tool baseline and the hardware-validated readonly BLE recovery | `M33_M55_IPC_BLE_FOUNDATION.md`, `项目进展.md`, `TROUBLESHOOTING_AND_LESSONS.md` |
 | `M55` | Infineon M55 WiFi, XiaoZhi voice/audio L link, LVGL user experience, wake word, model runtime, model result bridge | `M55_MODEL_DEPLOYMENT_GUIDE.md`, `M55_MODEL_RESULT_PROTOCOL_V1.md`, `VOICE_WAKE_TTS_PORTABILITY_GUIDE.md`, M55 branch root `wifi避坑文档.md` |
 | `C8T6` | STM32F103C8T6 sensor node, CAN transport, EMG/IMU/health sensing | `PSOC_CAN_PROTOCOL_V1.md`, `TROUBLESHOOTING_AND_LESSONS.md` |
 | `APP` | Android App, BLE UI, 3D arm view, local patient/operator interaction | `COMMAND_CENTER_APP_PROTOCOL_V1.md`, `APP_CONNECTION_GUIDE.md` |
