@@ -40,8 +40,8 @@ extern rt_uint32_t ifx_i2s_tx_frame_ready_count(void);
 #define VOICE_TTS_REPLAY_QUEUE_HIGH_WATER 6U
 #define VOICE_TTS_REPLAY_WAIT_MS     300U
 #define VOICE_TTS_DRAIN_MAX_PER_LOOP  16U
-#define VOICE_TTS_PREBUFFER_MIN_SLOTS 2U
-#define VOICE_TTS_PREBUFFER_MAX_MS   180U
+#define VOICE_TTS_PREBUFFER_MIN_SLOTS 1U
+#define VOICE_TTS_PREBUFFER_MAX_MS   80U
 #define VOICE_TTS_THREAD_PRIORITY    19U
 #define VOICE_TTS_THREAD_WAIT_MS      5U
 #define VOICE_TTS_PROCESS_MAX_PER_BATCH 4U
@@ -58,7 +58,7 @@ extern rt_uint32_t ifx_i2s_tx_frame_ready_count(void);
 #define VOICE_STATUS_PUBLISH_EVERY_FRAMES 20U
 #define XIAOZHI_EOU_MIN_RECORD_MS    900U
 #define XIAOZHI_EOU_MANUAL_MIN_RECORD_MS 3500U
-#define XIAOZHI_EOU_SILENCE_MS       1400U
+#define XIAOZHI_EOU_SILENCE_MS       900U
 #define XIAOZHI_EOU_MAX_RECORD_MS    12000U
 #define XIAOZHI_EOU_SILENCE_PEAK     700U
 #define XIAOZHI_EOU_SILENCE_AVG      120U
@@ -219,6 +219,18 @@ typedef struct
     rt_int32_t service_last_consume_ret;
     rt_uint32_t service_diag_phase;
     rt_tick_t xiaozhi_thinking_since_tick;
+    rt_uint32_t latency_turn_seq;
+    rt_uint32_t latency_flags;
+    rt_tick_t latency_boot_tick;
+    rt_tick_t latency_wake_tick;
+    rt_tick_t latency_listen_tick;
+    rt_tick_t latency_last_voice_tick;
+    rt_tick_t latency_stop_tick;
+    rt_tick_t latency_stt_tick;
+    rt_tick_t latency_llm_tick;
+    rt_tick_t latency_tts_start_tick;
+    rt_tick_t latency_first_packet_tick;
+    rt_bool_t latency_published;
     rt_bool_t xiaozhi_server_hello_seen;
     char xiaozhi_listening_session_id[XIAOZHI_SESSION_ID_MAX_LEN];
     rt_uint8_t xiaozhi_audio_frame[XIAOZHI_AUDIO_FRAME_BYTES];
@@ -296,6 +308,105 @@ static void voice_service_flush_xiaozhi_tail_frame(void);
 static void voice_service_start_async_reconnect(void);
 
 static voice_service_t g_service;
+
+static rt_uint32_t voice_service_tick_delta_ms(rt_tick_t start, rt_tick_t end)
+{
+    if ((start == 0U) || (end == 0U) || ((rt_int32_t)(end - start) < 0))
+    {
+        return 0U;
+    }
+    return (rt_uint32_t)((end - start) * 1000U / RT_TICK_PER_SECOND);
+}
+
+static void voice_service_publish_latency(rt_tick_t first_write_tick)
+{
+    m33_m55_message_t msg;
+    rt_err_t ret;
+
+    if (g_service.latency_published || (first_write_tick == 0U))
+    {
+        return;
+    }
+
+    rt_memset(&msg, 0, sizeof(msg));
+    msg.type = MSG_TYPE_VOICE_LATENCY;
+    msg.payload.voice_latency.turn_seq = g_service.latency_turn_seq;
+    msg.payload.voice_latency.flags = g_service.latency_flags;
+    msg.payload.voice_latency.wake_to_listen_ms =
+        voice_service_tick_delta_ms(g_service.latency_wake_tick, g_service.latency_listen_tick);
+    msg.payload.voice_latency.last_voice_to_stop_ms =
+        voice_service_tick_delta_ms(g_service.latency_last_voice_tick, g_service.latency_stop_tick);
+    msg.payload.voice_latency.stop_to_stt_ms =
+        voice_service_tick_delta_ms(g_service.latency_stop_tick, g_service.latency_stt_tick);
+    msg.payload.voice_latency.stt_to_llm_ms =
+        voice_service_tick_delta_ms(g_service.latency_stt_tick, g_service.latency_llm_tick);
+    msg.payload.voice_latency.llm_to_tts_start_ms =
+        voice_service_tick_delta_ms(g_service.latency_llm_tick, g_service.latency_tts_start_tick);
+    msg.payload.voice_latency.tts_start_to_first_packet_ms =
+        voice_service_tick_delta_ms(g_service.latency_tts_start_tick, g_service.latency_first_packet_tick);
+    msg.payload.voice_latency.first_packet_to_first_write_ms =
+        voice_service_tick_delta_ms(g_service.latency_first_packet_tick, first_write_tick);
+    msg.payload.voice_latency.speech_end_to_first_write_ms =
+        voice_service_tick_delta_ms(g_service.latency_last_voice_tick, first_write_tick);
+    msg.payload.voice_latency.wake_to_first_write_ms =
+        voice_service_tick_delta_ms(g_service.latency_wake_tick, first_write_tick);
+
+    ret = m33_m55_comm_publish(&msg);
+    if (ret == RT_EOK)
+    {
+        g_service.latency_published = RT_TRUE;
+    }
+    rt_kprintf("[voice_service] latency turn=%lu speech_to_audio=%lums stop_to_stt=%lums stt_to_llm=%lums llm_to_tts=%lums first_packet_to_write=%lums ret=%d\n",
+               (unsigned long)msg.payload.voice_latency.turn_seq,
+               (unsigned long)msg.payload.voice_latency.speech_end_to_first_write_ms,
+               (unsigned long)msg.payload.voice_latency.stop_to_stt_ms,
+               (unsigned long)msg.payload.voice_latency.stt_to_llm_ms,
+               (unsigned long)msg.payload.voice_latency.llm_to_tts_start_ms,
+               (unsigned long)msg.payload.voice_latency.first_packet_to_first_write_ms,
+               ret);
+}
+
+static rt_bool_t voice_service_next_session(char *session_id,
+                                            rt_size_t session_id_len,
+                                            rt_tick_t wake_tick,
+                                            rt_uint32_t latency_flags)
+{
+    rt_tick_t now = rt_tick_get();
+
+    if ((session_id == RT_NULL) || (session_id_len == 0U))
+    {
+        return RT_FALSE;
+    }
+
+    rt_mutex_take(&g_service.lock, RT_WAITING_FOREVER);
+    if (!g_service.xiaozhi_server_hello_seen)
+    {
+        rt_mutex_release(&g_service.lock);
+        return RT_FALSE;
+    }
+    if (g_service.latency_boot_tick == 0U)
+    {
+        g_service.latency_boot_tick = now;
+    }
+    g_service.latency_turn_seq++;
+    g_service.latency_flags = VOICE_LATENCY_FLAG_VALID | latency_flags;
+    rt_snprintf(session_id,
+                session_id_len,
+                "m55-%08lx-%04lx",
+                (unsigned long)g_service.latency_boot_tick,
+                (unsigned long)(g_service.latency_turn_seq & 0xffffU));
+    g_service.latency_wake_tick = (wake_tick != 0U) ? wake_tick : now;
+    g_service.latency_listen_tick = now;
+    g_service.latency_last_voice_tick = now;
+    g_service.latency_stop_tick = 0U;
+    g_service.latency_stt_tick = 0U;
+    g_service.latency_llm_tick = 0U;
+    g_service.latency_tts_start_tick = 0U;
+    g_service.latency_first_packet_tick = 0U;
+    g_service.latency_published = RT_FALSE;
+    rt_mutex_release(&g_service.lock);
+    return RT_TRUE;
+}
 
 static rt_uint32_t voice_service_text_code4(const char *text)
 {
@@ -1559,6 +1670,8 @@ static rt_bool_t voice_service_stream_pcm_to_m55_speaker(const uint8_t *audio_da
                 return RT_FALSE;
             }
 
+            voice_service_publish_latency(rt_tick_get());
+
             rt_mutex_take(&g_service.lock, RT_WAITING_FOREVER);
             g_service.xiaozhi_tts_forward_chunks++;
             g_service.xiaozhi_tts_forward_bytes += (rt_uint32_t)written;
@@ -1645,6 +1758,7 @@ static rt_bool_t voice_service_flush_m55_speaker(void)
         g_service.service_last_consume_ret = -RT_ERROR;
         return RT_FALSE;
     }
+    voice_service_publish_latency(rt_tick_get());
 
     rt_mutex_take(&g_service.lock, RT_WAITING_FOREVER);
     g_service.xiaozhi_tts_forward_chunks++;
@@ -1865,6 +1979,11 @@ static void voice_service_enqueue_tts_payload(const uint8_t *payload,
                    (unsigned long)payload_len,
                    (unsigned long)VOICE_TTS_PENDING_SLOT_COUNT);
         return;
+    }
+
+    if (g_service.latency_first_packet_tick == 0U)
+    {
+        g_service.latency_first_packet_tick = rt_tick_get();
     }
 
     {
@@ -2212,25 +2331,15 @@ static void voice_service_start_xiaozhi_listening(const char *wake_word)
         return;
     }
 
-    rt_mutex_take(&g_service.lock, RT_WAITING_FOREVER);
     rt_memset(session_id, 0, sizeof(session_id));
-    rt_strncpy(session_id, g_service.xiaozhi_session_id, sizeof(session_id) - 1);
-    rt_mutex_release(&g_service.lock);
-
-    if (session_id[0] == '\0')
+    if (!voice_service_next_session(session_id,
+                                    sizeof(session_id),
+                                    g_service.wake_last_trigger_tick,
+                                    VOICE_LATENCY_FLAG_REAL_WAKE))
     {
-        rt_bool_t hello_seen;
-
-        rt_mutex_take(&g_service.lock, RT_WAITING_FOREVER);
-        hello_seen = g_service.xiaozhi_server_hello_seen;
-        rt_mutex_release(&g_service.lock);
-        if (!hello_seen)
-        {
-            rt_kprintf("[voice_service] Xiaozhi listening deferred: no server hello yet\n");
-            xiaozhi_ui_state_set(XIAOZHI_UI_CONNECTING, "等待小智会话", -RT_EEMPTY);
-            return;
-        }
-        rt_strncpy(session_id, XIAOZHI_LOCAL_SESSION_ID, sizeof(session_id) - 1);
+        rt_kprintf("[voice_service] Xiaozhi listening deferred: no server hello yet\n");
+        xiaozhi_ui_state_set(XIAOZHI_UI_CONNECTING, "等待小智会话", -RT_EEMPTY);
+        return;
     }
 
     if (xiaozhi_voice_relay_build_listen_start(json,
@@ -2300,24 +2409,14 @@ static rt_err_t voice_service_start_xiaozhi_manual_listening(void)
         }
     }
 
-    rt_mutex_take(&g_service.lock, RT_WAITING_FOREVER);
     rt_memset(session_id, 0, sizeof(session_id));
-    rt_strncpy(session_id, g_service.xiaozhi_session_id, sizeof(session_id) - 1);
-    rt_mutex_release(&g_service.lock);
-
-    if (session_id[0] == '\0')
+    if (!voice_service_next_session(session_id,
+                                    sizeof(session_id),
+                                    rt_tick_get(),
+                                    VOICE_LATENCY_FLAG_MANUAL))
     {
-        rt_bool_t hello_seen;
-
-        rt_mutex_take(&g_service.lock, RT_WAITING_FOREVER);
-        hello_seen = g_service.xiaozhi_server_hello_seen;
-        rt_mutex_release(&g_service.lock);
-        if (!hello_seen)
-        {
-            rt_kprintf("[voice_service] Xiaozhi manual listening continuing before hello session=%s\n",
-                       XIAOZHI_LOCAL_SESSION_ID);
-        }
-        rt_strncpy(session_id, XIAOZHI_LOCAL_SESSION_ID, sizeof(session_id) - 1);
+        rt_kprintf("[voice_service] Xiaozhi manual listening deferred: no server hello yet\n");
+        return -RT_EEMPTY;
     }
 
     ret = xiaozhi_voice_relay_build_listen_start(json,
@@ -2499,16 +2598,21 @@ rt_err_t voice_service_qa_xiaozhi_text_turn(const char *text)
     rt_mutex_take(&g_service.lock, RT_WAITING_FOREVER);
     hello_seen = g_service.xiaozhi_server_hello_seen ||
                  ((g_service.xiaozhi_server_hello_count > 0U) && websocket_client_is_connected());
-    rt_memset(session_id, 0, sizeof(session_id));
-    rt_strncpy(session_id,
-               g_service.xiaozhi_session_id[0] ? g_service.xiaozhi_session_id : XIAOZHI_LOCAL_SESSION_ID,
-               sizeof(session_id) - 1);
     rt_mutex_release(&g_service.lock);
 
     if (!hello_seen)
     {
         voice_service_send_xiaozhi_hello();
         (void)voice_service_wait_xiaozhi_hello(1500U);
+    }
+
+    rt_memset(session_id, 0, sizeof(session_id));
+    if (!voice_service_next_session(session_id,
+                                    sizeof(session_id),
+                                    rt_tick_get(),
+                                    VOICE_LATENCY_FLAG_QA_TEXT))
+    {
+        return -RT_EEMPTY;
     }
 
     ret = xiaozhi_voice_relay_build_listen_start(json,
@@ -2557,6 +2661,7 @@ rt_err_t voice_service_qa_xiaozhi_text_turn(const char *text)
         rt_mutex_take(&g_service.lock, RT_WAITING_FOREVER);
         g_service.xiaozhi_listen_stop_result = ret;
         g_service.xiaozhi_listen_stop_count++;
+        g_service.latency_stop_tick = rt_tick_get();
         g_service.xiaozhi_listening_active = RT_FALSE;
         g_service.xiaozhi_audio_frame_len = 0;
         g_service.wake_listening = xiaozhi_wake_engine_is_ready() ? RT_TRUE : RT_FALSE;
@@ -2968,6 +3073,7 @@ static rt_bool_t voice_service_update_xiaozhi_eou(const voice_model_result_t *mo
     if (voice_seen)
     {
         g_service.xiaozhi_last_voice_tick = now;
+        g_service.latency_last_voice_tick = now;
         if (g_service.xiaozhi_voice_seen_frames < XIAOZHI_EOU_VOICE_FRAMES)
         {
             g_service.xiaozhi_voice_seen_frames++;
@@ -3114,6 +3220,7 @@ static rt_err_t voice_service_send_xiaozhi_listen_stop(const char *session_id,
     if (ret == RT_EOK)
     {
         g_service.xiaozhi_listen_stop_count++;
+        g_service.latency_stop_tick = rt_tick_get();
     }
     rt_mutex_release(&g_service.lock);
     if (ret != RT_EOK)
@@ -3202,6 +3309,19 @@ static void voice_service_handle_server_text(const char *message)
     g_service.xiaozhi_server_last_reason_code =
         ((reason_code & 0xffffU) | ((raw_len & 0xffffU) << 16U));
     rt_mutex_release(&g_service.lock);
+
+    if (rt_strcmp(type, "stt") == 0)
+    {
+        g_service.latency_stt_tick = rt_tick_get();
+    }
+    else if (rt_strcmp(type, "llm") == 0)
+    {
+        g_service.latency_llm_tick = rt_tick_get();
+    }
+    else if ((rt_strcmp(type, "tts") == 0) && (rt_strcmp(state, "start") == 0))
+    {
+        g_service.latency_tts_start_tick = rt_tick_get();
+    }
 
     rt_kprintf("[voice_service] server event type=%s state=%s session=%s text=%u content=%u speak=%u raw=%lu hint=0x%08lx err=%s reason=%s code=%s\n",
                type[0] ? type : "(none)",

@@ -24,7 +24,8 @@ typedef enum
     MSG_TYPE_VOICE_CONTROL,
     MSG_TYPE_VOICE_CONTROL_ACK,
     MSG_TYPE_VOICE_STATUS,
-    MSG_TYPE_VOICE_CONFIG
+    MSG_TYPE_VOICE_CONFIG,
+    MSG_TYPE_VOICE_LATENCY
 } m33_m55_msg_type_t;
 
 typedef enum
@@ -260,6 +261,26 @@ typedef struct
     char netdev_name[RT_NAME_MAX];
 } voice_status_msg_t;
 
+#define VOICE_LATENCY_FLAG_VALID       (1UL << 0)
+#define VOICE_LATENCY_FLAG_REAL_WAKE   (1UL << 1)
+#define VOICE_LATENCY_FLAG_MANUAL      (1UL << 2)
+#define VOICE_LATENCY_FLAG_QA_TEXT     (1UL << 3)
+
+typedef struct
+{
+    rt_uint32_t turn_seq;
+    rt_uint32_t flags;
+    rt_uint32_t wake_to_listen_ms;
+    rt_uint32_t last_voice_to_stop_ms;
+    rt_uint32_t stop_to_stt_ms;
+    rt_uint32_t stt_to_llm_ms;
+    rt_uint32_t llm_to_tts_start_ms;
+    rt_uint32_t tts_start_to_first_packet_ms;
+    rt_uint32_t first_packet_to_first_write_ms;
+    rt_uint32_t speech_end_to_first_write_ms;
+    rt_uint32_t wake_to_first_write_ms;
+} voice_latency_msg_t;
+
 typedef struct
 {
     m33_m55_msg_type_t type;
@@ -274,6 +295,7 @@ typedef struct
         voice_control_msg_t voice_control;
         voice_status_msg_t voice_status;
         voice_config_msg_t voice_config;
+        voice_latency_msg_t voice_latency;
     } payload;
 } m33_m55_message_t;
 
