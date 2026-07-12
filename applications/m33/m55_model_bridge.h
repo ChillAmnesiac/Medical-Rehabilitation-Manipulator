@@ -24,6 +24,9 @@ rt_bool_t m55_model_bridge_get_voice_ack(rt_uint32_t *seq,
 rt_bool_t m55_model_bridge_get_voice_status(voice_status_msg_t *status,
                                             rt_uint32_t *seq,
                                             rt_tick_t *timestamp);
+rt_bool_t m55_model_bridge_get_voice_latency(voice_latency_msg_t *latency,
+                                             rt_uint32_t *seq,
+                                             rt_tick_t *timestamp);
 
 #ifdef __cplusplus
 }

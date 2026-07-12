@@ -36,9 +36,17 @@ typedef struct
     rt_tick_t timestamp;
 } m55_voice_status_state_t;
 
+typedef struct
+{
+    rt_uint32_t seq;
+    voice_latency_msg_t latency;
+    rt_tick_t timestamp;
+} m55_voice_latency_state_t;
+
 static m55_model_bridge_state_t g_m55_model_state;
 static m55_voice_ack_state_t g_m55_voice_ack_state;
 static m55_voice_status_state_t g_m55_voice_status_state;
+static m55_voice_latency_state_t g_m55_voice_latency_state;
 
 static rt_uint16_t confidence_to_permille(float confidence)
 {
@@ -58,6 +66,7 @@ void m55_model_bridge_init(void)
     rt_memset(&g_m55_model_state, 0, sizeof(g_m55_model_state));
     rt_memset(&g_m55_voice_ack_state, 0, sizeof(g_m55_voice_ack_state));
     rt_memset(&g_m55_voice_status_state, 0, sizeof(g_m55_voice_status_state));
+    rt_memset(&g_m55_voice_latency_state, 0, sizeof(g_m55_voice_latency_state));
 }
 
 static void m55_model_bridge_handle_ai_result(const m33_m55_message_t *msg)
@@ -141,6 +150,13 @@ static void m55_model_bridge_handle_voice_status(const m33_m55_message_t *msg)
     g_m55_voice_status_state.timestamp = rt_tick_get();
 }
 
+static void m55_model_bridge_handle_voice_latency(const m33_m55_message_t *msg)
+{
+    g_m55_voice_latency_state.seq = msg->seq;
+    g_m55_voice_latency_state.latency = msg->payload.voice_latency;
+    g_m55_voice_latency_state.timestamp = rt_tick_get();
+}
+
 void m55_model_bridge_handle_message(const m33_m55_message_t *msg)
 {
     if (msg == RT_NULL)
@@ -165,9 +181,35 @@ void m55_model_bridge_handle_message(const m33_m55_message_t *msg)
     case MSG_TYPE_VOICE_STATUS:
         m55_model_bridge_handle_voice_status(msg);
         break;
+    case MSG_TYPE_VOICE_LATENCY:
+        m55_model_bridge_handle_voice_latency(msg);
+        break;
     default:
         break;
     }
+}
+
+rt_bool_t m55_model_bridge_get_voice_latency(voice_latency_msg_t *latency,
+                                             rt_uint32_t *seq,
+                                             rt_tick_t *timestamp)
+{
+    if (g_m55_voice_latency_state.timestamp == 0U)
+    {
+        return RT_FALSE;
+    }
+    if (latency != RT_NULL)
+    {
+        *latency = g_m55_voice_latency_state.latency;
+    }
+    if (seq != RT_NULL)
+    {
+        *seq = g_m55_voice_latency_state.seq;
+    }
+    if (timestamp != RT_NULL)
+    {
+        *timestamp = g_m55_voice_latency_state.timestamp;
+    }
+    return RT_TRUE;
 }
 
 rt_bool_t m55_model_bridge_get_snapshot(rt_uint32_t *seq,

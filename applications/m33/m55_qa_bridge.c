@@ -321,6 +321,38 @@ static void m55qa_status(int argc, char **argv)
 }
 MSH_CMD_EXPORT(m55qa_status, Show CM55 IPC and latest AI/wake state);
 
+static void m55qa_xz_latency(int argc, char **argv)
+{
+    voice_latency_msg_t latency;
+    rt_uint32_t seq = 0U;
+    rt_tick_t timestamp = 0U;
+
+    RT_UNUSED(argc);
+    RT_UNUSED(argv);
+    rt_memset(&latency, 0, sizeof(latency));
+    if (!m55_model_bridge_get_voice_latency(&latency, &seq, &timestamp))
+    {
+        rt_kprintf("[m55qa] xz_latency unavailable\n");
+        return;
+    }
+
+    rt_kprintf("[m55qa] xz_latency seq=%lu turn=%lu flags=0x%lx wake_listen=%lu eou=%lu stop_stt=%lu stt_llm=%lu llm_tts=%lu tts_packet=%lu packet_write=%lu speech_audio=%lu wake_audio=%lu age_ticks=%lu\n",
+               (unsigned long)seq,
+               (unsigned long)latency.turn_seq,
+               (unsigned long)latency.flags,
+               (unsigned long)latency.wake_to_listen_ms,
+               (unsigned long)latency.last_voice_to_stop_ms,
+               (unsigned long)latency.stop_to_stt_ms,
+               (unsigned long)latency.stt_to_llm_ms,
+               (unsigned long)latency.llm_to_tts_start_ms,
+               (unsigned long)latency.tts_start_to_first_packet_ms,
+               (unsigned long)latency.first_packet_to_first_write_ms,
+               (unsigned long)latency.speech_end_to_first_write_ms,
+               (unsigned long)latency.wake_to_first_write_ms,
+               (unsigned long)(rt_tick_get() - timestamp));
+}
+MSH_CMD_EXPORT(m55qa_xz_latency, Show latest CM55 XiaoZhi latency breakdown);
+
 static void m55qa_wake_on(int argc, char **argv)
 {
     rt_err_t ret;
