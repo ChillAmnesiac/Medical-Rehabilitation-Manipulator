@@ -6,6 +6,7 @@
 #include "rehab_assist_strategy.h"
 #include "rehab_resist_strategy.h"
 #include "rehab_trajectory_bank.h"
+#include "rehab_worker_timing.h"
 
 typedef struct
 {
@@ -15,6 +16,7 @@ typedef struct
     rehab_strategy_params_t params;
     rehab_assist_strategy_state_t assist_state[CONTROL_MOTOR_JOINT_COUNT];
     rehab_resist_strategy_state_t resist_state[CONTROL_MOTOR_JOINT_COUNT];
+    rehab_worker_timing_t worker_timing;
     rt_tick_t last_record_tick;
     rt_bool_t initialized;
     rt_bool_t stopped_for_fault;
@@ -759,10 +761,19 @@ static void rehab_service_worker(void *parameter)
         rt_uint8_t active_joint_mask;
         rehab_strategy_params_t params;
         rt_bool_t stopped_for_fault;
+        rt_tick_t worker_now;
         rt_tick_t now;
         rt_bool_t active_control_mode;
 
+        worker_now = rt_tick_get();
         rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+        rehab_worker_timing_note(&s_rehab.worker_timing,
+                                 worker_now,
+                                 rt_tick_from_millisecond(CONTROL_REHAB_SERVICE_PERIOD_MS),
+                                 RT_TICK_PER_SECOND);
+        s_rehab.status.worker_cycle_count = s_rehab.worker_timing.cycle_count;
+        s_rehab.status.worker_last_tick = s_rehab.worker_timing.last_tick;
+        s_rehab.status.worker_max_jitter_ms = s_rehab.worker_timing.max_jitter_ms;
         mode = s_rehab.status.mode;
         m33_joint = s_rehab.status.m33_joint_id;
         active_joint_mask = s_rehab.status.active_joint_mask;

@@ -71,6 +71,9 @@ typedef struct
     rt_uint16_t playback_index;
     rt_err_t last_result;
     rt_tick_t timestamp;
+    rt_uint32_t worker_cycle_count;
+    rt_tick_t worker_last_tick;
+    rt_uint32_t worker_max_jitter_ms;
 } rehab_service_status_t;
 
 rt_err_t rehab_service_init(void);

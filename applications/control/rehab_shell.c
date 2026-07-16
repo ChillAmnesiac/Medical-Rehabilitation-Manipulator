@@ -54,7 +54,7 @@ static void rehab_shell_print_status(void)
     rehab_service_status_t status;
 
     rehab_service_get_status(&status);
-    rt_kprintf("rehab status mode=%s source=%u joint=%s m33_joint=%u fresh=%u detail=%u assist=%u torque_x1000=%d vel_x1000=%d current_x1000=%d limit_x1000=%d gain_x1000=%d pid_kp_x1000=%d pid_ki_x1000=%d pid_kd_x1000=%d pid_load_x1000=%d pid_speed_x1000=%d pid_err_x1000=%d pid_trim_x1000=%d adrc_err_x1000=%d adrc_z1_x1000=%d adrc_z2_x1000=%d adrc_z3_x1000=%d adrc_trim_x1000=%d sat=%u record_count=%u playback_index=%u last=%d\n",
+    rt_kprintf("rehab status mode=%s source=%u joint=%s m33_joint=%u fresh=%u detail=%u assist=%u torque_x1000=%d vel_x1000=%d current_x1000=%d limit_x1000=%d gain_x1000=%d pid_kp_x1000=%d pid_ki_x1000=%d pid_kd_x1000=%d pid_load_x1000=%d pid_speed_x1000=%d pid_err_x1000=%d pid_trim_x1000=%d adrc_err_x1000=%d adrc_z1_x1000=%d adrc_z2_x1000=%d adrc_z3_x1000=%d adrc_trim_x1000=%d sat=%u record_count=%u playback_index=%u last=%d cycles=%lu last_tick=%lu max_jitter_ms=%lu\n",
                rehab_shell_mode_name(status.mode),
                (unsigned int)status.source,
                rehab_joint_map_name(status.joint),
@@ -82,7 +82,10 @@ static void rehab_shell_print_status(void)
                status.output_saturated ? 1U : 0U,
                (unsigned int)status.record_count,
                (unsigned int)status.playback_index,
-               status.last_result);
+               status.last_result,
+               (unsigned long)status.worker_cycle_count,
+               (unsigned long)status.worker_last_tick,
+               (unsigned long)status.worker_max_jitter_ms);
 }
 
 static void rehab_shell_print_params(void)
