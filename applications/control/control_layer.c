@@ -4450,6 +4450,8 @@ rt_err_t control_joint_motor_stop(rt_uint8_t joint_id)
 }
 
 #ifdef RT_USING_FINSH
+/* Keep background logs quiet while preserving explicit shell diagnostics. */
+#undef rt_kprintf
 #include <finsh.h>
 
 /* 电机、ROS、安全相关 shell 命令。传感器 shell 命令已经迁移到 sensor.c。 */
