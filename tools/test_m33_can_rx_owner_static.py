@@ -69,11 +69,45 @@ class M33CanRxOwnerStaticTest(unittest.TestCase):
         self.assertLess(guard, drain)
         self.assertIn("return;", body[guard:drain])
 
-    def test_ros_command_consumer_stays_disabled_without_queue_producer(self):
+    def test_ros_command_consumer_is_enabled_with_queue_producer(self):
         self.assertEqual(
-            macro_u1(self.control_cfg, "CONTROL_ROS_CMD_THREAD_ENABLE"), 0
+            macro_u1(self.control_cfg, "CONTROL_ROS_CMD_THREAD_ENABLE"), 1
         )
-        self.assertNotIn("rt_mq_send(", self.control_c)
+        self.assertIn("rt_mq_send(&s_ros_cmd_mq", self.control_c)
+        self.assertRegex(
+            self.control_c,
+            r"RT_MQ_BUF_SIZE\(\s*sizeof\(control_ros_command_t\),\s*"
+            r"CONTROL_ROS_CMD_QUEUE_DEPTH\s*\)",
+        )
+
+    def test_can_rx_only_assesses_and_enqueues_ros_commands(self):
+        body = function_body(
+            self.control_c,
+            "static void ctrl_handle_can_message",
+            "static void ctrl_poll_can_messages",
+        )
+        self.assertIn("ctrl_enqueue_ros_command(&ros_cmd)", body)
+        self.assertNotIn("ctrl_apply_ros_command(&ros_cmd)", body)
+
+    def test_emergency_commands_can_purge_a_full_normal_queue(self):
+        self.assertIn("rt_mq_urgent(&s_ros_cmd_mq", self.control_c)
+        self.assertIn(
+            "rt_mq_control(&s_ros_cmd_mq, RT_IPC_CMD_RESET, RT_NULL)",
+            self.control_c,
+        )
+
+    def test_ros_consumer_rechecks_safety_and_command_age(self):
+        body = function_body(
+            self.control_c,
+            "static void ctrl_ros_cmd_entry",
+            "int control_layer_init",
+        )
+        self.assertIn("ctrl_ros_command_is_stale(&cmd", body)
+        self.assertIn("ctrl_assess_ros_command_safety(&cmd, &assessment)", body)
+        self.assertLess(
+            body.index("ctrl_assess_ros_command_safety(&cmd, &assessment)"),
+            body.index("ctrl_apply_ros_command(&cmd)"),
+        )
 
 
 if __name__ == "__main__":

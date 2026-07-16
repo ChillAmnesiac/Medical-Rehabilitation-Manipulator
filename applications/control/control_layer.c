@@ -8,6 +8,7 @@
 #include "can_metrics.h"
 #include "control_layer.h"
 #include "control_layer_cfg.h"
+#include "control_ros_queue_timing.h"
 #include "rehab_mode_manager.h"
 #include "rehab_service.h"
 #include "sensor.h"
@@ -136,7 +137,7 @@
 static rt_device_t s_can_dev = RT_NULL;
 /* CAN RX 后台线程：轮询/读取 CAN 并调用 ctrl_handle_can_message()。 */
 static rt_thread_t s_can_rx_thread = RT_NULL;
-/* ROS 命令后台线程：队列模式下消费 s_ros_cmd_mq。当前多数路径直接审核执行。 */
+/* ROS 命令后台线程：消费 s_ros_cmd_mq，并独占正式命令的动作执行。 */
 static rt_thread_t s_ros_cmd_thread = RT_NULL;
 /* 电机状态发布线程：周期性发布 0x330~0x336 状态帧给 NanoPi。 */
 static rt_thread_t s_motor_status_thread = RT_NULL;
@@ -145,10 +146,11 @@ static rt_thread_t s_training_telemetry_thread = RT_NULL;
 static struct rt_semaphore s_can_rx_sem;
 /* 控制域共享数据锁：保护 ROS 命令、电机反馈、CANSimple 状态等缓存。 */
 static struct rt_mutex s_data_lock;
-/* ROS 命令队列：保留给异步命令路径。 */
+/* ROS 命令队列：CAN RX 只入队，动作由 ros_cmd 线程执行。 */
 static struct rt_messagequeue s_ros_cmd_mq;
 /* ROS 命令队列内存池。 */
-static rt_uint8_t s_ros_cmd_pool[CONTROL_ROS_CMD_QUEUE_DEPTH * sizeof(control_ros_command_t)];
+static rt_uint8_t s_ros_cmd_pool[
+    RT_MQ_BUF_SIZE(sizeof(control_ros_command_t), CONTROL_ROS_CMD_QUEUE_DEPTH)];
 
 /* 控制层是否初始化完成。公共 API 会用它拒绝未初始化调用。 */
 static rt_bool_t s_is_inited = RT_FALSE;
@@ -210,6 +212,10 @@ static rt_uint32_t s_dbg_ros_parsed = 0U;
 static rt_uint32_t s_dbg_ros_enqueued = 0U;
 static rt_uint32_t s_dbg_ros_applied = 0U;
 static rt_uint32_t s_dbg_ros_queue_fail = 0U;
+static rt_uint32_t s_dbg_ros_queue_purged = 0U;
+static rt_uint32_t s_dbg_ros_stale = 0U;
+static rt_uint32_t s_dbg_ros_recheck_reject = 0U;
+static rt_uint32_t s_dbg_ros_apply_fail = 0U;
 /* 最近一帧 CAN RX 的原始 ID/IDE/DLC/DATA 快照，用于 control_debug。 */
 static rt_uint32_t s_dbg_last_rx_id = 0U;
 static rt_uint8_t s_dbg_last_rx_ide = 0U;
@@ -2877,6 +2883,73 @@ static rt_bool_t ctrl_handle_nanopi_heartbeat(const struct rt_can_msg *msg)
     return RT_TRUE;
 }
 
+static rt_bool_t ctrl_ros_command_is_emergency(const control_ros_command_t *cmd)
+{
+    if (cmd == RT_NULL)
+    {
+        return RT_FALSE;
+    }
+    if (cmd->command == CONTROL_ROS_CMD_STOP)
+    {
+        return RT_TRUE;
+    }
+    return ((cmd->command == CONTROL_ROS_CMD_SET_MODE) &&
+            (cmd->mode == (rt_uint8_t)REHAB_MODE_PASSIVE)) ? RT_TRUE : RT_FALSE;
+}
+
+static rt_bool_t ctrl_ros_command_is_stale(const control_ros_command_t *cmd,
+                                           rt_tick_t now)
+{
+    if (cmd == RT_NULL)
+    {
+        return RT_TRUE;
+    }
+
+    return control_ros_queue_is_stale(now,
+                                      cmd->timestamp,
+                                      rt_tick_from_millisecond(CONTROL_ROS_COMMAND_TTL_MS),
+                                      ctrl_ros_command_is_emergency(cmd));
+}
+
+static rt_err_t ctrl_enqueue_ros_command(const control_ros_command_t *cmd)
+{
+    rt_err_t ret;
+
+    if (cmd == RT_NULL)
+    {
+        return -RT_EINVAL;
+    }
+
+    if (ctrl_ros_command_is_emergency(cmd))
+    {
+        ret = rt_mq_urgent(&s_ros_cmd_mq, cmd, sizeof(*cmd));
+        if (ret == -RT_EFULL)
+        {
+            ret = rt_mq_control(&s_ros_cmd_mq, RT_IPC_CMD_RESET, RT_NULL);
+            if (ret == RT_EOK)
+            {
+                s_dbg_ros_queue_purged++;
+                ret = rt_mq_urgent(&s_ros_cmd_mq, cmd, sizeof(*cmd));
+            }
+        }
+    }
+    else
+    {
+        ret = rt_mq_send(&s_ros_cmd_mq, cmd, sizeof(*cmd));
+    }
+
+    if (ret == RT_EOK)
+    {
+        s_dbg_ros_enqueued++;
+    }
+    else
+    {
+        s_dbg_ros_queue_fail++;
+        s_last_ros_status_detail_code = CONTROL_STATUS_DETAIL_QUEUE_FULL;
+    }
+    return ret;
+}
+
 /* CAN 分发器：把一帧原始 CAN 路由到心跳、ROS 命令、电机或传感器处理函数。 */
 static void ctrl_handle_can_message(const struct rt_can_msg *msg)
 {
@@ -2908,7 +2981,7 @@ static void ctrl_handle_can_message(const struct rt_can_msg *msg)
     {
 #if CONTROL_ROS_COMMAND_LOGGING_ONLY
         control_ros_safety_assessment_t assessment;
-        rt_err_t ret = -RT_EINVAL;
+        rt_err_t ret;
 
         s_dbg_ros_parsed++;
         ctrl_assess_ros_command_safety(&ros_cmd, &assessment);
@@ -2920,21 +2993,13 @@ static void ctrl_handle_can_message(const struct rt_can_msg *msg)
         if (ctrl_ros_command_is_calibration_telemetry(&ros_cmd) &&
             (assessment.decision == CONTROL_ROS_DECISION_ACCEPT))
         {
-            ret = ctrl_apply_ros_command(&ros_cmd);
-            if (ret != RT_EOK)
-            {
-                s_last_ros_status_detail_code = CONTROL_STATUS_DETAIL_MOTOR_FAULT;
-            }
-            else
-            {
-                s_dbg_ros_applied++;
-            }
+            ret = ctrl_enqueue_ros_command(&ros_cmd);
             ctrl_log_ros_command_assessment(msg,
                                             &ros_cmd,
                                             &assessment,
                                             (ret == RT_EOK) ?
-                                                "apply_calibration_telemetry_only" :
-                                                "apply_calibration_telemetry_failed");
+                                                "enqueue_calibration_telemetry" :
+                                                "queue_calibration_telemetry_failed");
             return;
         }
 
@@ -2956,22 +3021,17 @@ static void ctrl_handle_can_message(const struct rt_can_msg *msg)
             return;
         }
 
-        ret = ctrl_apply_ros_command(&ros_cmd);
-        if (ret != RT_EOK)
-        {
-            s_last_ros_status_detail_code = CONTROL_STATUS_DETAIL_MOTOR_FAULT;
-        }
         rt_mutex_take(&s_data_lock, RT_WAITING_FOREVER);
         s_last_ros_cmd = ros_cmd;
         rt_mutex_release(&s_data_lock);
-        s_dbg_ros_applied++;
+        ret = ctrl_enqueue_ros_command(&ros_cmd);
         ctrl_log_ros_command_assessment(msg,
                                         &ros_cmd,
                                         &assessment,
-                                        (ret == RT_EOK) ? "apply_motor_output" : "apply_failed");
+                                        (ret == RT_EOK) ? "enqueue_for_control" : "queue_failed");
         if (ret != RT_EOK)
         {
-            rt_kprintf("[control] ros cmd direct apply failed, cmd=%u joint=%u ret=%d\n",
+            rt_kprintf("[control] ros cmd enqueue failed, cmd=%u joint=%u ret=%d\n",
                        (unsigned int)ros_cmd.command,
                        (unsigned int)ros_cmd.joint_id,
                        ret);
@@ -3155,6 +3215,7 @@ static rt_err_t ctrl_apply_ros_command(const control_ros_command_t *cmd)
 static void ctrl_ros_cmd_entry(void *parameter)
 {
     control_ros_command_t cmd;
+    control_ros_safety_assessment_t assessment;
     rt_err_t ret;
 
     RT_UNUSED(parameter);
@@ -3166,15 +3227,41 @@ static void ctrl_ros_cmd_entry(void *parameter)
             continue;
         }
 
+        if (ctrl_ros_command_is_stale(&cmd, rt_tick_get()))
+        {
+            s_dbg_ros_stale++;
+            s_last_ros_status_detail_code = CONTROL_STATUS_DETAIL_STALE_COMMAND;
+            rt_mutex_take(&s_data_lock, RT_WAITING_FOREVER);
+            s_last_ros_cmd = cmd;
+            rt_mutex_release(&s_data_lock);
+            continue;
+        }
+
+        ctrl_assess_ros_command_safety(&cmd, &assessment);
+        s_last_ros_status_detail_code = ctrl_ros_reject_reason_detail_code(assessment.reason);
+        if (assessment.decision != CONTROL_ROS_DECISION_ACCEPT)
+        {
+            s_dbg_ros_recheck_reject++;
+            rt_mutex_take(&s_data_lock, RT_WAITING_FOREVER);
+            s_last_ros_cmd = cmd;
+            rt_mutex_release(&s_data_lock);
+            continue;
+        }
+
         ret = ctrl_apply_ros_command(&cmd);
 
         rt_mutex_take(&s_data_lock, RT_WAITING_FOREVER);
         s_last_ros_cmd = cmd;
         rt_mutex_release(&s_data_lock);
-        s_dbg_ros_applied++;
 
-        if (ret != RT_EOK)
+        if (ret == RT_EOK)
         {
+            s_dbg_ros_applied++;
+        }
+        else
+        {
+            s_dbg_ros_apply_fail++;
+            s_last_ros_status_detail_code = CONTROL_STATUS_DETAIL_MOTOR_FAULT;
             rt_kprintf("[control] ros cmd apply failed, cmd=%u joint=%u ret=%d\n",
                        (unsigned int)cmd.command,
                        (unsigned int)cmd.joint_id,
@@ -5666,6 +5753,12 @@ static int cmd_control_debug(int argc, char **argv)
                (unsigned long)s_dbg_ros_enqueued,
                (unsigned long)s_dbg_ros_applied,
                (unsigned long)s_dbg_ros_queue_fail);
+    rt_kprintf("CTRL_DBG_Q: purged=%lu stale=%lu recheck_reject=%lu apply_fail=%lu ttl_ms=%u\n",
+               (unsigned long)s_dbg_ros_queue_purged,
+               (unsigned long)s_dbg_ros_stale,
+               (unsigned long)s_dbg_ros_recheck_reject,
+               (unsigned long)s_dbg_ros_apply_fail,
+               (unsigned int)CONTROL_ROS_COMMAND_TTL_MS);
     rt_kprintf("CTRL_DBG_F103: ack=%lu sensor=%lu health=%lu ids ctrl=0x%03X ack=0x%03X sensor=0x%03X health=0x%03X\n",
                (unsigned long)s_dbg_rx_f103_ack,
                (unsigned long)s_dbg_rx_f103_sensor,
