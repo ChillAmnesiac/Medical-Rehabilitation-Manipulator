@@ -3073,6 +3073,12 @@ static void ctrl_can_rx_entry(void *parameter)
 
 void control_layer_poll_once(void)
 {
+#if CONTROL_CAN_RX_THREAD_ENABLE
+    if (s_can_rx_thread != RT_NULL)
+    {
+        return;
+    }
+#endif
     ctrl_poll_can_messages();
 }
 
