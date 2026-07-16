@@ -82,3 +82,40 @@ free
 - CAN、F103 和 M55 IPC 基线不变。
 
 确认诊断正常后，才按空载台架步骤执行 `rehab assist 5`。本诊断提交本身不证明助力电流已经输出。
+
+## 2026-07-17 板端结果
+
+使用 `tools/flash_m33_verified.ps1 -SkipBuild` 烧录上文记录的 combined HEX：
+
+```text
+programmed/raw verified: 589824 bytes
+XIP verified:            584364 bytes
+```
+
+OpenOCD 完成写入、raw verify、cache invalidation、XIP verify，并从 Non-secure reset handler 启动。退出阶段出现历史已有的 KitProg acquisition warning，因此继续用 Shell 证明固件实际运行，而没有把 OpenOCD exit code 单独作为成功证据。
+
+两次 `rehab status`：
+
+```text
+cycles=429 last_tick=8593 max_jitter_ms=0
+cycles=447 last_tick=9071 max_jitter_ms=118
+```
+
+结论：worker 计数和最近 tick 持续更新。`max_jitter_ms=118` 是上电以来循环入口间隔的历史最大偏差，可能包含 Shell、控制计算、设备访问和锁等待；现场没有出现计数停滞。
+
+资源和链路基线：
+
+```text
+rehab_sv stack max used=44%
+heap available=176440 bytes
+CTRL_DBG rx_total=1394 hb=9
+F103 sensor=462 health=9
+```
+
+电机 5 只读反馈：
+
+```text
+mode=0 fault=0x02 pos_mrad=6032 vel_mrad_s=91 tor_mNm=0 temp_dC=300
+```
+
+由于 `fault=0x02` 的厂家语义和实际使能状态尚未确认，本轮没有执行 `rehab assist 5`。现有 assist worker 只检查反馈 freshness，未在输出前拒绝非零 `fault_summary`；在该边界明确前自动下发电流不满足安全验证前置条件。
