@@ -261,6 +261,13 @@ typedef struct
     char netdev_name[RT_NAME_MAX];
 } voice_status_msg_t;
 
+/*
+ * Set VALID only when publishing one complete turn. An unobserved stage must
+ * be VOICE_LATENCY_MS_UNAVAILABLE; zero means a measured 0 ms. REAL_WAKE and
+ * MANUAL are mutually exclusive source labels, while QA_TEXT may be combined
+ * with either source label.
+ */
+#define VOICE_LATENCY_MS_UNAVAILABLE   (0xFFFFFFFFUL)
 #define VOICE_LATENCY_FLAG_VALID       (1UL << 0)
 #define VOICE_LATENCY_FLAG_REAL_WAKE   (1UL << 1)
 #define VOICE_LATENCY_FLAG_MANUAL      (1UL << 2)
@@ -283,7 +290,7 @@ typedef struct
 
 typedef struct
 {
-    m33_m55_msg_type_t type;
+    rt_uint32_t type; /* m33_m55_msg_type_t wire value; fixed-width ABI */
     rt_uint32_t seq;
     union
     {

@@ -16,6 +16,10 @@ DEFAULT_CC = Path(
 
 class XiaoZhiLatencyIpcContractTest(unittest.TestCase):
     def test_target_abi_contract(self):
+        header_text = HEADER.read_text(encoding="utf-8")
+        self.assertIn("rt_uint32_t type;", header_text)
+        self.assertNotIn("m33_m55_msg_type_t type;", header_text)
+
         compiler = os.environ.get("ARM_NONE_EABI_GCC")
         if not compiler:
             compiler = shutil.which("arm-none-eabi-gcc") or str(DEFAULT_CC)
@@ -52,6 +56,8 @@ _Static_assert(VOICE_LATENCY_FLAG_VALID == 1UL, "valid flag ABI");
 _Static_assert(VOICE_LATENCY_FLAG_REAL_WAKE == 2UL, "real wake flag ABI");
 _Static_assert(VOICE_LATENCY_FLAG_MANUAL == 4UL, "manual flag ABI");
 _Static_assert(VOICE_LATENCY_FLAG_QA_TEXT == 8UL, "QA text flag ABI");
+_Static_assert(VOICE_LATENCY_MS_UNAVAILABLE == 0xFFFFFFFFUL,
+               "unavailable latency sentinel ABI");
 _Static_assert(sizeof(voice_latency_msg_t) == 44, "latency payload ABI");
 #define ASSERT_U32_FIELD(field, expected_offset)                             \
     _Static_assert(offsetof(voice_latency_msg_t, field) == expected_offset, \
@@ -71,6 +77,11 @@ ASSERT_U32_FIELD(first_packet_to_first_write_ms, 32);
 ASSERT_U32_FIELD(speech_end_to_first_write_ms, 36);
 ASSERT_U32_FIELD(wake_to_first_write_ms, 40);
 #undef ASSERT_U32_FIELD
+_Static_assert(sizeof(((m33_m55_message_t *)0)->type) == 4,
+               "wire message type width");
+_Static_assert(_Generic(((m33_m55_message_t *)0)->type,
+                        rt_uint32_t: 1, default: 0),
+               "wire message type must be rt_uint32_t");
 _Static_assert(offsetof(m33_m55_message_t, payload) == 8, "payload offset");
 _Static_assert(offsetof(m33_m55_message_t, payload.voice_latency) == 8,
                "latency union offset");
@@ -80,7 +91,14 @@ int main(void) {{ return 0; }}
                 encoding="ascii",
             )
             result = subprocess.run(
-                [compiler, "-std=c11", "-fsyntax-only", f"-I{temp}", str(source)],
+                [
+                    compiler,
+                    "-std=c11",
+                    "-fshort-enums",
+                    "-fsyntax-only",
+                    f"-I{temp}",
+                    str(source),
+                ],
                 capture_output=True,
                 text=True,
             )
