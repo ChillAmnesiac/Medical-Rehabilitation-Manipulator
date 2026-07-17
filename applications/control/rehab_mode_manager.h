@@ -57,6 +57,10 @@ typedef struct
     rt_uint8_t assist_engaged_mask;
     rt_uint8_t sequence;
     rt_tick_t timestamp;
+    rt_uint32_t mode_generation;
+    rt_uint32_t lease_timeout_count;
+    rt_uint32_t lease_stop_retry_count;
+    rt_bool_t lease_stop_latched;
 } rehab_mode_status_t;
 
 rt_err_t rehab_mode_manager_init(void);

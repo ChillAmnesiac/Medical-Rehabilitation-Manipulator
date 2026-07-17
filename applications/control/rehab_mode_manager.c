@@ -1,12 +1,12 @@
 #include "rehab_mode_manager.h"
 
 #include "control_layer_cfg.h"
+#include "rehab_can_lease.h"
 
 typedef struct
 {
     struct rt_mutex lock;
-    rt_tick_t last_heartbeat_tick;
-    rt_bool_t has_heartbeat;
+    rehab_can_lease_t lease;
     rt_uint8_t last_sequence;
     rt_uint8_t last_reject_sequence;
     rt_uint8_t last_reject_detail;
@@ -17,16 +17,17 @@ static rehab_mode_adapter_runtime_t s_rehab_adapter;
 
 enum
 {
-    REHAB_MODE_ADAPTER_CMD_MARKER = CONTROL_REHAB_MODE_CMD_MARKER
+    REHAB_MODE_ADAPTER_CMD_MARKER = CONTROL_REHAB_MODE_CMD_MARKER,
+    REHAB_MODE_STOP_RETRY_MS = 100U
 };
 
 static rt_bool_t rehab_mode_adapter_heartbeat_ok(rt_tick_t now)
 {
-    if (!s_rehab_adapter.has_heartbeat)
+    if (!s_rehab_adapter.lease.has_heartbeat)
     {
         return RT_FALSE;
     }
-    return ((now - s_rehab_adapter.last_heartbeat_tick) <=
+    return ((now - s_rehab_adapter.lease.last_heartbeat_tick) <=
             rt_tick_from_millisecond(CONTROL_ROS_HEARTBEAT_TIMEOUT_MS))
                ? RT_TRUE
                : RT_FALSE;
@@ -41,6 +42,15 @@ static rt_bool_t rehab_mode_adapter_joint_mask_supported(rt_uint8_t joint_mask)
         return RT_TRUE;
     }
     return ((joint_mask & (rt_uint8_t)~supported_mask) == 0U) ? RT_TRUE : RT_FALSE;
+}
+
+static rt_bool_t rehab_mode_adapter_lease_supervised(rehab_demo_mode_t mode)
+{
+    return ((mode == REHAB_DEMO_MODE_ACTIVE_FOLLOW) ||
+            (mode == REHAB_DEMO_MODE_ASSIST) ||
+            (mode == REHAB_DEMO_MODE_RESIST))
+               ? RT_TRUE
+               : RT_FALSE;
 }
 
 static rehab_demo_mode_t rehab_mode_adapter_to_service_mode(rehab_mode_t mode,
@@ -132,6 +142,7 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
     rt_uint8_t joint_mask;
     rt_err_t ret;
     rt_tick_t now;
+    rehab_service_status_t service_status;
 
     if (cmd == RT_NULL)
     {
@@ -145,7 +156,9 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
 
     now = rt_tick_get();
     rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
-    if ((cmd->mode != REHAB_MODE_PASSIVE) && !rehab_mode_adapter_heartbeat_ok(now))
+    if ((cmd->mode != REHAB_MODE_PASSIVE) &&
+        (!rehab_mode_adapter_heartbeat_ok(now) ||
+         !rehab_can_lease_can_enter_active_mode(&s_rehab_adapter.lease)))
     {
         s_rehab_adapter.last_reject_sequence = cmd->sequence;
         s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT;
@@ -188,10 +201,21 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
         ret = rehab_service_set_mode_mask(service_mode, joint_mask, REHAB_CMD_SOURCE_CAN);
     }
 
+    if (ret == RT_EOK)
+    {
+        rehab_service_get_status(&service_status);
+    }
+
     rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
     s_rehab_adapter.last_sequence = cmd->sequence;
     if (ret == RT_EOK)
     {
+        rehab_can_lease_note_mode(&s_rehab_adapter.lease,
+                                  ((service_status.source == REHAB_CMD_SOURCE_CAN) &&
+                                   rehab_mode_adapter_lease_supervised(service_status.mode))
+                                      ? RT_TRUE
+                                      : RT_FALSE,
+                                  service_status.mode_generation);
         s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_NONE;
     }
     else
@@ -221,13 +245,54 @@ void rehab_mode_manager_note_heartbeat(void)
     }
 
     rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
-    s_rehab_adapter.last_heartbeat_tick = rt_tick_get();
-    s_rehab_adapter.has_heartbeat = RT_TRUE;
+    rehab_can_lease_note_heartbeat(&s_rehab_adapter.lease, rt_tick_get());
     rt_mutex_release(&s_rehab_adapter.lock);
 }
 
 void rehab_mode_manager_tick(void)
 {
+    rt_uint32_t expected_generation;
+    rt_err_t ret;
+    rt_bool_t should_stop;
+
+    if (rehab_mode_manager_init() != RT_EOK)
+    {
+        return;
+    }
+
+    rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
+    should_stop = rehab_can_lease_claim_stop(
+        &s_rehab_adapter.lease,
+        rt_tick_get(),
+        rt_tick_from_millisecond(CONTROL_ROS_HEARTBEAT_TIMEOUT_MS),
+        rt_tick_from_millisecond(REHAB_MODE_STOP_RETRY_MS),
+        &expected_generation);
+    rt_mutex_release(&s_rehab_adapter.lock);
+
+    if (!should_stop)
+    {
+        return;
+    }
+
+    ret = rehab_service_stop_if_owned(REHAB_CMD_SOURCE_CAN,
+                                      expected_generation,
+                                      CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT);
+
+    rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
+    rehab_can_lease_note_stop_result(&s_rehab_adapter.lease,
+                                     (ret == RT_EOK) ? RT_TRUE : RT_FALSE,
+                                     (ret == -RT_EBUSY) ? RT_TRUE : RT_FALSE);
+    if (ret == RT_EOK)
+    {
+        s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT;
+        s_rehab_adapter.last_reject_sequence = s_rehab_adapter.last_sequence;
+    }
+    else if (ret != -RT_EBUSY)
+    {
+        s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_MOTOR_FAULT;
+        s_rehab_adapter.last_reject_sequence = s_rehab_adapter.last_sequence;
+    }
+    rt_mutex_release(&s_rehab_adapter.lock);
 }
 
 rt_bool_t rehab_mode_manager_accepts_ros_target(void)
@@ -248,6 +313,9 @@ void rehab_mode_manager_get_status(rehab_mode_status_t *out)
     rt_uint8_t adapter_detail;
     rt_uint8_t sequence;
     rt_tick_t now;
+    rt_uint32_t lease_timeout_count;
+    rt_uint32_t lease_stop_retry_count;
+    rt_bool_t lease_stop_latched;
 
     if (out == RT_NULL)
     {
@@ -293,6 +361,9 @@ void rehab_mode_manager_get_status(rehab_mode_status_t *out)
     sequence = (adapter_detail != CONTROL_STATUS_DETAIL_NONE) ?
                s_rehab_adapter.last_reject_sequence :
                s_rehab_adapter.last_sequence;
+    lease_timeout_count = s_rehab_adapter.lease.timeout_count;
+    lease_stop_retry_count = s_rehab_adapter.lease.stop_retry_count;
+    lease_stop_latched = s_rehab_adapter.lease.stop_latched;
     rt_mutex_release(&s_rehab_adapter.lock);
 
     out->mode = rehab_mode_adapter_from_service_mode(service_status.mode, &submode);
@@ -305,4 +376,8 @@ void rehab_mode_manager_get_status(rehab_mode_status_t *out)
     out->assist_engaged_mask = service_status.assist_engaged_mask;
     out->sequence = sequence;
     out->timestamp = service_status.timestamp;
+    out->mode_generation = service_status.mode_generation;
+    out->lease_timeout_count = lease_timeout_count;
+    out->lease_stop_retry_count = lease_stop_retry_count;
+    out->lease_stop_latched = lease_stop_latched;
 }

@@ -3271,6 +3271,8 @@ static void ctrl_ros_cmd_entry(void *parameter)
 
     while (1)
     {
+        rehab_mode_manager_tick();
+
         if (ctrl_take_emergency_command(&cmd))
         {
             /* Safety latch always runs before a deferred normal command. */
