@@ -89,7 +89,7 @@ class M33BleDiagStaticTest(unittest.TestCase):
                 with self.assertRaises(AssertionError):
                     assert_no_live_hci_snapshot_access(template % unsafe)
 
-    def test_hci_queue_peak_sampling_is_wired_without_logging(self):
+    def test_hci_cache_hook_is_wired_without_owner_polling(self):
         diag_source = DIAG_C.read_text(encoding="utf-8")
         source = HCI_PORT_C.read_text(encoding="utf-8")
 
@@ -99,11 +99,13 @@ class M33BleDiagStaticTest(unittest.TestCase):
 
         rx_source = HCI_RX_TASK_C.read_text(encoding="utf-8")
         rx_body = c_function_body(rx_source, "cybt_hci_rx_task")
-        self.assertIn("cybt_platform_task_get_queue_utilization(BT_TASK_ID_HCI_RX)", rx_body)
+        self.assertNotIn("cybt_platform_task_get_queue_utilization", rx_body)
+        self.assertNotIn("HCI_RX_DIAG_SAMPLE_INTERVAL", rx_source)
 
         tx_source = HCI_TX_TASK_C.read_text(encoding="utf-8")
         tx_body = c_function_body(tx_source, "cybt_hci_tx_task")
-        self.assertIn("cybt_platform_task_get_queue_utilization(BT_TASK_ID_HCI_TX)", tx_body)
+        self.assertNotIn("cybt_platform_task_get_queue_utilization", tx_body)
+        self.assertNotIn("HCI_TX_DIAG_SAMPLE_INTERVAL", tx_source)
 
     def test_named_stack_scan_is_lifecycle_protected(self):
         source = DIAG_C.read_text(encoding="utf-8")

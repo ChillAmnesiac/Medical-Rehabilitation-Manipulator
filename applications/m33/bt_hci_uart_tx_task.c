@@ -41,8 +41,6 @@
  *                                Constants
  ******************************************************************************/
 
-#define HCI_TX_DIAG_SAMPLE_INTERVAL         (32U)
-
 /******************************************************************************
  *                           Type Definitions
  ******************************************************************************/
@@ -302,8 +300,6 @@ void handle_hci_tx_sco(BT_MSG_HDR *p_bt_msg)
 
 void cybt_hci_tx_task(cy_thread_arg_t arg)
 {
-    uint32_t diag_sample_seq = 0U;
-
     HCITXTASK_TRACE_DEBUG("hci_tx_task(): start");
 
     hci_tx_status = CYBT_HCI_TX_NORMAL;
@@ -325,11 +321,6 @@ void cybt_hci_tx_task(cy_thread_arg_t arg)
         {
             HCITXTASK_TRACE_WARNING("hci_tx_task(): queue error (0x%x)", result);
             continue;
-        }
-
-        if ((diag_sample_seq++ % HCI_TX_DIAG_SAMPLE_INTERVAL) == 0U)
-        {
-            (void)cybt_platform_task_get_queue_utilization(BT_TASK_ID_HCI_TX);
         }
 
         if(BT_IND_TASK_SHUTDOWN == (uint32_t)p_bt_msg)

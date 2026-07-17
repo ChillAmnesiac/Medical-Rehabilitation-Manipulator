@@ -46,8 +46,6 @@
  ******************************************************************************/
 
 #define HCI_MAX_READ_PACKET_NUM_PER_ROUND   (10)
-#define HCI_RX_DIAG_SAMPLE_INTERVAL         (32U)
-
 #define CHECK_IF_HCI_RX_IND_IS_VALID(ind) \
             if(BT_IND_BASE > (ind) || BT_IND_END <= (ind)) \
             { \
@@ -471,7 +469,6 @@ void cybt_hci_rx_task(cy_thread_arg_t arg)
 {
     bt_task_ind_t  bt_ind_msg;
     cy_rslt_t      result;
-    uint32_t       diag_sample_seq = 0U;
 
     cybt_core_stack_init();
 
@@ -491,11 +488,6 @@ void cybt_hci_rx_task(cy_thread_arg_t arg)
                                     bt_ind_msg
                                    );
             continue;
-        }
-
-        if ((diag_sample_seq++ % HCI_RX_DIAG_SAMPLE_INTERVAL) == 0U)
-        {
-            (void)cybt_platform_task_get_queue_utilization(BT_TASK_ID_HCI_RX);
         }
 
         /** If there are any pending indications, which means put queue was failed
