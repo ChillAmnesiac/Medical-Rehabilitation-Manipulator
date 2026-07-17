@@ -65,14 +65,21 @@ static inline void rt_hw_cpu_dcache_ops(int ops, void *addr, int size)
 #include <stddef.h>
 #include \"{HEADER.as_posix()}\"
 
+typedef enum
+{{
+    REHAB_MODE_PASSIVE = 0,
+    REHAB_MODE_ASSIST = 3,
+    REHAB_MODE_RESIST = 4
+}} existing_rehab_mode_t;
+
 _Static_assert(MSG_TYPE_VOICE_LATENCY == 16, "existing latency ABI changed");
 _Static_assert(MSG_TYPE_REHAB_MODE_REQUEST == 17, "request type ABI");
 _Static_assert(MSG_TYPE_REHAB_MODE_RESULT == 18, "result type ABI");
 _Static_assert(REHAB_MODE_PROTOCOL_VERSION == 1UL, "protocol version ABI");
 _Static_assert(REHAB_MODE_SOURCE_VOICE == 1UL, "voice source ABI");
-_Static_assert(REHAB_MODE_PASSIVE == 0UL, "passive mode ABI");
-_Static_assert(REHAB_MODE_ASSIST == 3UL, "assist mode ABI");
-_Static_assert(REHAB_MODE_RESIST == 4UL, "resist mode ABI");
+_Static_assert(REHAB_MODE_REQUEST_MODE_PASSIVE == 0UL, "passive mode ABI");
+_Static_assert(REHAB_MODE_REQUEST_MODE_ASSIST == 3UL, "assist mode ABI");
+_Static_assert(REHAB_MODE_REQUEST_MODE_RESIST == 4UL, "resist mode ABI");
 _Static_assert(REHAB_MODE_JOINT_MASK == 0x10UL, "joint mask ABI");
 _Static_assert(REHAB_MODE_MAX_TTL_MS == 500UL, "maximum TTL ABI");
 _Static_assert(REHAB_MODE_RESULT_NONE == 0UL, "none result ABI");

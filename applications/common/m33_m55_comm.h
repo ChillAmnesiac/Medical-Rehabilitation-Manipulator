@@ -292,9 +292,9 @@ typedef struct
 
 #define REHAB_MODE_PROTOCOL_VERSION       (1UL)
 #define REHAB_MODE_SOURCE_VOICE           (1UL)
-#define REHAB_MODE_PASSIVE                (0UL)
-#define REHAB_MODE_ASSIST                 (3UL)
-#define REHAB_MODE_RESIST                 (4UL)
+#define REHAB_MODE_REQUEST_MODE_PASSIVE   (0UL)
+#define REHAB_MODE_REQUEST_MODE_ASSIST    (3UL)
+#define REHAB_MODE_REQUEST_MODE_RESIST    (4UL)
 #define REHAB_MODE_JOINT_MASK             (0x10UL)
 #define REHAB_MODE_MAX_TTL_MS             (500UL)
 
