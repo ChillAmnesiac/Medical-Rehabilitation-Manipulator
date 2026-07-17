@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 BRIDGE_C = ROOT / "applications" / "m33" / "m55_model_bridge.c"
 BRIDGE_H = ROOT / "applications" / "m33" / "m55_model_bridge.h"
+QA_C = ROOT / "applications" / "m33" / "m55_qa_bridge.c"
 
 
 def _function_body(source: str, signature: str) -> str:
@@ -56,6 +57,31 @@ def test_latency_observer_validates_and_preserves_latest_good_sample() -> None:
     assert "m55_model_bridge_get_voice_latency" in header
 
 
+def test_latency_shell_reports_unavailable_and_diagnostics_read_only() -> None:
+    qa = QA_C.read_text(encoding="utf-8")
+    command = _function_body(qa, "static void m55qa_xz_latency")
+
+    assert "MSH_CMD_EXPORT(m55qa_xz_latency" in qa
+    assert "m55_model_bridge_get_voice_latency" in command
+    assert "VOICE_LATENCY_MS_UNAVAILABLE" in qa
+    assert 'rt_kprintf("%s=NA", label);' in qa
+    for field in (
+        "received_count",
+        "accepted_count",
+        "invalid_count",
+        "stale_count",
+        "dropped_count",
+        "ipc_seq",
+        "turn_seq",
+        "age_ticks",
+    ):
+        assert field in command
+    assert "m33_m55_comm_publish" not in command
+    assert "control_" not in command
+    assert "rt_malloc" not in command
+
+
 if __name__ == "__main__":
     test_latency_observer_is_read_only_and_nonblocking()
     test_latency_observer_validates_and_preserves_latest_good_sample()
+    test_latency_shell_reports_unavailable_and_diagnostics_read_only()
