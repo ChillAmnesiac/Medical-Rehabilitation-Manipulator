@@ -74,6 +74,7 @@ typedef struct
     rt_uint32_t worker_cycle_count;
     rt_tick_t worker_last_tick;
     rt_uint32_t worker_max_jitter_ms;
+    rt_uint32_t mode_generation;
 } rehab_service_status_t;
 
 rt_err_t rehab_service_init(void);
@@ -88,6 +89,9 @@ rt_err_t rehab_service_set_mode_on_m33(rehab_demo_mode_t mode,
                                        rt_uint8_t m33_joint_id,
                                        rehab_cmd_source_t source);
 rt_err_t rehab_service_stop(rehab_cmd_source_t source);
+rt_err_t rehab_service_stop_if_owned(rehab_cmd_source_t expected_source,
+                                     rt_uint32_t expected_generation,
+                                     rt_uint8_t success_detail);
 
 rt_err_t rehab_service_record_start(rt_uint8_t slot,
                                     rehab_joint_id_t joint,
