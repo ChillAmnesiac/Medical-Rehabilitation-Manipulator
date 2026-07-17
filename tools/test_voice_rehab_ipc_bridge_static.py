@@ -16,9 +16,24 @@ def test_voice_rehab_ipc_bridge_is_bounded_and_control_free():
     assert "rt_mq_init" in source
     assert "rt_mq_send" in source
     assert "rt_tick_get()" in source
-    assert "rt_mq_recv" not in source
-    assert "rehab_service_" not in source
-    assert "rehab_mode_manager_" not in source
+    assert "rt_mq_recv" in source
+    assert "recv_size != (rt_ssize_t)sizeof(item)" in source
+    assert "rehab_mode_manager_apply_command" in source
+    assert "rehab_service_adjust_intensity_level" in source
+    assert "m33_m55_comm_try_publish" in source
+
+
+def test_voice_rehab_ipc_worker_keeps_ownership_and_guard_gates():
+    source = SOURCE.read_text(encoding="utf-8")
+
+    assert "voice_mode_guard_decide" in source
+    assert "voice_mode_guard_commit" in source
+    assert "control_voice_precheck_assess" in source
+    assert "status.source != REHAB_CMD_SOURCE_VOICE" in source
+    assert "VOICE_MODE_DECISION_ALREADY_ACTIVE" in source
+    assert source.count("result_status == REHAB_MODE_RESULT_NONE") >= 2
+    assert "REHAB_MODE_RESULT_QUEUE_FULL" in source
+    assert "REHAB_MODE_RESULT_APPLIED" in source
 
 
 def test_voice_rehab_ipc_bridge_validates_v2_request_fields():
