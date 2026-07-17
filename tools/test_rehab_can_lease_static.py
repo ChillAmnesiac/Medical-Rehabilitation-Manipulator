@@ -72,6 +72,11 @@ class RehabCanLeaseStaticTest(unittest.TestCase):
         self.assertIn("rehab_mode_manager_tick();", worker)
         self.assertNotIn("rehab_mode_manager_tick();", rx)
 
+    def test_control_debug_exposes_lease_counters(self):
+        self.assertIn("CTRL_DBG_LEASE:", CONTROL_C)
+        self.assertIn("lease_timeout_count", CONTROL_C)
+        self.assertIn("lease_stop_retry_count", CONTROL_C)
+
 
 if __name__ == "__main__":
     unittest.main()

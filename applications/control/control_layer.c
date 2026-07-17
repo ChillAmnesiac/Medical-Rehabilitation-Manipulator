@@ -5810,8 +5810,12 @@ MSH_CMD_EXPORT(cmd_ros_last, show last ros command from can);
 
 static int cmd_control_debug(int argc, char **argv)
 {
+    rehab_mode_status_t mode_status;
+
     RT_UNUSED(argc);
     RT_UNUSED(argv);
+
+    rehab_mode_manager_get_status(&mode_status);
 
     rt_kprintf("CTRL_DBG: rx_total=%lu hb=%lu ros_id=%lu parsed=%lu enq=%lu applied=%lu qfail=%lu\n",
                (unsigned long)s_dbg_rx_total,
@@ -5827,6 +5831,13 @@ static int cmd_control_debug(int argc, char **argv)
                (unsigned long)s_dbg_ros_recheck_reject,
                (unsigned long)s_dbg_ros_apply_fail,
                (unsigned int)CONTROL_ROS_COMMAND_TTL_MS);
+    rt_kprintf("CTRL_DBG_LEASE: mode=%u gen=%lu timeout=%lu retry=%lu latched=%u hb_timeout_ms=%u\n",
+               (unsigned int)mode_status.mode,
+               (unsigned long)mode_status.mode_generation,
+               (unsigned long)mode_status.lease_timeout_count,
+               (unsigned long)mode_status.lease_stop_retry_count,
+               mode_status.lease_stop_latched ? 1U : 0U,
+               (unsigned int)CONTROL_ROS_HEARTBEAT_TIMEOUT_MS);
     rt_kprintf("CTRL_DBG_F103: ack=%lu sensor=%lu health=%lu ids ctrl=0x%03X ack=0x%03X sensor=0x%03X health=0x%03X\n",
                (unsigned long)s_dbg_rx_f103_ack,
                (unsigned long)s_dbg_rx_f103_sensor,
