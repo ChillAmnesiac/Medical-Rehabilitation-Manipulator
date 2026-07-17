@@ -100,6 +100,11 @@ rt_err_t app_ble_service_set_link_state(rt_bool_t connected, rt_bool_t streaming
     rt_bool_t was_connected = g_app_ble.runtime.connected;
     g_app_ble.runtime.connected = connected;
     g_app_ble.runtime.streaming_enabled = streaming_enabled;
+    if (!connected)
+    {
+        g_app_ble.has_command = RT_FALSE;
+        rt_memset(&g_app_ble.last_command, 0, sizeof(g_app_ble.last_command));
+    }
     rt_mutex_release(&g_app_ble.lock);
 
     if (connected && !was_connected)
@@ -268,8 +273,16 @@ const char *app_ble_service_get_last_payload(void)
     return g_app_ble.last_payload;
 }
 
-const app_ble_runtime_t *app_ble_service_get_runtime(void)
+rt_err_t app_ble_service_get_runtime_snapshot(app_ble_runtime_t *runtime)
 {
-    return &g_app_ble.runtime;
+    if ((runtime == RT_NULL) || !g_app_ble.initialized)
+    {
+        return -RT_ERROR;
+    }
+
+    rt_mutex_take(&g_app_ble.lock, RT_WAITING_FOREVER);
+    *runtime = g_app_ble.runtime;
+    rt_mutex_release(&g_app_ble.lock);
+    return RT_EOK;
 }
 

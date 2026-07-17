@@ -133,15 +133,18 @@ static int cmd_m33_ble_status(int argc, char **argv)
     if (g_m33_ble_gate_state == M33_BLE_GATE_RUNNING)
     {
         const bt_hci_runtime_t *hci = bt_hci_transport_get_runtime();
-        const app_ble_runtime_t *ble = app_ble_service_get_runtime();
+        app_ble_runtime_t ble;
+
+        rt_memset(&ble, 0, sizeof(ble));
+        (void)app_ble_service_get_runtime_snapshot(&ble);
 
         rt_kprintf("BLE_GATE_RUNTIME: hci=%u hci_err=%d connected=%u streaming=%u up=%lu down=%lu\n",
                    (unsigned int)hci->state,
                    hci->last_error,
-                   ble->connected ? 1U : 0U,
-                   ble->streaming_enabled ? 1U : 0U,
-                   (unsigned long)ble->uplink_packets,
-                   (unsigned long)ble->downlink_packets);
+                   ble.connected ? 1U : 0U,
+                   ble.streaming_enabled ? 1U : 0U,
+                   (unsigned long)ble.uplink_packets,
+                   (unsigned long)ble.downlink_packets);
     }
 #endif
     return RT_EOK;

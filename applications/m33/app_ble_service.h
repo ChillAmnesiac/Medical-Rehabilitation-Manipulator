@@ -49,7 +49,7 @@ rt_err_t app_ble_service_update_telemetry(const sensor_data_t *sensor,
                                           const control_status_t *control,
                                           const safety_monitor_t *safety);
 const char *app_ble_service_get_last_payload(void);
-const app_ble_runtime_t *app_ble_service_get_runtime(void);
+rt_err_t app_ble_service_get_runtime_snapshot(app_ble_runtime_t *runtime);
 
 #ifdef __cplusplus
 }
