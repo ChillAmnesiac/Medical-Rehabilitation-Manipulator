@@ -6,6 +6,7 @@
 #include "app_bt_bonding.h"
 #include "app_bt_utils.h"
 #include "bt_app_gatt_handler.h"
+#include "bt_hci_transport.h"
 #include "cycfg_gap.h"
 
 hello_sensor_state_t hello_sensor_state;
@@ -99,6 +100,7 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
     case BTM_ENABLED_EVT:
         if ((p_event_data != RT_NULL) && (p_event_data->enabled.status == WICED_BT_SUCCESS))
         {
+            bt_hci_transport_report_enabled(RT_EOK);
             memcpy(cy_bt_device_address, g_local_bda, sizeof(g_local_bda));
             wiced_bt_set_local_bdaddr(g_local_bda, BLE_ADDR_PUBLIC);
             wiced_bt_dev_read_local_addr(cy_bt_device_address);
@@ -111,12 +113,14 @@ wiced_result_t app_bt_management_callback(wiced_bt_management_evt_t event,
         }
         else
         {
+            bt_hci_transport_report_enabled(-RT_ERROR);
             rt_kprintf("[bt] BTSTACK enable failed status=0x%02X\n",
                        (p_event_data != RT_NULL) ? p_event_data->enabled.status : 0xFFu);
         }
         break;
 
     case BTM_DISABLED_EVT:
+        bt_hci_transport_report_disabled();
         rt_kprintf("[bt] BTSTACK disabled\n");
         break;
 
