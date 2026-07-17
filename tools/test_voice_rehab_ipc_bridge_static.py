@@ -4,6 +4,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 HEADER = ROOT / "applications" / "m33" / "voice_rehab_ipc_bridge.h"
 SOURCE = ROOT / "applications" / "m33" / "voice_rehab_ipc_bridge.c"
+MAIN = ROOT / "applications" / "main.c"
 
 
 def test_voice_rehab_ipc_bridge_is_bounded_and_control_free():
@@ -49,3 +50,12 @@ def test_voice_rehab_ipc_bridge_validates_v2_request_fields():
         "REHAB_MODE_ACTION_LEVEL_DOWN",
     ):
         assert token in source
+
+
+def test_main_ipc_pump_only_submits_rehab_requests():
+    main = MAIN.read_text(encoding="utf-8")
+
+    assert '#include "m33/voice_rehab_ipc_bridge.h"' in main
+    assert "voice_rehab_ipc_bridge_init()" in main
+    assert "msg.type == MSG_TYPE_REHAB_MODE_REQUEST" in main
+    assert "voice_rehab_ipc_bridge_submit(&msg.payload.rehab_mode_request)" in main

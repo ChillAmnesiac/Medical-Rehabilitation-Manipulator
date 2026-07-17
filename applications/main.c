@@ -20,6 +20,7 @@
 #include "m33/openclaw_integration.h"
 #include "m33/safety_system.h"
 #include "m33/sensor_manager.h"
+#include "m33/voice_rehab_ipc_bridge.h"
 #include "m33/xiaozhi_pcm_probe_data.h"
 #include "control/control_layer.h"
 
@@ -607,6 +608,12 @@ static void m33_handle_ipc_command(void)
 
     while (m33_m55_comm_consume(&msg) == RT_EOK)
     {
+        if (msg.type == MSG_TYPE_REHAB_MODE_REQUEST)
+        {
+            (void)voice_rehab_ipc_bridge_submit(&msg.payload.rehab_mode_request);
+            continue;
+        }
+
         if (msg.type == MSG_TYPE_TTS_AUDIO)
         {
             if ((g_tts_audio_chunks < 3U) || ((g_tts_audio_chunks % 20U) == 0U) ||
@@ -839,8 +846,17 @@ static void m33_ipc_pump_entry(void *parameter)
 
 static void m33_start_ipc_pump(void)
 {
+    rt_err_t ret;
+
     if (g_ipc_pump_thread != RT_NULL)
     {
+        return;
+    }
+
+    ret = voice_rehab_ipc_bridge_init();
+    if (ret != RT_EOK)
+    {
+        rt_kprintf("[m33] WARN: failed to start voice rehab bridge ret=%d\n", ret);
         return;
     }
 
