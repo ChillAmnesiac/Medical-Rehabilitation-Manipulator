@@ -4,6 +4,7 @@
 #include "control_layer_cfg.h"
 #include "rehab_active_follow.h"
 #include "rehab_assist_strategy.h"
+#include "rehab_intensity_level.h"
 #include "rehab_resist_strategy.h"
 #include "rehab_trajectory_bank.h"
 #include "rehab_worker_timing.h"
@@ -1622,6 +1623,155 @@ rt_err_t rehab_service_play_start_on_m33(rt_uint8_t slot,
 rt_err_t rehab_service_play_stop(rehab_cmd_source_t source)
 {
     return rehab_service_stop(source);
+}
+
+static rt_bool_t rehab_service_intensity_mode_supported(rehab_demo_mode_t mode)
+{
+    return ((mode == REHAB_DEMO_MODE_ASSIST) ||
+            (mode == REHAB_DEMO_MODE_RESIST))
+               ? RT_TRUE
+               : RT_FALSE;
+}
+
+static rt_err_t rehab_service_intensity_owner_check_locked(rehab_demo_mode_t mode,
+                                                           rehab_cmd_source_t source)
+{
+    if ((source != REHAB_CMD_SOURCE_BENCH_MSH) &&
+        (source != REHAB_CMD_SOURCE_VOICE))
+    {
+        return -RT_EINVAL;
+    }
+    if (s_rehab.status.mode == REHAB_DEMO_MODE_PASSIVE)
+    {
+        return (source == REHAB_CMD_SOURCE_BENCH_MSH) ? RT_EOK : -RT_EBUSY;
+    }
+    if ((s_rehab.status.mode != mode) || (s_rehab.status.source != source))
+    {
+        return -RT_EBUSY;
+    }
+    return RT_EOK;
+}
+
+rt_err_t rehab_service_get_intensity_level(rehab_demo_mode_t mode,
+                                           rt_uint8_t *level,
+                                           float *current_a)
+{
+    float selected_current;
+    rt_err_t ret;
+
+    if ((level == RT_NULL) || !rehab_service_intensity_mode_supported(mode))
+    {
+        return -RT_EINVAL;
+    }
+    ret = rehab_service_init();
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+    selected_current = (mode == REHAB_DEMO_MODE_ASSIST) ?
+                       s_rehab.params.assist_max_current_a :
+                       s_rehab.params.resist_max_current_a;
+    *level = rehab_intensity_level_for_current(selected_current);
+    if (current_a != RT_NULL)
+    {
+        *current_a = selected_current;
+    }
+    rt_mutex_release(&s_rehab.lock);
+    return RT_EOK;
+}
+
+rt_err_t rehab_service_set_intensity_level(rehab_demo_mode_t mode,
+                                           rt_uint8_t level,
+                                           rehab_cmd_source_t source,
+                                           rt_uint8_t *applied_level)
+{
+    float selected_current;
+    rt_err_t ret;
+
+    if (!rehab_service_intensity_mode_supported(mode))
+    {
+        return -RT_EINVAL;
+    }
+    selected_current = rehab_intensity_current_for_level(level);
+    if (selected_current <= 0.0f)
+    {
+        return -RT_EINVAL;
+    }
+    ret = rehab_service_init();
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+    ret = rehab_service_intensity_owner_check_locked(mode, source);
+    if (ret == RT_EOK)
+    {
+        if (mode == REHAB_DEMO_MODE_ASSIST)
+        {
+            s_rehab.params.assist_max_current_a = selected_current;
+        }
+        else
+        {
+            s_rehab.params.resist_max_current_a = selected_current;
+        }
+        if (applied_level != RT_NULL)
+        {
+            *applied_level = level;
+        }
+    }
+    rt_mutex_release(&s_rehab.lock);
+    return ret;
+}
+
+rt_err_t rehab_service_adjust_intensity_level(rehab_demo_mode_t mode,
+                                              rt_int8_t delta,
+                                              rehab_cmd_source_t source,
+                                              rt_uint8_t *applied_level)
+{
+    float selected_current;
+    rt_uint8_t current_level;
+    rt_uint8_t target_level;
+    rt_err_t ret;
+
+    if (!rehab_service_intensity_mode_supported(mode) ||
+        ((delta != -1) && (delta != 1)))
+    {
+        return -RT_EINVAL;
+    }
+    ret = rehab_service_init();
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+    ret = rehab_service_intensity_owner_check_locked(mode, source);
+    if (ret == RT_EOK)
+    {
+        selected_current = (mode == REHAB_DEMO_MODE_ASSIST) ?
+                           s_rehab.params.assist_max_current_a :
+                           s_rehab.params.resist_max_current_a;
+        current_level = rehab_intensity_level_for_current(selected_current);
+        target_level = rehab_intensity_adjust_level(current_level, delta);
+        selected_current = rehab_intensity_current_for_level(target_level);
+        if (mode == REHAB_DEMO_MODE_ASSIST)
+        {
+            s_rehab.params.assist_max_current_a = selected_current;
+        }
+        else
+        {
+            s_rehab.params.resist_max_current_a = selected_current;
+        }
+        if (applied_level != RT_NULL)
+        {
+            *applied_level = target_level;
+        }
+    }
+    rt_mutex_release(&s_rehab.lock);
+    return ret;
 }
 
 rt_err_t rehab_service_get_params(rehab_strategy_params_t *out)

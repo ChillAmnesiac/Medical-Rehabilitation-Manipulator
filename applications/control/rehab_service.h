@@ -113,6 +113,17 @@ rt_err_t rehab_service_play_stop(rehab_cmd_source_t source);
 
 rt_err_t rehab_service_get_params(rehab_strategy_params_t *out);
 rt_err_t rehab_service_set_params(const rehab_strategy_params_t *params);
+rt_err_t rehab_service_get_intensity_level(rehab_demo_mode_t mode,
+                                           rt_uint8_t *level,
+                                           float *current_a);
+rt_err_t rehab_service_set_intensity_level(rehab_demo_mode_t mode,
+                                           rt_uint8_t level,
+                                           rehab_cmd_source_t source,
+                                           rt_uint8_t *applied_level);
+rt_err_t rehab_service_adjust_intensity_level(rehab_demo_mode_t mode,
+                                              rt_int8_t delta,
+                                              rehab_cmd_source_t source,
+                                              rt_uint8_t *applied_level);
 void rehab_service_get_status(rehab_service_status_t *out);
 rt_bool_t rehab_service_accepts_ros_target(void);
 

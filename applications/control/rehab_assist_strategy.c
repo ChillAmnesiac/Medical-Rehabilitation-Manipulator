@@ -254,6 +254,8 @@ void rehab_assist_strategy_step(rehab_assist_strategy_state_t *state,
     out->current_a = rehab_assist_strategy_slew(out->current_a,
                                                 state->last_current_a,
                                                 params->assist_slew_current_a_per_step);
+    out->current_a = rehab_strategy_clampf(out->current_a,
+                                           params->assist_max_current_a);
     state->last_current_a = out->current_a;
     out->engaged = RT_TRUE;
 }

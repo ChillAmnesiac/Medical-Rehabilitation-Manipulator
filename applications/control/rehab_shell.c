@@ -88,6 +88,26 @@ static void rehab_shell_print_status(void)
                (unsigned long)status.worker_max_jitter_ms);
 }
 
+static rt_bool_t rehab_shell_parse_intensity_mode(const char *name,
+                                                  rehab_demo_mode_t *mode)
+{
+    if ((name == RT_NULL) || (mode == RT_NULL))
+    {
+        return RT_FALSE;
+    }
+    if (strcmp(name, "assist") == 0)
+    {
+        *mode = REHAB_DEMO_MODE_ASSIST;
+        return RT_TRUE;
+    }
+    if (strcmp(name, "resist") == 0)
+    {
+        *mode = REHAB_DEMO_MODE_RESIST;
+        return RT_TRUE;
+    }
+    return RT_FALSE;
+}
+
 static void rehab_shell_print_params(void)
 {
     rehab_strategy_params_t params;
@@ -418,7 +438,7 @@ static rt_bool_t rehab_shell_apply_cfg(rehab_strategy_params_t *params, const ch
 
 static void rehab_shell_usage(void)
 {
-    rt_kprintf("usage: rehab status|cfg [key value|reset]|passive|active [joint|motor]|assist [joint|motor]|resist [joint|motor]|rec_start [joint|motor]|rec_stop|play [joint|motor]|stop\n");
+    rt_kprintf("usage: rehab status|cfg [key value|reset]|level assist|resist [up|down|1..4]|passive|active [joint|motor]|assist [joint|motor]|resist [joint|motor]|rec_start [joint|motor]|rec_stop|play [joint|motor]|stop\n");
 }
 
 int rehab(int argc, char **argv)
@@ -439,6 +459,61 @@ int rehab(int argc, char **argv)
     {
         rehab_shell_print_status();
         rehab_shell_print_params();
+        return 0;
+    }
+    if (strcmp(argv[1], "level") == 0)
+    {
+        rehab_demo_mode_t level_mode;
+        rt_uint8_t level = 0U;
+        float current_a = 0.0f;
+
+        if ((argc < 3) || !rehab_shell_parse_intensity_mode(argv[2], &level_mode))
+        {
+            rt_kprintf("usage: rehab level assist|resist [up|down|1..4]\n");
+            return 0;
+        }
+        if (argc >= 4)
+        {
+            if (strcmp(argv[3], "up") == 0)
+            {
+                ret = rehab_service_adjust_intensity_level(level_mode,
+                                                           1,
+                                                           REHAB_CMD_SOURCE_BENCH_MSH,
+                                                           &level);
+            }
+            else if (strcmp(argv[3], "down") == 0)
+            {
+                ret = rehab_service_adjust_intensity_level(level_mode,
+                                                           -1,
+                                                           REHAB_CMD_SOURCE_BENCH_MSH,
+                                                           &level);
+            }
+            else
+            {
+                char *end = RT_NULL;
+                long requested_level = strtol(argv[3], &end, 10);
+
+                if ((end == argv[3]) || (*end != '\0') ||
+                    (requested_level < 1L) || (requested_level > 4L))
+                {
+                    rt_kprintf("rehab level invalid %s\n", argv[3]);
+                    return 0;
+                }
+                ret = rehab_service_set_intensity_level(level_mode,
+                                                        (rt_uint8_t)requested_level,
+                                                        REHAB_CMD_SOURCE_BENCH_MSH,
+                                                        &level);
+            }
+        }
+        if (ret == RT_EOK)
+        {
+            ret = rehab_service_get_intensity_level(level_mode, &level, &current_a);
+        }
+        rt_kprintf("rehab level mode=%s level=%u current_x1000=%d ret=%d\n",
+                   rehab_shell_mode_name(level_mode),
+                   (unsigned int)level,
+                   rehab_shell_scaled(current_a),
+                   ret);
         return 0;
     }
     if (strcmp(argv[1], "cfg") == 0)
