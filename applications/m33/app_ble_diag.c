@@ -48,6 +48,36 @@ void app_ble_diag_note_tx_queue_depth(rt_uint32_t depth)
     app_ble_diag_note_peak(&g_app_ble_diag.tx_queue_peak, depth);
 }
 
+void app_ble_diag_note_tx_ack_drop(void)
+{
+    app_ble_diag_increment(&g_app_ble_diag.tx_ack_drops);
+}
+
+void app_ble_diag_note_tx_telemetry_coalesced(void)
+{
+    app_ble_diag_increment(&g_app_ble_diag.tx_telemetry_coalesced);
+}
+
+void app_ble_diag_note_tx_stale_drop(void)
+{
+    app_ble_diag_increment(&g_app_ble_diag.tx_stale_drops);
+}
+
+void app_ble_diag_note_tx_disconnected_drop(void)
+{
+    app_ble_diag_increment(&g_app_ble_diag.tx_disconnected_drops);
+}
+
+void app_ble_diag_note_tx_cccd_drop(void)
+{
+    app_ble_diag_increment(&g_app_ble_diag.tx_cccd_drops);
+}
+
+void app_ble_diag_note_tx_session_busy_reject(void)
+{
+    app_ble_diag_increment(&g_app_ble_diag.tx_session_busy_rejects);
+}
+
 void app_ble_diag_note_notify_failure(void)
 {
     app_ble_diag_increment(&g_app_ble_diag.notify_failures);
@@ -205,7 +235,7 @@ static int cmd_m33_ble_diag(int argc, char **argv)
     RT_UNUSED(argv);
 
     app_ble_diag_snapshot(&diag);
-    rt_kprintf("BLE_DIAG: gate=%lu/%lu err=%ld gatt=%lu rx_drop=%lu rx_peak=%lu tx_peak=%lu notify_fail=%lu\n",
+    rt_kprintf("BLE_DIAG: gate=%lu/%lu err=%ld gatt=%lu rx_drop=%lu rx_peak=%lu tx_peak=%lu ack_drop=%lu tel_merge=%lu stale=%lu disconnected=%lu cccd_off=%lu busy_reject=%lu notify_fail=%lu\n",
                (unsigned long)diag.gate_enabled,
                (unsigned long)diag.gate_state,
                (long)diag.gate_last_error,
@@ -213,6 +243,12 @@ static int cmd_m33_ble_diag(int argc, char **argv)
                (unsigned long)diag.rx_drops,
                (unsigned long)diag.rx_queue_peak,
                (unsigned long)diag.tx_queue_peak,
+               (unsigned long)diag.tx_ack_drops,
+               (unsigned long)diag.tx_telemetry_coalesced,
+               (unsigned long)diag.tx_stale_drops,
+               (unsigned long)diag.tx_disconnected_drops,
+               (unsigned long)diag.tx_cccd_drops,
+               (unsigned long)diag.tx_session_busy_rejects,
                (unsigned long)diag.notify_failures);
     rt_kprintf("BLE_DIAG_HCI: rx_sample=%lu rx_last_pct=%lu rx_sampled_peak_pct=%lu tx_sample=%lu tx_last_pct=%lu tx_sampled_peak_pct=%lu tx_heap_source=unsupported largest_source=unsupported\n",
                (unsigned long)diag.hci_rx_queue_sample_available,

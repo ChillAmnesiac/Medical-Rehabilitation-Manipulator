@@ -211,6 +211,76 @@ static void test_queue_full_does_not_overwrite_and_generation_invalidates_old(vo
     assert(app_ble_worker_enqueue(8u, values, 1u) == 0);
 }
 
+static void test_tx_ack_queue_is_bounded_and_precedes_coalesced_telemetry(void)
+{
+    static const uint8_t ack_values[5] = {'1', '2', '3', '4', '5'};
+    static const uint8_t telemetry_old[] = "old\n";
+    static const uint8_t telemetry_new[] = "new\n";
+    app_ble_tx_message_t message;
+    unsigned int i;
+
+    assert(app_ble_worker_init() == 0);
+    assert(app_ble_worker_begin_session(9u) == 0);
+    assert(app_ble_worker_publish_telemetry(9u,
+                                            telemetry_old,
+                                            sizeof(telemetry_old) - 1u) == 0);
+    assert(app_ble_worker_publish_telemetry(9u,
+                                            telemetry_new,
+                                            sizeof(telemetry_new) - 1u) == 0);
+    for (i = 0u; i < APP_BLE_TX_ACK_QUEUE_DEPTH; ++i)
+    {
+        assert(app_ble_worker_enqueue_ack(9u, &ack_values[i], 1u) == 0);
+    }
+    assert(app_ble_worker_enqueue_ack(9u, &ack_values[4], 1u) != 0);
+
+    for (i = 0u; i < APP_BLE_TX_ACK_QUEUE_DEPTH; ++i)
+    {
+        assert(app_ble_worker_host_dequeue_tx(&message) == (int)sizeof(message));
+        assert(message.kind == APP_BLE_TX_KIND_ACK);
+        assert(message.length == 1u);
+        assert(message.data[0] == ack_values[i]);
+    }
+    assert(app_ble_worker_host_dequeue_tx(&message) == (int)sizeof(message));
+    assert(message.kind == APP_BLE_TX_KIND_TELEMETRY);
+    assert(message.length == sizeof(telemetry_new) - 1u);
+    assert(memcmp(message.data, telemetry_new, message.length) == 0);
+    assert(app_ble_worker_host_dequeue_tx(&message) == 0);
+}
+
+static void test_tx_rejects_oversize_and_disconnect_invalidates_pending(void)
+{
+    uint8_t oversize[APP_BLE_TX_PAYLOAD_MAX + 1u] = {0};
+    static const uint8_t payload[] = "pending\n";
+    app_ble_tx_message_t message;
+
+    assert(app_ble_worker_init() == 0);
+    assert(app_ble_worker_begin_session(10u) == 0);
+    assert(app_ble_worker_enqueue_ack(10u, oversize, sizeof(oversize)) != 0);
+    assert(app_ble_worker_publish_telemetry(10u, oversize, sizeof(oversize)) != 0);
+    assert(app_ble_worker_enqueue_ack(10u, payload, sizeof(payload) - 1u) == 0);
+    assert(app_ble_worker_publish_telemetry(10u, payload, sizeof(payload) - 1u) == 0);
+
+    app_ble_worker_reset_session(10u);
+    assert(app_ble_worker_host_dequeue_tx(&message) == 0);
+    assert(app_ble_worker_begin_session(11u) == 0);
+    assert(app_ble_worker_enqueue_ack(10u, payload, sizeof(payload) - 1u) != 0);
+}
+
+static void test_notify_buffer_stays_busy_across_session_reset_until_completion(void)
+{
+    assert(app_ble_worker_init() == 0);
+    assert(app_ble_worker_begin_session(12u) == 0);
+    assert(app_ble_worker_notify_try_acquire());
+    assert(!app_ble_worker_notify_try_acquire());
+
+    app_ble_worker_reset_session(12u);
+    assert(app_ble_worker_begin_session(13u) != 0);
+    app_ble_worker_notify_release();
+    assert(app_ble_worker_begin_session(13u) == 0);
+    assert(app_ble_worker_notify_try_acquire());
+    app_ble_worker_notify_release();
+}
+
 int main(void)
 {
     test_20_byte_fragments();
@@ -222,6 +292,9 @@ int main(void)
     test_generation_change_clears_old_partial_before_new_feed();
     test_oversize_frame_is_dropped_without_poisoning_next_frame();
     test_queue_full_does_not_overwrite_and_generation_invalidates_old();
+    test_tx_ack_queue_is_bounded_and_precedes_coalesced_telemetry();
+    test_tx_rejects_oversize_and_disconnect_invalidates_pending();
+    test_notify_buffer_stays_busy_across_session_reset_until_completion();
     puts("app_ble_reassembly_test: PASS");
     return 0;
 }

@@ -22,20 +22,80 @@
 static rt_bool_t g_bt_app_gatt_ready = RT_FALSE;
 static bt_app_gatt_adv_restart_t g_bt_app_adv_restart_cb = RT_NULL;
 static uint32_t g_bt_app_gatt_event_count = 0u;
+static uint8_t g_app_ble_notify_buffer[APP_BLE_TX_PAYLOAD_MAX];
 
-static void app_bt_nus_notify(void)
+rt_err_t bt_app_gatt_notify_from_worker(uint32_t generation,
+                                        uint16_t conn_id,
+                                        const uint8_t *data,
+                                        uint16_t len)
 {
-    if ((hello_sensor_state.conn_id == 0u) ||
-        ((app_nus_tx_client_char_config[0] & GATT_CLIENT_CONFIG_NOTIFICATION) == 0u))
+    gatt_db_lookup_table_t *p_attr;
+    wiced_bt_gatt_status_t status;
+    uint16_t payload_limit;
+
+    if (!app_ble_worker_is_current_thread() ||
+        !app_ble_worker_session_is_current(generation, conn_id))
     {
-        return;
+        app_ble_diag_note_tx_stale_drop();
+        return -RT_ERROR;
+    }
+    if ((data == RT_NULL) || (len == 0u) ||
+        (len > APP_BLE_TX_PAYLOAD_MAX))
+    {
+        app_ble_diag_note_notify_failure();
+        return -RT_EINVAL;
+    }
+    if ((hello_sensor_state.conn_id == 0u) ||
+        (hello_sensor_state.conn_id != conn_id))
+    {
+        app_ble_diag_note_tx_disconnected_drop();
+        return -RT_ENOSYS;
+    }
+    if ((app_nus_tx_client_char_config[0] &
+         GATT_CLIENT_CONFIG_NOTIFICATION) == 0u)
+    {
+        app_ble_diag_note_tx_cccd_drop();
+        return -RT_EEMPTY;
+    }
+    if (hello_sensor_state.peer_mtu <= 3u)
+    {
+        app_ble_diag_note_notify_failure();
+        return -RT_EINVAL;
+    }
+    payload_limit = (uint16_t)(hello_sensor_state.peer_mtu - 3u);
+    if (len > payload_limit)
+    {
+        app_ble_diag_note_notify_failure();
+        return -RT_EINVAL;
     }
 
-    (void)wiced_bt_gatt_server_send_notification(hello_sensor_state.conn_id,
-                                                 HDLC_NUS_TX_VALUE,
-                                                 app_nus_tx_len,
-                                                 app_nus_tx,
-                                                 NULL);
+    rt_memcpy(app_nus_tx, data, len);
+    rt_memcpy(g_app_ble_notify_buffer, data, len);
+    app_nus_tx_len = len;
+    p_attr = app_bt_find_by_handle(HDLC_NUS_TX_VALUE);
+    if (p_attr != RT_NULL)
+    {
+        p_attr->cur_len = len;
+    }
+    if (!app_ble_worker_session_is_current(generation, conn_id) ||
+        (hello_sensor_state.conn_id != conn_id) ||
+        ((app_nus_tx_client_char_config[0] &
+          GATT_CLIENT_CONFIG_NOTIFICATION) == 0u))
+    {
+        app_ble_diag_note_tx_stale_drop();
+        return -RT_ERROR;
+    }
+    status = wiced_bt_gatt_server_send_notification(conn_id,
+                                                     HDLC_NUS_TX_VALUE,
+                                                     len,
+                                                     g_app_ble_notify_buffer,
+                                                     NULL);
+    if (status != WICED_BT_GATT_SUCCESS)
+    {
+        app_ble_diag_note_notify_failure();
+        return -RT_ERROR;
+    }
+    return RT_EOK;
 }
 
 rt_err_t bt_app_gatt_send(const uint8_t *data, uint16_t len)
@@ -44,23 +104,45 @@ rt_err_t bt_app_gatt_send(const uint8_t *data, uint16_t len)
     {
         return -RT_ERROR;
     }
-    if (len > MAX_LEN_NUS_TX)
+    if (len > APP_BLE_TX_PAYLOAD_MAX)
     {
-        len = MAX_LEN_NUS_TX;
+        return -RT_EINVAL;
     }
     if (hello_sensor_state.conn_id == 0u)
     {
+        app_ble_diag_note_tx_disconnected_drop();
         return -RT_ENOSYS;
     }
     if ((app_nus_tx_client_char_config[0] & GATT_CLIENT_CONFIG_NOTIFICATION) == 0u)
     {
+        app_ble_diag_note_tx_cccd_drop();
         return -RT_EEMPTY;
     }
 
-    memcpy(app_nus_tx, data, len);
-    app_nus_tx_len = len;
-    app_bt_nus_notify();
-    return RT_EOK;
+    return app_ble_worker_enqueue_ack(hello_sensor_state.conn_id, data, len);
+}
+
+rt_err_t bt_app_gatt_publish_telemetry(const uint8_t *data, uint16_t len)
+{
+    if ((data == RT_NULL) || (len == 0u) ||
+        (len > APP_BLE_TX_PAYLOAD_MAX))
+    {
+        return -RT_EINVAL;
+    }
+    if (hello_sensor_state.conn_id == 0u)
+    {
+        app_ble_diag_note_tx_disconnected_drop();
+        return -RT_ENOSYS;
+    }
+    if ((app_nus_tx_client_char_config[0] &
+         GATT_CLIENT_CONFIG_NOTIFICATION) == 0u)
+    {
+        app_ble_diag_note_tx_cccd_drop();
+        return -RT_EEMPTY;
+    }
+    return app_ble_worker_publish_telemetry(hello_sensor_state.conn_id,
+                                             data,
+                                             len);
 }
 
 wiced_bt_gatt_status_t app_bt_gatt_callback(wiced_bt_gatt_evt_t event,
@@ -118,6 +200,10 @@ wiced_bt_gatt_status_t app_bt_gatt_callback(wiced_bt_gatt_evt_t event,
 
     case GATT_APP_BUFFER_TRANSMITTED_EVT:
         APP_BT_GATT_TRACE("[bt] GATT app-buffer-transmitted\n");
+        if (p_event_data->buffer_xmitted.p_app_data == g_app_ble_notify_buffer)
+        {
+            app_ble_worker_notify_release();
+        }
         if (p_event_data->buffer_xmitted.p_app_ctxt != RT_NULL)
         {
             ((pfn_free_buffer_t)p_event_data->buffer_xmitted.p_app_ctxt)(p_event_data->buffer_xmitted.p_app_data);
@@ -391,11 +477,13 @@ wiced_bt_gatt_status_t app_bt_gatt_req_read_by_type_handler(uint16_t conn_id,
 wiced_bt_gatt_status_t app_bt_gatt_connection_up(wiced_bt_gatt_connection_status_t *p_status)
 {
     hello_sensor_state.conn_id = p_status->conn_id;
+    hello_sensor_state.peer_mtu = 23u;
     memcpy(hello_sensor_state.remote_addr, p_status->bd_addr, sizeof(wiced_bt_device_address_t));
     pairing_mode = WICED_FALSE;
     if (app_ble_service_begin_rx_session(p_status->conn_id) != RT_EOK)
     {
         hello_sensor_state.conn_id = 0u;
+        hello_sensor_state.peer_mtu = 0u;
         memset(hello_sensor_state.remote_addr, 0, BD_ADDR_LEN);
         return WICED_BT_GATT_INSUF_RESOURCE;
     }
@@ -514,7 +602,7 @@ void *app_bt_alloc_buffer(int len)
 
 void app_bt_send_message(void)
 {
-    app_bt_nus_notify();
+    (void)bt_app_gatt_publish_telemetry(app_nus_tx, app_nus_tx_len);
 }
 
 void app_bt_gatt_increment_notify_value(void)
@@ -526,9 +614,7 @@ void app_bt_gatt_increment_notify_value(void)
         return;
     }
 
-    memcpy(app_nus_tx, ping, sizeof(ping) - 1u);
-    app_nus_tx_len = (uint16_t)(sizeof(ping) - 1u);
-    app_bt_nus_notify();
+    (void)bt_app_gatt_publish_telemetry(ping, (uint16_t)(sizeof(ping) - 1u));
 }
 
 rt_err_t bt_app_gatt_init(bt_app_gatt_adv_restart_t adv_restart_cb)

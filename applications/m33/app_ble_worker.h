@@ -14,6 +14,8 @@ extern "C" {
 
 #define APP_BLE_RX_FRAGMENT_MAX 244U
 #define APP_BLE_RX_QUEUE_DEPTH 4U
+#define APP_BLE_TX_PAYLOAD_MAX 244U
+#define APP_BLE_TX_ACK_QUEUE_DEPTH 4U
 #define APP_BLE_FRAME_MAX 256U
 #define APP_BLE_PARTIAL_TIMEOUT_MS 500U
 #define APP_BLE_WORKER_STACK_SIZE 2048U
@@ -36,6 +38,21 @@ typedef struct
     uint16_t length;
     uint8_t data[APP_BLE_RX_FRAGMENT_MAX];
 } app_ble_rx_message_t;
+
+typedef enum
+{
+    APP_BLE_TX_KIND_ACK = 0,
+    APP_BLE_TX_KIND_TELEMETRY
+} app_ble_tx_kind_t;
+
+typedef struct
+{
+    uint32_t generation;
+    uint16_t conn_id;
+    uint16_t length;
+    app_ble_tx_kind_t kind;
+    uint8_t data[APP_BLE_TX_PAYLOAD_MAX];
+} app_ble_tx_message_t;
 
 typedef void (*app_ble_frame_handler_t)(const uint8_t *frame,
                                         uint16_t length,
@@ -66,11 +83,21 @@ void app_ble_worker_reset_session(uint16_t conn_id);
 app_ble_worker_result_t app_ble_worker_enqueue(uint16_t conn_id,
                                                const uint8_t *data,
                                                uint16_t length);
+app_ble_worker_result_t app_ble_worker_enqueue_ack(uint16_t conn_id,
+                                                   const uint8_t *data,
+                                                   uint16_t length);
+app_ble_worker_result_t app_ble_worker_publish_telemetry(uint16_t conn_id,
+                                                         const uint8_t *data,
+                                                         uint16_t length);
 int app_ble_worker_session_is_current(uint32_t generation, uint16_t conn_id);
+int app_ble_worker_is_current_thread(void);
+int app_ble_worker_notify_try_acquire(void);
+void app_ble_worker_notify_release(void);
 uint32_t app_ble_worker_drop_count(void);
 
 #ifdef APP_BLE_WORKER_HOST_TEST
 int app_ble_worker_host_dequeue(app_ble_rx_message_t *message);
+int app_ble_worker_host_dequeue_tx(app_ble_tx_message_t *message);
 #endif
 
 #ifdef __cplusplus

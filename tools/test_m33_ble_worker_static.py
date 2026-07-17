@@ -75,8 +75,10 @@ class M33BleWorkerStaticTest(unittest.TestCase):
         source = production_worker_source()
         body = function_body(source, "app_ble_worker_begin_session")
         reset_at = body.index("rt_mq_control")
+        busy_at = body.index("g_app_ble_notify_busy")
         publish_at = body.index("g_app_ble_generation =")
         self.assertLess(reset_at, publish_at)
+        self.assertLess(busy_at, publish_at)
 
     def test_gatt_rx_callback_only_validates_and_enqueues(self):
         source = read(GATT_C)
@@ -116,9 +118,58 @@ class M33BleWorkerStaticTest(unittest.TestCase):
 
     def test_worker_does_not_send_task10_notifications(self):
         source = production_worker_source()
-        self.assertNotIn("bt_app_gatt_send", source)
         self.assertNotIn("app_bt_nus_notify", source)
-        self.assertNotIn("wiced_bt_gatt_server_send_notification", source)
+        self.assertIn("bt_app_gatt_notify_from_worker", source)
+
+    def test_only_worker_reaches_bounded_notification_primitive(self):
+        source = read(GATT_C)
+        notify = function_body(source, "bt_app_gatt_notify_from_worker")
+        checks = [match.start() for match in re.finditer(
+            "app_ble_worker_session_is_current", notify)]
+        self.assertGreaterEqual(len(checks), 2)
+        self.assertGreater(checks[-1], notify.index("rt_memcpy"))
+        self.assertLess(checks[-1], notify.index(
+            "wiced_bt_gatt_server_send_notification"))
+        self.assertIn("GATT_CLIENT_CONFIG_NOTIFICATION", notify)
+        self.assertRegex(notify, r"peer_mtu\s*-\s*3u")
+        self.assertIn("wiced_bt_gatt_server_send_notification", notify)
+
+        for name in (
+            "bt_app_gatt_send",
+            "app_bt_send_message",
+            "app_bt_gatt_increment_notify_value",
+        ):
+            body = function_body(source, name)
+            self.assertNotIn("wiced_bt_gatt_server_send_notification", body)
+            self.assertNotIn("app_bt_nus_notify", body)
+
+    def test_tx_uses_static_ack_queue_and_coalesced_telemetry_slot(self):
+        header = read(WORKER_H)
+        source = production_worker_source()
+        self.assertRegex(header, r"APP_BLE_TX_ACK_QUEUE_DEPTH\s+4U")
+        self.assertRegex(header, r"APP_BLE_TX_PAYLOAD_MAX\s+244U")
+        self.assertIn("APP_BLE_TX_ACK_QUEUE_DEPTH", source)
+        self.assertIn("g_app_ble_telemetry_pending", source)
+        self.assertIn("g_app_ble_notify_busy", source)
+        self.assertNotRegex(source, r"\b(?:rt_)?(?:m|c|re)alloc\s*\(")
+
+        ack = function_body(source, "app_ble_worker_enqueue_ack")
+        telemetry = function_body(source, "app_ble_worker_publish_telemetry")
+        self.assertIn("rt_mq_send", ack)
+        self.assertNotIn("rt_mq_urgent", ack)
+        self.assertIn("g_app_ble_telemetry_pending", telemetry)
+
+    def test_persistent_notify_buffer_is_completion_gated(self):
+        worker = production_worker_source()
+        gatt = read(GATT_C)
+        drain = function_body(worker, "app_ble_worker_drain_tx")
+        callback = function_body(gatt, "app_bt_gatt_callback")
+        self.assertIn("app_ble_worker_notify_try_acquire", drain)
+        self.assertLess(drain.index("rt_mq_recv"),
+                        drain.index("app_ble_worker_notify_try_acquire"))
+        self.assertIn("app_ble_worker_notify_release", drain)
+        self.assertIn("app_ble_worker_notify_release", callback)
+        self.assertIn("g_app_ble_notify_buffer", gatt)
 
     def test_service_owns_worker_lifecycle(self):
         source = read(SERVICE_C)

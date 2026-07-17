@@ -44,6 +44,11 @@ void *app_bt_alloc_buffer(int len);
 void app_bt_send_message(void);
 void app_bt_gatt_increment_notify_value(void);
 rt_err_t bt_app_gatt_send(const uint8_t *data, uint16_t len);
+rt_err_t bt_app_gatt_publish_telemetry(const uint8_t *data, uint16_t len);
+rt_err_t bt_app_gatt_notify_from_worker(uint32_t generation,
+                                        uint16_t conn_id,
+                                        const uint8_t *data,
+                                        uint16_t len);
 
 rt_err_t bt_app_gatt_init(bt_app_gatt_adv_restart_t adv_restart_cb);
 uint16_t bt_app_gatt_current_conn_id(void);
