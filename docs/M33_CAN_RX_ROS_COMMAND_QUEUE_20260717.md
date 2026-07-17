@@ -23,8 +23,10 @@ NanoPi 0x320
 
 - 队列深度仍为 16，没有动态内存分配；内存池使用 RT-Thread 的 `RT_MQ_BUF_SIZE` 计算消息头和对齐开销，实际容量与配置一致。
 - 普通命令使用非阻塞 `rt_mq_send()`；队列满时拒绝新命令，不阻塞 CAN RX。
-- STOP 和 SET_MODE/PASSIVE 使用 `rt_mq_urgent()`，优先于队列中的普通运动命令。
-- 紧急命令遇到满队列时，使用 RT-Thread 的 `RT_IPC_CMD_RESET` 清除尚未消费的普通命令，再把紧急命令放到队头。
+- STOP 和 SET_MODE/PASSIVE 不进入普通 MQ，而是进入独立安全锁存通道。
+- 全局 PASSIVE 保存最新序号；单关节 STOP 使用位图保存，多个关节的停止请求不会互相覆盖，`clear_fault` 请求只累加、不回退。
+- `ros_cmd` 每次处理普通命令前先取安全锁存，并在普通队列空闲时最多等待 10 ms 后再次检查，因此不需要清空普通队列，也不会误删先前的 STOP。
+- MQ 收到的普通命令先放入线程本地 `deferred_normal`，回到循环顶部再次检查安全锁存后才执行，避免 STOP 在 10 ms 等待窗口内被一条普通动作插队。
 - 普通命令在队列中超过 500 ms 后丢弃；STOP/PASSIVE 不因年龄被拒绝。
 - 消费线程重新执行安全审核，避免心跳、反馈或模式在排队期间已经变化。
 - `applied` 只在底层动作函数返回 `RT_EOK` 后增长。
@@ -46,16 +48,16 @@ CTRL_DBG: ... ros_id=... parsed=... enq=... applied=... qfail=...
 新增第二行：
 
 ```text
-CTRL_DBG_Q: purged=... stale=... recheck_reject=... apply_fail=... ttl_ms=500
+CTRL_DBG_Q: emergency=... stale=... recheck_reject=... apply_fail=... ttl_ms=500
 ```
 
 含义：
 
-- `purged`：紧急命令到达满队列后，清空待处理普通命令的次数。
+- `emergency`：成功锁存的 STOP/PASSIVE 命令数。
 - `stale`：消费时已超过 500 ms 的普通命令数。
 - `recheck_reject`：RX 首次审核通过，但消费时二次审核拒绝的命令数。
 - `apply_fail`：二次审核通过，但原动作函数执行失败的命令数。
-- `qfail`：普通入队失败，或紧急命令清队后仍入队失败的次数。
+- `qfail`：普通命令入队失败，或安全锁存输入无效的次数。
 
 正常单次 `0x320` 被动模式冒烟应看到：
 
@@ -64,7 +66,8 @@ ros_id +1
 parsed +1
 enq +1
 applied +1
-qfail/purged/stale/recheck_reject/apply_fail 不增长
+emergency +1
+qfail/stale/recheck_reject/apply_fail 不增长
 ```
 
 ## 4. 自动验证
@@ -82,6 +85,19 @@ rtk ./tmp/control_ros_queue_timing_test.exe
 
 结果：`control_ros_queue_timing_test PASS`。测试覆盖 TTL 边界、超时、32 位 tick 回绕和紧急命令时效豁免。
 
+安全锁存主机测试：
+
+```powershell
+rtk gcc -std=c11 -Wall -Wextra -Werror `
+  -I tests/host -I applications/control `
+  tests/host/control_ros_emergency_latch_test.c `
+  applications/control/control_ros_emergency_latch.c `
+  -o tmp/control_ros_emergency_latch_test.exe
+rtk ./tmp/control_ros_emergency_latch_test.exe
+```
+
+结果：`control_ros_emergency_latch_test PASS`。测试覆盖多关节 STOP 保留、PASSIVE 与 STOP 共存、`clear_fault` 累加和非法关节拒绝。
+
 所有权静态测试：
 
 ```powershell
@@ -96,13 +112,13 @@ rtk python tools/test_m33_can_rx_owner_static.py
 rtk proxy cmd.exe /d /s /c "set RTT_EXEC_PATH=F:\RT-ThreadStudio\platform\env_released\env-new\tools\gnu_gcc\arm_gcc\mingw\bin&& F:\RT-ThreadStudio\platform\env_released\env-new\.venv\Scripts\scons.exe -j8"
 ```
 
-结果：SCons exit code 0，`control_ros_queue_timing.o` 已链接，并生成 `build/rtthread.hex`。工程原有未使用变量/函数警告仍存在，本步骤没有扩大范围处理。
+结果：SCons exit code 0，`control_ros_queue_timing.o` 和 `control_ros_emergency_latch.o` 已链接，并生成 `build/rtthread.hex`。工程原有未使用变量/函数警告仍存在，本步骤没有扩大范围处理。
 
 本次构建产物：
 
 ```text
-rt-thread.elf       SHA-256 812544C4C7E31E44FD08C64E63888A3891951FEB576CE30BFA6C6B73D331CB21
-build/rtthread.hex  SHA-256 33B124C2779AB1F89E5F566DCA907129F7B7FC16F1927B36C3B8B381EC2ACEB9
+rt-thread.elf       SHA-256 038D32DB99483DCEF2417E9CFF98EBAF61597C3F7732E8C72B09619E9159AE10
+build/rtthread.hex  SHA-256 AD36FB5F9764BCD3D186B77F5F3B399A991921C03284CFC7C884E4BE56B81F75
 ```
 
 哈希对应当时整个工作区构建状态，其中仍包含用户已有的其他未提交源码；它只用于板端问题与 ELF/HEX 精确对应。
@@ -119,6 +135,8 @@ build/rtthread.hex  SHA-256 33B124C2779AB1F89E5F566DCA907129F7B7FC16F1927B36C3B8
 
 ## 6. 已知边界与下一步
 
-队列优先级只能清除尚未被消费的普通命令。若 `ros_cmd` 已经进入某个底层 CAN 动作调用，STOP/PASSIVE 需要等待该调用返回后才能执行。因此底层动作调用必须保持有界，不能在控制线程中无限等待。
+安全锁存不能中断已经进入底层 CAN 动作调用的命令。STOP/PASSIVE 仍需等待该调用返回后才能执行，因此底层动作调用必须保持有界，不能在控制线程中无限等待。
+
+初版提交 `57aa69dea` 使用 `RT_IPC_CMD_RESET` 处理满队列。复审发现 reset 可能同时删除先前排队的另一条 STOP，因此后续修正提交改为独立安全锁存。板端联调应使用包含修正提交的版本，不应停留在初版提交。
 
 下一独立步骤是在 `ros_cmd`/rehab 服务所有权内实现心跳租约到期后的条件化停机，并确保停机失败可重试。不能把多关节 STOP 重新放回 CAN RX 线程，否则会再次阻塞收包。

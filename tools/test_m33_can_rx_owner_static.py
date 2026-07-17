@@ -89,9 +89,12 @@ class M33CanRxOwnerStaticTest(unittest.TestCase):
         self.assertIn("ctrl_enqueue_ros_command(&ros_cmd)", body)
         self.assertNotIn("ctrl_apply_ros_command(&ros_cmd)", body)
 
-    def test_emergency_commands_can_purge_a_full_normal_queue(self):
-        self.assertIn("rt_mq_urgent(&s_ros_cmd_mq", self.control_c)
-        self.assertIn(
+    def test_emergency_commands_use_an_independent_latch(self):
+        self.assertIn("control_ros_emergency_latch_stop", self.control_c)
+        self.assertIn("control_ros_emergency_latch_passive", self.control_c)
+        self.assertIn("control_ros_emergency_take", self.control_c)
+        self.assertNotIn("rt_mq_urgent(&s_ros_cmd_mq", self.control_c)
+        self.assertNotIn(
             "rt_mq_control(&s_ros_cmd_mq, RT_IPC_CMD_RESET, RT_NULL)",
             self.control_c,
         )
@@ -108,6 +111,9 @@ class M33CanRxOwnerStaticTest(unittest.TestCase):
             body.index("ctrl_assess_ros_command_safety(&cmd, &assessment)"),
             body.index("ctrl_apply_ros_command(&cmd)"),
         )
+        self.assertIn("control_ros_command_t deferred_normal", body)
+        self.assertIn("normal_pending = RT_TRUE", body)
+        self.assertIn("cmd = deferred_normal", body)
 
 
 if __name__ == "__main__":

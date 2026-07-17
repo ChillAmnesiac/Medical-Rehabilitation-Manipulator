@@ -8,6 +8,7 @@
 #include "can_metrics.h"
 #include "control_layer.h"
 #include "control_layer_cfg.h"
+#include "control_ros_emergency_latch.h"
 #include "control_ros_queue_timing.h"
 #include "rehab_mode_manager.h"
 #include "rehab_service.h"
@@ -151,6 +152,7 @@ static struct rt_messagequeue s_ros_cmd_mq;
 /* ROS 命令队列内存池。 */
 static rt_uint8_t s_ros_cmd_pool[
     RT_MQ_BUF_SIZE(sizeof(control_ros_command_t), CONTROL_ROS_CMD_QUEUE_DEPTH)];
+static control_ros_emergency_latch_t s_ros_emergency_latch;
 
 /* 控制层是否初始化完成。公共 API 会用它拒绝未初始化调用。 */
 static rt_bool_t s_is_inited = RT_FALSE;
@@ -212,7 +214,7 @@ static rt_uint32_t s_dbg_ros_parsed = 0U;
 static rt_uint32_t s_dbg_ros_enqueued = 0U;
 static rt_uint32_t s_dbg_ros_applied = 0U;
 static rt_uint32_t s_dbg_ros_queue_fail = 0U;
-static rt_uint32_t s_dbg_ros_queue_purged = 0U;
+static rt_uint32_t s_dbg_ros_emergency_latched = 0U;
 static rt_uint32_t s_dbg_ros_stale = 0U;
 static rt_uint32_t s_dbg_ros_recheck_reject = 0U;
 static rt_uint32_t s_dbg_ros_apply_fail = 0U;
@@ -2922,15 +2924,25 @@ static rt_err_t ctrl_enqueue_ros_command(const control_ros_command_t *cmd)
 
     if (ctrl_ros_command_is_emergency(cmd))
     {
-        ret = rt_mq_urgent(&s_ros_cmd_mq, cmd, sizeof(*cmd));
-        if (ret == -RT_EFULL)
+        rt_bool_t latched = RT_TRUE;
+
+        rt_mutex_take(&s_data_lock, RT_WAITING_FOREVER);
+        if (cmd->command == CONTROL_ROS_CMD_STOP)
         {
-            ret = rt_mq_control(&s_ros_cmd_mq, RT_IPC_CMD_RESET, RT_NULL);
-            if (ret == RT_EOK)
-            {
-                s_dbg_ros_queue_purged++;
-                ret = rt_mq_urgent(&s_ros_cmd_mq, cmd, sizeof(*cmd));
-            }
+            latched = control_ros_emergency_latch_stop(&s_ros_emergency_latch,
+                                                       cmd->joint_id,
+                                                       cmd->clear_fault ? RT_TRUE : RT_FALSE);
+        }
+        else
+        {
+            control_ros_emergency_latch_passive(&s_ros_emergency_latch, cmd->joint_id);
+        }
+        rt_mutex_release(&s_data_lock);
+
+        ret = latched ? RT_EOK : -RT_EINVAL;
+        if (ret == RT_EOK)
+        {
+            s_dbg_ros_emergency_latched++;
         }
     }
     else
@@ -2948,6 +2960,41 @@ static rt_err_t ctrl_enqueue_ros_command(const control_ros_command_t *cmd)
         s_last_ros_status_detail_code = CONTROL_STATUS_DETAIL_QUEUE_FULL;
     }
     return ret;
+}
+
+static rt_bool_t ctrl_take_emergency_command(control_ros_command_t *cmd)
+{
+    control_ros_emergency_item_t item;
+    rt_bool_t pending;
+
+    if (cmd == RT_NULL)
+    {
+        return RT_FALSE;
+    }
+
+    rt_mutex_take(&s_data_lock, RT_WAITING_FOREVER);
+    pending = control_ros_emergency_take(&s_ros_emergency_latch, &item);
+    rt_mutex_release(&s_data_lock);
+    if (!pending)
+    {
+        return RT_FALSE;
+    }
+
+    rt_memset(cmd, 0, sizeof(*cmd));
+    cmd->timestamp = rt_tick_get();
+    if (item.kind == CONTROL_ROS_EMERGENCY_PASSIVE)
+    {
+        cmd->command = CONTROL_ROS_CMD_SET_MODE;
+        cmd->mode = (rt_uint8_t)REHAB_MODE_PASSIVE;
+        cmd->joint_id = item.sequence;
+    }
+    else
+    {
+        cmd->command = CONTROL_ROS_CMD_STOP;
+        cmd->joint_id = item.joint_id;
+        cmd->clear_fault = item.clear_fault ? 1U : 0U;
+    }
+    return RT_TRUE;
 }
 
 /* CAN 分发器：把一帧原始 CAN 路由到心跳、ROS 命令、电机或传感器处理函数。 */
@@ -3215,15 +3262,34 @@ static rt_err_t ctrl_apply_ros_command(const control_ros_command_t *cmd)
 static void ctrl_ros_cmd_entry(void *parameter)
 {
     control_ros_command_t cmd;
+    control_ros_command_t deferred_normal;
     control_ros_safety_assessment_t assessment;
+    rt_bool_t normal_pending = RT_FALSE;
     rt_err_t ret;
 
     RT_UNUSED(parameter);
 
     while (1)
     {
-        if (rt_mq_recv(&s_ros_cmd_mq, &cmd, sizeof(cmd), RT_WAITING_FOREVER) != RT_EOK)
+        if (ctrl_take_emergency_command(&cmd))
         {
+            /* Safety latch always runs before a deferred normal command. */
+        }
+        else if (normal_pending)
+        {
+            cmd = deferred_normal;
+            normal_pending = RT_FALSE;
+        }
+        else
+        {
+            if (rt_mq_recv(&s_ros_cmd_mq,
+                           &deferred_normal,
+                           sizeof(deferred_normal),
+                           rt_tick_from_millisecond(CONTROL_ROS_EMERGENCY_POLL_MS)) != RT_EOK)
+            {
+                continue;
+            }
+            normal_pending = RT_TRUE;
             continue;
         }
 
@@ -5753,8 +5819,8 @@ static int cmd_control_debug(int argc, char **argv)
                (unsigned long)s_dbg_ros_enqueued,
                (unsigned long)s_dbg_ros_applied,
                (unsigned long)s_dbg_ros_queue_fail);
-    rt_kprintf("CTRL_DBG_Q: purged=%lu stale=%lu recheck_reject=%lu apply_fail=%lu ttl_ms=%u\n",
-               (unsigned long)s_dbg_ros_queue_purged,
+    rt_kprintf("CTRL_DBG_Q: emergency=%lu stale=%lu recheck_reject=%lu apply_fail=%lu ttl_ms=%u\n",
+               (unsigned long)s_dbg_ros_emergency_latched,
                (unsigned long)s_dbg_ros_stale,
                (unsigned long)s_dbg_ros_recheck_reject,
                (unsigned long)s_dbg_ros_apply_fail,
