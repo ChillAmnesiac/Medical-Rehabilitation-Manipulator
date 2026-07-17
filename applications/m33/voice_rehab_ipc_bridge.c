@@ -1,5 +1,7 @@
 #include "voice_rehab_ipc_bridge.h"
 
+#include <finsh.h>
+
 #include "voice_mode_request_guard.h"
 #include "../control/rehab_mode_manager.h"
 #include "../control/voice_active_precheck.h"
@@ -439,3 +441,29 @@ void voice_rehab_ipc_bridge_diag_snapshot(voice_rehab_ipc_bridge_diag_t *out)
     *out = s_voice_rehab_diag;
     rt_hw_interrupt_enable(level);
 }
+
+static int cmd_voice_rehab_ipc_debug(int argc, char **argv)
+{
+    voice_rehab_ipc_bridge_diag_t diag;
+
+    RT_UNUSED(argc);
+    RT_UNUSED(argv);
+    voice_rehab_ipc_bridge_diag_snapshot(&diag);
+    rt_kprintf("VOICE_REHAB_IPC: total=%lu enq=%lu invalid=%lu qfull=%lu processed=%lu applied=%lu rejected=%lu recv_fail=%lu tx_fail=%lu\n",
+               (unsigned long)diag.total,
+               (unsigned long)diag.accepted,
+               (unsigned long)diag.invalid,
+               (unsigned long)diag.queue_full,
+               (unsigned long)diag.processed,
+               (unsigned long)diag.applied,
+               (unsigned long)diag.rejected,
+               (unsigned long)diag.recv_fail,
+               (unsigned long)diag.result_publish_fail);
+    rt_kprintf("VOICE_REHAB_LAST: request=%lu result=%lu detail=%lu rx_tick=%lu\n",
+               (unsigned long)diag.last_request_id,
+               (unsigned long)diag.last_result,
+               (unsigned long)diag.last_detail,
+               (unsigned long)diag.last_receive_tick);
+    return 0;
+}
+MSH_CMD_EXPORT(cmd_voice_rehab_ipc_debug, show voice rehab IPC queue diagnostics);

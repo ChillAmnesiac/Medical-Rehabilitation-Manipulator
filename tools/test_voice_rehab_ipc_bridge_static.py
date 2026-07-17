@@ -59,3 +59,12 @@ def test_main_ipc_pump_only_submits_rehab_requests():
     assert "voice_rehab_ipc_bridge_init()" in main
     assert "msg.type == MSG_TYPE_REHAB_MODE_REQUEST" in main
     assert "voice_rehab_ipc_bridge_submit(&msg.payload.rehab_mode_request)" in main
+
+
+def test_voice_rehab_ipc_bridge_exposes_read_only_shell_diagnostics():
+    source = SOURCE.read_text(encoding="utf-8")
+
+    assert "cmd_voice_rehab_ipc_debug" in source
+    assert "MSH_CMD_EXPORT(cmd_voice_rehab_ipc_debug" in source
+    for field in ("accepted", "queue_full", "processed", "applied", "rejected"):
+        assert f"diag.{field}" in source
