@@ -1,4 +1,5 @@
 #include "app_ble_service.h"
+#include "app_ble_worker.h"
 
 #include <stdio.h>
 #include <string.h>
@@ -67,6 +68,8 @@ static control_mode_t app_ble_parse_mode_token(const char *token)
 
 rt_err_t app_ble_service_init(void)
 {
+    rt_err_t result;
+
     if (g_app_ble.initialized)
     {
         return RT_EOK;
@@ -75,6 +78,13 @@ rt_err_t app_ble_service_init(void)
     if (rt_mutex_init(&g_app_ble.lock, "bleapp", RT_IPC_FLAG_PRIO) != RT_EOK)
     {
         return -RT_ERROR;
+    }
+
+    result = app_ble_worker_init();
+    if (result != RT_EOK)
+    {
+        (void)rt_mutex_detach(&g_app_ble.lock);
+        return result;
     }
 
     rt_memset(&g_app_ble.runtime, 0, sizeof(g_app_ble.runtime));
@@ -87,6 +97,14 @@ rt_err_t app_ble_service_init(void)
 
 rt_err_t app_ble_service_start(void)
 {
+    rt_err_t result;
+
+    result = app_ble_worker_start();
+    if (result != RT_EOK)
+    {
+        return result;
+    }
+
     rt_mutex_take(&g_app_ble.lock, RT_WAITING_FOREVER);
     g_app_ble.runtime.connected = RT_FALSE;
     g_app_ble.runtime.streaming_enabled = RT_FALSE;
@@ -284,5 +302,54 @@ rt_err_t app_ble_service_get_runtime_snapshot(app_ble_runtime_t *runtime)
     *runtime = g_app_ble.runtime;
     rt_mutex_release(&g_app_ble.lock);
     return RT_EOK;
+}
+
+rt_err_t app_ble_service_submit_rx_command(const app_ble_command_t *cmd,
+                                           rt_uint32_t generation,
+                                           rt_uint16_t conn_id)
+{
+    if (cmd == RT_NULL)
+    {
+        return -RT_ERROR;
+    }
+
+    rt_mutex_take(&g_app_ble.lock, RT_WAITING_FOREVER);
+    if (!app_ble_worker_session_is_current(generation, conn_id))
+    {
+        rt_mutex_release(&g_app_ble.lock);
+        return -RT_ERROR;
+    }
+
+    g_app_ble.last_command = *cmd;
+    g_app_ble.has_command = RT_TRUE;
+    g_app_ble.runtime.downlink_packets++;
+    g_app_ble.runtime.last_command_tick = cmd->timestamp;
+    if (cmd->type == APP_BLE_CMD_START_STREAM)
+    {
+        g_app_ble.runtime.streaming_enabled = RT_TRUE;
+    }
+    else if (cmd->type == APP_BLE_CMD_STOP_STREAM)
+    {
+        g_app_ble.runtime.streaming_enabled = RT_FALSE;
+    }
+    rt_mutex_release(&g_app_ble.lock);
+    return RT_EOK;
+}
+
+rt_err_t app_ble_service_begin_rx_session(rt_uint16_t conn_id)
+{
+    return app_ble_worker_begin_session(conn_id);
+}
+
+void app_ble_service_reset_rx_session(rt_uint16_t conn_id)
+{
+    app_ble_worker_reset_session(conn_id);
+}
+
+rt_err_t app_ble_service_enqueue_rx(rt_uint16_t conn_id,
+                                    const rt_uint8_t *data,
+                                    rt_uint16_t length)
+{
+    return app_ble_worker_enqueue(conn_id, data, length);
 }
 

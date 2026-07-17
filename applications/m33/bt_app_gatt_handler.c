@@ -4,6 +4,7 @@
 
 #include "app_ble_diag.h"
 #include "app_ble_service.h"
+#include "app_ble_worker.h"
 #include "app_bt_bonding.h"
 #include "app_bt_utils.h"
 #include "cycfg_gap.h"
@@ -266,7 +267,6 @@ wiced_bt_gatt_status_t app_bt_gatt_req_write_handler(uint16_t conn_id,
                                                      uint16_t len_req,
                                                      uint16_t *p_error_handle)
 {
-    RT_UNUSED(conn_id);
     RT_UNUSED(len_req);
 
     if ((p_write_req == RT_NULL) || (p_error_handle == RT_NULL))
@@ -288,6 +288,25 @@ wiced_bt_gatt_status_t app_bt_gatt_req_write_handler(uint16_t conn_id,
                       (unsigned int)p_write_req->val_len,
                       (unsigned int)len_req,
                       (unsigned int)opcode);
+    if (p_write_req->handle == HDLC_NUS_RX_VALUE)
+    {
+        if ((conn_id == 0u) || (conn_id != hello_sensor_state.conn_id))
+        {
+            return WICED_BT_GATT_WRONG_STATE;
+        }
+        if ((p_write_req->val_len == 0u) ||
+            (p_write_req->val_len > APP_BLE_RX_FRAGMENT_MAX))
+        {
+            return WICED_BT_GATT_INVALID_ATTR_LEN;
+        }
+        if (app_ble_service_enqueue_rx(conn_id,
+                                       p_write_req->p_val,
+                                       p_write_req->val_len) != RT_EOK)
+        {
+            return WICED_BT_GATT_INSUF_RESOURCE;
+        }
+        return WICED_BT_GATT_SUCCESS;
+    }
     return app_bt_set_value(p_write_req->handle, p_write_req->p_val, p_write_req->val_len);
 }
 
@@ -374,6 +393,12 @@ wiced_bt_gatt_status_t app_bt_gatt_connection_up(wiced_bt_gatt_connection_status
     hello_sensor_state.conn_id = p_status->conn_id;
     memcpy(hello_sensor_state.remote_addr, p_status->bd_addr, sizeof(wiced_bt_device_address_t));
     pairing_mode = WICED_FALSE;
+    if (app_ble_service_begin_rx_session(p_status->conn_id) != RT_EOK)
+    {
+        hello_sensor_state.conn_id = 0u;
+        memset(hello_sensor_state.remote_addr, 0, BD_ADDR_LEN);
+        return WICED_BT_GATT_INSUF_RESOURCE;
+    }
     app_ble_service_set_link_state(RT_TRUE, RT_FALSE);
     APP_BT_GATT_TRACE("[bt] BLE connected conn_id=%u\n", p_status->conn_id);
     return WICED_BT_GATT_SUCCESS;
@@ -383,6 +408,7 @@ wiced_bt_gatt_status_t app_bt_gatt_connection_down(wiced_bt_gatt_connection_stat
 {
     gatt_db_lookup_table_t *p_attr;
 
+    app_ble_service_reset_rx_session(p_status->conn_id);
     memset(hello_sensor_state.remote_addr, 0, BD_ADDR_LEN);
     hello_sensor_state.conn_id = 0u;
     hello_sensor_state.peer_mtu = 0u;
@@ -438,6 +464,10 @@ wiced_bt_gatt_status_t app_bt_set_value(uint16_t attr_handle,
     {
         return WICED_BT_GATT_INVALID_HANDLE;
     }
+    if (attr_handle == HDLC_NUS_RX_VALUE)
+    {
+        return WICED_BT_GATT_WRITE_NOT_PERMIT;
+    }
     if (len > p_attr->max_len)
     {
         return WICED_BT_GATT_INVALID_ATTR_LEN;
@@ -463,38 +493,6 @@ wiced_bt_gatt_status_t app_bt_set_value(uint16_t attr_handle,
         app_nus_tx_client_char_config[0] = p_val[0];
         app_nus_tx_client_char_config[1] = p_val[1];
         return WICED_BT_GATT_SUCCESS;
-
-    case HDLC_NUS_RX_VALUE:
-    {
-        app_ble_command_t cmd;
-        char frame[MAX_LEN_NUS_RX + 1u];
-        char response[64];
-
-        app_nus_rx_len = len;
-        memcpy(app_nus_rx, p_val, len);
-        APP_BT_GATT_TRACE("[bt] NUS rx len=%u data='%.*s'\n", (unsigned int)len, (int)len, p_val);
-
-        memset(frame, 0, sizeof(frame));
-        memcpy(frame, p_val, len);
-        if (app_ble_service_parse_ascii_frame(frame, &cmd) == RT_EOK)
-        {
-            (void)app_ble_service_submit_command(&cmd);
-
-            rt_snprintf(response, sizeof(response), "OK:%s\n", frame);
-            memcpy(app_nus_tx, response, rt_strlen(response));
-            app_nus_tx_len = (uint16_t)rt_strlen(response);
-            APP_BT_GATT_TRACE("[bt] Command accepted: %s\n", frame);
-        }
-        else
-        {
-            rt_snprintf(response, sizeof(response), "ERR:invalid\n");
-            memcpy(app_nus_tx, response, rt_strlen(response));
-            app_nus_tx_len = (uint16_t)rt_strlen(response);
-            APP_BT_GATT_TRACE("[bt] NUS cmd parse failed: %s\n", frame);
-        }
-        app_bt_nus_notify();
-        return WICED_BT_GATT_SUCCESS;
-    }
 
     default:
         return WICED_BT_GATT_WRITE_NOT_PERMIT;
