@@ -97,3 +97,5 @@ CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK = 0x38
 `0x38` 对应 M33 关节 4、5、6，不是单关节 5。历史文档中“Byte5 是 active_joint_mask”的描述与当前代码不一致。为了避免一次远程 ASSIST 同时驱动三个关节，本次只完成 PASSIVE 端到端复测，没有从 NanoPi 发送活动模式命令。
 
 下一步应先确定兼容方案：扩展 `0x320 SET_MODE` 明确携带并校验 joint mask，或者将单关节台架默认 mask 改为经过确认的单 bit。该协议决策必须同步修改 NanoPi、M33 和协议文档后再做活动实测，不能只改 M33 常量。
+
+2026-07-17 后续已采用“Byte3 显式单关节 mask”方案。实现、兼容规则、提交和待完成的真机验证见 `docs/M33_NANOPI_0X320_SET_MODE_MASK_20260717.md`。
