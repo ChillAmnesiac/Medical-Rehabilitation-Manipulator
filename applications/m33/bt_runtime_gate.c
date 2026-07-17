@@ -48,21 +48,34 @@ static void m33_ble_gate_refresh_transport_state(void)
 {
 #if M33_ENABLE_APP_BLE_RUNTIME
     bt_hci_runtime_t hci;
+    rt_bool_t changed = RT_FALSE;
 
-    if ((!g_m33_ble_gate_lock_ready) ||
-        (bt_hci_transport_get_runtime_snapshot(&hci) != RT_EOK) ||
-        ((hci.state != BT_HCI_STATE_READY) && (hci.state != BT_HCI_STATE_FAILED)))
+    if (!g_m33_ble_gate_lock_ready)
     {
         return;
     }
 
     rt_mutex_take(&g_m33_ble_gate_lock, RT_WAITING_FOREVER);
-    if (g_m33_ble_gate_state == M33_BLE_GATE_STARTING)
+    if (bt_hci_transport_get_runtime_snapshot(&hci) == RT_EOK)
     {
-        g_m33_ble_gate_state = (hci.state == BT_HCI_STATE_READY) ?
-                               M33_BLE_GATE_READY :
-                               M33_BLE_GATE_FAILED;
-        g_m33_ble_gate_last_error = hci.last_error;
+        if ((hci.state == BT_HCI_STATE_FAILED) &&
+            ((g_m33_ble_gate_state == M33_BLE_GATE_STARTING) ||
+             (g_m33_ble_gate_state == M33_BLE_GATE_READY)))
+        {
+            g_m33_ble_gate_state = M33_BLE_GATE_FAILED;
+            g_m33_ble_gate_last_error = hci.last_error;
+            changed = RT_TRUE;
+        }
+        else if ((hci.state == BT_HCI_STATE_READY) &&
+                 (g_m33_ble_gate_state == M33_BLE_GATE_STARTING))
+        {
+            g_m33_ble_gate_state = M33_BLE_GATE_READY;
+            g_m33_ble_gate_last_error = hci.last_error;
+            changed = RT_TRUE;
+        }
+    }
+    if (changed)
+    {
         app_ble_diag_note_gate_state(1U,
                                      (rt_uint32_t)g_m33_ble_gate_state,
                                      g_m33_ble_gate_last_error);

@@ -27,6 +27,15 @@ def c_function_body(source, function_name):
     raise AssertionError(f"unterminated function: {function_name}")
 
 
+def assert_ready_failed_demotes(refresh_body):
+    failed = refresh_body.find("hci.state == BT_HCI_STATE_FAILED")
+    starting = refresh_body.find("g_m33_ble_gate_state == M33_BLE_GATE_STARTING", failed)
+    ready = refresh_body.find("g_m33_ble_gate_state == M33_BLE_GATE_READY", failed)
+    demote = refresh_body.find("g_m33_ble_gate_state = M33_BLE_GATE_FAILED", failed)
+    if min(failed, starting, ready, demote) < 0 or not (failed < starting < ready < demote):
+        raise AssertionError("READY gate must demote when transport is FAILED")
+
+
 class M33BleStartStateStaticTest(unittest.TestCase):
     def test_transport_includes_stack_init_declaration(self):
         self.assertIn('#include "wiced_bt_stack.h"', TRANSPORT_C)
@@ -121,10 +130,16 @@ class M33BleStartStateStaticTest(unittest.TestCase):
 
         refresh = c_function_body(GATE_C, "m33_ble_gate_refresh_transport_state")
         self.assertIn("bt_hci_transport_get_runtime_snapshot", refresh)
+        self.assertLess(
+            refresh.index("rt_mutex_take(&g_m33_ble_gate_lock"),
+            refresh.index("bt_hci_transport_get_runtime_snapshot"),
+            "transport state must be sampled after owning the gate mutex",
+        )
         self.assertIn("BT_HCI_STATE_READY", refresh)
         self.assertIn("M33_BLE_GATE_READY", refresh)
         self.assertIn("BT_HCI_STATE_FAILED", refresh)
         self.assertIn("M33_BLE_GATE_FAILED", refresh)
+        assert_ready_failed_demotes(refresh)
 
         status = c_function_body(GATE_C, "cmd_m33_ble_status")
         self.assertIn("m33_ble_gate_refresh_transport_state()", status)
@@ -140,6 +155,17 @@ class M33BleStartStateStaticTest(unittest.TestCase):
             start,
             "an accepted asynchronous start is not READY",
         )
+
+    def test_ready_failed_mapping_counterexample_is_rejected(self):
+        unsafe = """
+        if ((hci.state == BT_HCI_STATE_FAILED) &&
+            (g_m33_ble_gate_state == M33_BLE_GATE_STARTING))
+        {
+            g_m33_ble_gate_state = M33_BLE_GATE_FAILED;
+        }
+        """
+        with self.assertRaises(AssertionError):
+            assert_ready_failed_demotes(unsafe)
 
     def test_status_does_not_take_an_uninitialized_gate_mutex(self):
         status = c_function_body(GATE_C, "cmd_m33_ble_status")
