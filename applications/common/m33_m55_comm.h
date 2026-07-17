@@ -25,7 +25,9 @@ typedef enum
     MSG_TYPE_VOICE_CONTROL_ACK,
     MSG_TYPE_VOICE_STATUS,
     MSG_TYPE_VOICE_CONFIG,
-    MSG_TYPE_VOICE_LATENCY
+    MSG_TYPE_VOICE_LATENCY,
+    MSG_TYPE_REHAB_MODE_REQUEST = 17,
+    MSG_TYPE_REHAB_MODE_RESULT = 18
 } m33_m55_msg_type_t;
 
 typedef enum
@@ -288,6 +290,50 @@ typedef struct
     rt_uint32_t wake_to_first_write_ms;
 } voice_latency_msg_t;
 
+#define REHAB_MODE_PROTOCOL_VERSION       (1UL)
+#define REHAB_MODE_SOURCE_VOICE           (1UL)
+#define REHAB_MODE_PASSIVE                (0UL)
+#define REHAB_MODE_ASSIST                 (3UL)
+#define REHAB_MODE_RESIST                 (4UL)
+#define REHAB_MODE_JOINT_MASK             (0x10UL)
+#define REHAB_MODE_MAX_TTL_MS             (500UL)
+
+#define REHAB_MODE_RESULT_NONE            (0UL)
+#define REHAB_MODE_RESULT_INVALID         (1UL)
+#define REHAB_MODE_RESULT_QUEUE_FULL      (2UL)
+#define REHAB_MODE_RESULT_DUPLICATE       (3UL)
+#define REHAB_MODE_RESULT_STALE           (4UL)
+#define REHAB_MODE_RESULT_BUSY            (5UL)
+#define REHAB_MODE_RESULT_PRECONDITION    (6UL)
+#define REHAB_MODE_RESULT_STOP_FAILED     (7UL)
+#define REHAB_MODE_RESULT_APPLIED         (8UL)
+
+/* M33 stamps local receive time; absolute ticks are not comparable across cores. */
+typedef struct
+{
+    rt_uint32_t version;
+    rt_uint32_t boot_epoch;
+    rt_uint32_t request_id;
+    rt_uint32_t source;
+    rt_uint32_t mode;
+    rt_uint32_t joint_mask;
+    rt_uint32_t ttl_ms;
+    rt_uint32_t reserved0;
+} rehab_mode_request_msg_t;
+
+typedef struct
+{
+    rt_uint32_t version;
+    rt_uint32_t boot_epoch;
+    rt_uint32_t request_id;
+    rt_uint32_t status;
+    rt_uint32_t detail;
+    rt_uint32_t requested_mode;
+    rt_uint32_t applied_mode;
+    rt_uint32_t joint_mask;
+    rt_uint32_t mode_generation;
+} rehab_mode_result_msg_t;
+
 typedef struct
 {
     rt_uint32_t type; /* m33_m55_msg_type_t wire value; fixed-width ABI */
@@ -303,6 +349,8 @@ typedef struct
         voice_status_msg_t voice_status;
         voice_config_msg_t voice_config;
         voice_latency_msg_t voice_latency;
+        rehab_mode_request_msg_t rehab_mode_request;
+        rehab_mode_result_msg_t rehab_mode_result;
     } payload;
 } m33_m55_message_t;
 
