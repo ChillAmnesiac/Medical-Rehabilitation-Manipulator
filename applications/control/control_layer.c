@@ -2684,6 +2684,16 @@ static void ctrl_assess_ros_command_safety(const control_ros_command_t *cmd,
         return;
     }
 
+    if (!rehab_mode_manager_accepts_ros_target())
+    {
+        assessment->reason = CONTROL_ROS_REJECT_UNSUPPORTED_CMD;
+        assessment->state = CONTROL_ROS_SAFETY_LIMITED;
+        assessment->decision = CONTROL_ROS_DECISION_REJECT;
+        rehab_mode_manager_record_reject(cmd->joint_id,
+                                         CONTROL_STATUS_DETAIL_UNSUPPORTED_COMMAND);
+        return;
+    }
+
     if (!assessment->joint_known)
     {
         assessment->target_in_limit = RT_FALSE;
@@ -3268,6 +3278,12 @@ static rt_err_t ctrl_apply_ros_command(const control_ros_command_t *cmd)
         return control_motor_stop(motor_joint, cmd->clear_fault ? RT_TRUE : RT_FALSE);
 
     case CONTROL_ROS_CMD_SET_TARGET:
+        if (!rehab_mode_manager_accepts_ros_target())
+        {
+            rehab_mode_manager_record_reject(cmd->joint_id,
+                                             CONTROL_STATUS_DETAIL_UNSUPPORTED_COMMAND);
+            return -RT_EBUSY;
+        }
         return control_joint_motor_set_target(motor_joint,
                                               cmd->target_pos_01deg,
                                               cmd->target_vel_rpm,
