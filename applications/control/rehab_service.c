@@ -160,6 +160,59 @@ static rt_bool_t rehab_service_joint_mask_valid(rt_uint8_t joint_mask)
     return ((joint_mask & (rt_uint8_t)~supported_mask) == 0U) ? RT_TRUE : RT_FALSE;
 }
 
+static rt_err_t rehab_service_prepare_feedback_mask(rt_uint8_t joint_mask)
+{
+    rt_tick_t start;
+    rt_tick_t timeout;
+    rt_uint8_t joint;
+
+    for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+    {
+        rt_err_t ret;
+
+        if (!rehab_service_joint_mask_has(joint_mask, joint))
+        {
+            continue;
+        }
+        ret = control_motor_set_active_report(joint, RT_TRUE);
+        if (ret != RT_EOK)
+        {
+            return ret;
+        }
+    }
+
+    start = rt_tick_get();
+    timeout = rt_tick_from_millisecond(CONTROL_REHAB_FEEDBACK_PREPARE_TIMEOUT_MS);
+    do
+    {
+        rt_bool_t all_fresh = RT_TRUE;
+        rt_tick_t now = rt_tick_get();
+
+        for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+        {
+            control_motor_feedback_t fb;
+
+            if (!rehab_service_joint_mask_has(joint_mask, joint))
+            {
+                continue;
+            }
+            if ((control_get_motor_feedback(joint, &fb) != RT_EOK) ||
+                !rehab_feedback_is_fresh(&fb, now))
+            {
+                all_fresh = RT_FALSE;
+                break;
+            }
+        }
+        if (all_fresh)
+        {
+            return RT_EOK;
+        }
+        rt_thread_mdelay(10U);
+    } while ((rt_tick_get() - start) < timeout);
+
+    return -RT_ETIMEOUT;
+}
+
 static void rehab_service_reset_all_strategy_states_locked(void)
 {
     rt_uint8_t index;
@@ -1311,6 +1364,15 @@ rt_err_t rehab_service_set_mode_mask(rehab_demo_mode_t mode,
     if (primary_joint == 0U)
     {
         return -RT_EINVAL;
+    }
+
+    ret = rehab_service_prepare_feedback_mask(active_joint_mask);
+    if (ret != RT_EOK)
+    {
+        rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+        rehab_service_set_result_locked(CONTROL_STATUS_DETAIL_MOTOR_FAULT, ret);
+        rt_mutex_release(&s_rehab.lock);
+        return ret;
     }
 
     rt_mutex_take(&s_rehab.actuation_lock, RT_WAITING_FOREVER);

@@ -33,6 +33,24 @@ class RehabServiceActuationStaticTest(unittest.TestCase):
         self.assertIn("CONTROL_REHAB_FEEDBACK_PREPARE_TIMEOUT_MS", SERVICE_C)
         self.assertIn("return -RT_ETIMEOUT;", SERVICE_C)
 
+    def test_mask_mode_prepares_all_feedback_before_state_transition(self):
+        start = SERVICE_C.index("rt_err_t rehab_service_set_mode_mask")
+        end = SERVICE_C.index("rt_err_t rehab_service_set_mode_on_m33", start)
+        body = SERVICE_C[start:end]
+        self.assertIn("rehab_service_prepare_feedback_mask(active_joint_mask)", body)
+        prepare = body.index("rehab_service_prepare_feedback_mask(active_joint_mask)")
+        transition = body.index("rehab_service_apply_status_locked(")
+        self.assertLess(prepare, transition)
+
+    def test_mask_feedback_prepare_has_one_shared_timeout_window(self):
+        self.assertIn("static rt_err_t rehab_service_prepare_feedback_mask", SERVICE_C)
+        start = SERVICE_C.index("static rt_err_t rehab_service_prepare_feedback_mask")
+        end = SERVICE_C.index("static void rehab_service_reset_all_strategy_states_locked", start)
+        body = SERVICE_C[start:end]
+        self.assertIn("control_motor_set_active_report(joint, RT_TRUE)", body)
+        self.assertEqual(body.count("start = rt_tick_get();"), 1)
+        self.assertIn("return -RT_ETIMEOUT;", body)
+
 
 if __name__ == "__main__":
     unittest.main()
