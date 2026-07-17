@@ -202,6 +202,8 @@ typedef struct
     rt_uint8_t clear_fault;
     /* set_mode 使用的运行模式。 */
     rt_uint8_t mode;
+    /* SET_MODE active modes use one M33 joint bit. */
+    rt_uint8_t joint_mask;
     /* active_report 命令的开关值。 */
     rt_uint8_t active_report_enable;
     /* 目标位置，单位 0.1 deg。 */

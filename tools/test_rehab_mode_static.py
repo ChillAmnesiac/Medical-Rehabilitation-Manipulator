@@ -348,7 +348,7 @@ def main():
     require(control_c, "static rt_err_t ctrl_apply_rehab_mode_command", "control_layer.c")
     require(control_c, "rehab_mode_command_t mode_cmd;", "control_layer.c")
     require(control_c, "mode_cmd.mode = (rehab_mode_t)cmd->mode;", "control_layer.c")
-    require(control_c, "mode_cmd.joint_mask = CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK;", "control_layer.c")
+    require(control_c, "mode_cmd.joint_mask = cmd->joint_mask;", "control_layer.c")
     require(control_c, "return rehab_mode_manager_apply_command(&mode_cmd);", "control_layer.c")
     require(control_c, "MOTOR_PARAM_INDEX_IQ_REF", "control_layer.c")
     require(control_c, "MOTOR_PARAM_INDEX_LIMIT_CUR", "control_layer.c")

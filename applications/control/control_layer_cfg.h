@@ -426,8 +426,9 @@
 
 /* ROS command CAN protocol:
  * Byte0: cmd(1-enable 2-stop 3-set_target 4-set_mode 5-set_zero 6-active_report)
- * Byte1: joint_id
+ * Byte1: joint_id; SET_MODE keeps the existing correlation sequence here
  * Byte2~7: payload by command
+ * SET_MODE Byte2: mode, Byte3: single M33 joint bitmask for non-passive modes
  */
 #ifndef CONTROL_CAN_ID_ROS_COMMAND
 #define CONTROL_CAN_ID_ROS_COMMAND         0x320U

@@ -1488,6 +1488,14 @@ static rt_bool_t ctrl_parse_ros_command_can(const struct rt_can_msg *msg, contro
         }
         out->command = CONTROL_ROS_CMD_SET_MODE;
         out->mode = msg->data[2];
+        if (out->mode != (rt_uint8_t)REHAB_MODE_PASSIVE)
+        {
+            if (msg->len < 4U)
+            {
+                return RT_FALSE;
+            }
+            out->joint_mask = msg->data[3];
+        }
         return RT_TRUE;
 
     case CONTROL_ROS_CMD_OP_SET_ZERO:
@@ -2556,6 +2564,15 @@ static rt_bool_t ctrl_rehab_mode_value_supported(rt_uint8_t mode)
     }
 }
 
+static rt_bool_t ctrl_rehab_single_joint_mask_supported(rt_uint8_t joint_mask)
+{
+    const rt_uint8_t supported_mask = CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK;
+
+    return ((joint_mask != 0U) &&
+            ((joint_mask & (rt_uint8_t)(joint_mask - 1U)) == 0U) &&
+            ((joint_mask & (rt_uint8_t)~supported_mask) == 0U)) ? RT_TRUE : RT_FALSE;
+}
+
 static void ctrl_assess_ros_command_safety(const control_ros_command_t *cmd,
                                            control_ros_safety_assessment_t *assessment)
 {
@@ -2604,6 +2621,14 @@ static void ctrl_assess_ros_command_safety(const control_ros_command_t *cmd,
         if (!ctrl_rehab_mode_value_supported(cmd->mode))
         {
             assessment->reason = CONTROL_ROS_REJECT_UNSUPPORTED_CMD;
+            assessment->state = CONTROL_ROS_SAFETY_LIMITED;
+            assessment->decision = CONTROL_ROS_DECISION_REJECT;
+            return;
+        }
+        if ((cmd->mode != (rt_uint8_t)REHAB_MODE_PASSIVE) &&
+            !ctrl_rehab_single_joint_mask_supported(cmd->joint_mask))
+        {
+            assessment->reason = CONTROL_ROS_REJECT_UNKNOWN_JOINT;
             assessment->state = CONTROL_ROS_SAFETY_LIMITED;
             assessment->decision = CONTROL_ROS_DECISION_REJECT;
             return;
@@ -3201,11 +3226,16 @@ static rt_err_t ctrl_apply_rehab_mode_command(const control_ros_command_t *cmd)
     {
         return -RT_EINVAL;
     }
+    if ((cmd->mode != (rt_uint8_t)REHAB_MODE_PASSIVE) &&
+        !ctrl_rehab_single_joint_mask_supported(cmd->joint_mask))
+    {
+        return -RT_EINVAL;
+    }
 
     rt_memset(&mode_cmd, 0, sizeof(mode_cmd));
     mode_cmd.mode = (rehab_mode_t)cmd->mode;
     mode_cmd.submode = REHAB_MODE_SUBMODE_IDLE;
-    mode_cmd.joint_mask = CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK;
+    mode_cmd.joint_mask = cmd->joint_mask;
     mode_cmd.assist_direction_mask = 0U;
     mode_cmd.max_velocity_rad_s =
         (mode_cmd.mode == REHAB_MODE_RESIST) ?
