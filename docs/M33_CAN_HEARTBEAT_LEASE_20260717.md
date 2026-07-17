@@ -108,6 +108,6 @@ CTRL_DBG_LEASE: mode=0 gen=<n> timeout=0 retry=0 latched=0 hb_timeout_ms=2500
 ## 6. 保留问题
 
 1. 记忆回放的 `control_motor_position_control()` 仍是历史路径，尚未纳入 generation/actuation 保护；因此本次租约明确不监管 MEMORY 模式。
-2. NanoPi 当前 SSH/网络异常，最终 `0x320/0x321 -> M33 -> 0x322` 板上闭环尚未复测。
+2. NanoPi 已于 2026-07-17 恢复，当前板上旧队列固件已验证 `0x320/0x321 -> M33 -> 0x322` 被动链路；但本文新增 lease 固件尚未烧录，因此 `CTRL_DBG_LEASE` 和 2500 ms 条件 STOP 仍未做实机验证。
 3. 蓝牙配对和 App 代码本次未修改。接入前仍需单独审查回调栈、对象生命周期、MTU/长度校验、重复初始化和 M33/M55 共享资源冲突。
 4. 本次没有烧录，也没有发送主动、助力、抗阻动作命令；不能仅凭主机测试声称实机安全闭环完成。

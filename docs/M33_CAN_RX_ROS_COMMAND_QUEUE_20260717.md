@@ -176,5 +176,30 @@ NanoPi/总线供电恢复后补测：
 
 1. 连续两次 `cmd_control_debug`，确认 `hb` 或 F103 计数增长。
 2. 运行 `tools/nanopi_rehab_mode.sh passive`。
+
+### 2026-07-17 NanoPi 恢复补测
+
+NanoPi `192.168.3.36` 恢复后，`can0` 状态为 `UP/ERROR-ACTIVE`、1 Mbps；TX/RX error、bus-off、restart、error-passive 均为 0。
+
+安全脚本连续执行两次 PASSIVE，实际发送：
+
+```text
+321#01
+321#01
+320#040100
+
+321#02
+321#02
+320#040200
+```
+
+NanoPi 收到 `0x322` 状态回包。M33 两次 `cmd_control_debug` 对比：
+
+```text
+ros_id=1 parsed=1 enq=1 applied=1
+ros_id=2 parsed=2 enq=2 applied=2
+```
+
+`qfail=0 stale=0 recheck_reject=0 apply_fail=0`。这确认当前板上队列固件的 `0x320 -> CAN RX -> MQ -> ros_cmd -> apply -> 0x322` 被动模式链路已端到端通过。
 3. 再执行 `cmd_control_debug`，确认 `ros_id/parsed/enq/applied/emergency` 各增长 1。
 4. 确认 `qfail/stale/recheck_reject/apply_fail` 不增长，模式仍为 PASSIVE。
