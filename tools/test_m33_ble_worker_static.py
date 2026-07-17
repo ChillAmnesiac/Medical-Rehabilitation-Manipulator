@@ -108,13 +108,17 @@ class M33BleWorkerStaticTest(unittest.TestCase):
         body = function_body(source, "app_bt_gatt_connection_down")
         self.assertIn("app_ble_service_reset_rx_session", body)
 
-    def test_generation_is_rechecked_before_parse_and_submit(self):
+    def test_generation_is_rechecked_around_strict_protocol_parse(self):
         source = production_worker_source()
         body = function_body(source, "app_ble_worker_handle_frame")
         checks = [match.start() for match in re.finditer("app_ble_worker_session_is_current", body)]
         self.assertGreaterEqual(len(checks), 2)
-        self.assertLess(checks[0], body.index("app_ble_service_parse_ascii_frame"))
-        self.assertLess(checks[1], body.index("app_ble_service_submit_rx_command"))
+        parse_at = body.index("app_ble_protocol_parse")
+        self.assertLess(checks[0], parse_at)
+        self.assertLess(parse_at, checks[1])
+        self.assertNotIn("app_ble_service_parse_ascii_frame", body)
+        self.assertNotIn("app_ble_service_submit_rx_command", body)
+        self.assertNotIn("ascii_frame", body)
 
     def test_worker_does_not_send_task10_notifications(self):
         source = production_worker_source()

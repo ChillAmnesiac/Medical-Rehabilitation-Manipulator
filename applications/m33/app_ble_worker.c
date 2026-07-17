@@ -416,7 +416,7 @@ uint32_t app_ble_worker_drop_count(void)
 #else
 
 #include "app_ble_diag.h"
-#include "app_ble_service.h"
+#include "app_ble_protocol.h"
 #include "bt_app_gatt_handler.h"
 
 typedef struct
@@ -644,8 +644,7 @@ static void app_ble_worker_handle_frame(const uint8_t *frame,
                                         void *context)
 {
     app_ble_frame_context_t *frame_context = (app_ble_frame_context_t *)context;
-    app_ble_command_t command;
-    char ascii_frame[APP_BLE_FRAME_MAX + 1u];
+    app_ble_request_t request;
 
     if ((frame_context == RT_NULL) ||
         !app_ble_worker_session_is_current(frame_context->generation,
@@ -654,9 +653,7 @@ static void app_ble_worker_handle_frame(const uint8_t *frame,
         return;
     }
 
-    rt_memcpy(ascii_frame, frame, length);
-    ascii_frame[length] = '\0';
-    if (app_ble_service_parse_ascii_frame(ascii_frame, &command) != RT_EOK)
+    if (app_ble_protocol_parse(frame, length, &request) != APP_BLE_PROTOCOL_OK)
     {
         return;
     }
@@ -665,9 +662,8 @@ static void app_ble_worker_handle_frame(const uint8_t *frame,
     {
         return;
     }
-    (void)app_ble_service_submit_rx_command(&command,
-                                            frame_context->generation,
-                                            frame_context->conn_id);
+    /* Control dispatch is added only after APP_BLE ownership is source-bound. */
+    RT_UNUSED(request);
 }
 
 static void app_ble_worker_entry(void *parameter)
