@@ -98,7 +98,9 @@ rt_err_t bt_app_gatt_notify_from_worker(uint32_t generation,
     return RT_EOK;
 }
 
-rt_err_t bt_app_gatt_send(const uint8_t *data, uint16_t len)
+rt_err_t bt_app_gatt_send(const app_ble_session_token_t *token,
+                          const uint8_t *data,
+                          uint16_t len)
 {
     if ((data == RT_NULL) || (len == 0u))
     {
@@ -119,10 +121,12 @@ rt_err_t bt_app_gatt_send(const uint8_t *data, uint16_t len)
         return -RT_EEMPTY;
     }
 
-    return app_ble_worker_enqueue_ack(hello_sensor_state.conn_id, data, len);
+    return app_ble_worker_enqueue_ack(token, data, len);
 }
 
-rt_err_t bt_app_gatt_publish_telemetry(const uint8_t *data, uint16_t len)
+rt_err_t bt_app_gatt_publish_telemetry(const app_ble_session_token_t *token,
+                                       const uint8_t *data,
+                                       uint16_t len)
 {
     if ((data == RT_NULL) || (len == 0u) ||
         (len > APP_BLE_TX_PAYLOAD_MAX))
@@ -140,9 +144,7 @@ rt_err_t bt_app_gatt_publish_telemetry(const uint8_t *data, uint16_t len)
         app_ble_diag_note_tx_cccd_drop();
         return -RT_EEMPTY;
     }
-    return app_ble_worker_publish_telemetry(hello_sensor_state.conn_id,
-                                             data,
-                                             len);
+    return app_ble_worker_publish_telemetry(token, data, len);
 }
 
 wiced_bt_gatt_status_t app_bt_gatt_callback(wiced_bt_gatt_evt_t event,
@@ -202,7 +204,7 @@ wiced_bt_gatt_status_t app_bt_gatt_callback(wiced_bt_gatt_evt_t event,
         APP_BT_GATT_TRACE("[bt] GATT app-buffer-transmitted\n");
         if (p_event_data->buffer_xmitted.p_app_data == g_app_ble_notify_buffer)
         {
-            app_ble_worker_notify_release();
+            app_ble_worker_notify_buffer_returned();
         }
         if (p_event_data->buffer_xmitted.p_app_ctxt != RT_NULL)
         {
@@ -270,6 +272,10 @@ wiced_bt_gatt_status_t app_bt_gatt_req_cb(wiced_bt_gatt_attribute_request_t *p_a
         break;
 
     case GATT_HANDLE_VALUE_NOTIF:
+        if (p_attr_req->data.confirm.handle == HDLC_NUS_TX_VALUE)
+        {
+            app_ble_worker_notify_operation_complete(p_attr_req->conn_id);
+        }
         gatt_status = WICED_BT_GATT_SUCCESS;
         break;
 
@@ -600,12 +606,12 @@ void *app_bt_alloc_buffer(int len)
     return rt_malloc((rt_size_t)len);
 }
 
-void app_bt_send_message(void)
+void app_bt_send_message(const app_ble_session_token_t *token)
 {
-    (void)bt_app_gatt_publish_telemetry(app_nus_tx, app_nus_tx_len);
+    (void)bt_app_gatt_publish_telemetry(token, app_nus_tx, app_nus_tx_len);
 }
 
-void app_bt_gatt_increment_notify_value(void)
+void app_bt_gatt_increment_notify_value(const app_ble_session_token_t *token)
 {
     static const uint8_t ping[] = "ping\n";
 
@@ -614,7 +620,9 @@ void app_bt_gatt_increment_notify_value(void)
         return;
     }
 
-    (void)bt_app_gatt_publish_telemetry(ping, (uint16_t)(sizeof(ping) - 1u));
+    (void)bt_app_gatt_publish_telemetry(token,
+                                        ping,
+                                        (uint16_t)(sizeof(ping) - 1u));
 }
 
 rt_err_t bt_app_gatt_init(bt_app_gatt_adv_restart_t adv_restart_cb)

@@ -49,6 +49,12 @@ typedef struct
 {
     uint32_t generation;
     uint16_t conn_id;
+} app_ble_session_token_t;
+
+typedef struct
+{
+    uint32_t generation;
+    uint16_t conn_id;
     uint16_t length;
     app_ble_tx_kind_t kind;
     uint8_t data[APP_BLE_TX_PAYLOAD_MAX];
@@ -83,16 +89,19 @@ void app_ble_worker_reset_session(uint16_t conn_id);
 app_ble_worker_result_t app_ble_worker_enqueue(uint16_t conn_id,
                                                const uint8_t *data,
                                                uint16_t length);
-app_ble_worker_result_t app_ble_worker_enqueue_ack(uint16_t conn_id,
+app_ble_worker_result_t app_ble_worker_get_session_token(app_ble_session_token_t *token);
+app_ble_worker_result_t app_ble_worker_enqueue_ack(const app_ble_session_token_t *token,
                                                    const uint8_t *data,
                                                    uint16_t length);
-app_ble_worker_result_t app_ble_worker_publish_telemetry(uint16_t conn_id,
+app_ble_worker_result_t app_ble_worker_publish_telemetry(const app_ble_session_token_t *token,
                                                          const uint8_t *data,
                                                          uint16_t length);
 int app_ble_worker_session_is_current(uint32_t generation, uint16_t conn_id);
 int app_ble_worker_is_current_thread(void);
-int app_ble_worker_notify_try_acquire(void);
-void app_ble_worker_notify_release(void);
+int app_ble_worker_notify_try_acquire(const app_ble_session_token_t *token);
+void app_ble_worker_notify_buffer_returned(void);
+void app_ble_worker_notify_operation_complete(uint16_t conn_id);
+void app_ble_worker_notify_abort(const app_ble_session_token_t *token);
 uint32_t app_ble_worker_drop_count(void);
 
 #ifdef APP_BLE_WORKER_HOST_TEST

@@ -155,9 +155,37 @@ class M33BleWorkerStaticTest(unittest.TestCase):
 
         ack = function_body(source, "app_ble_worker_enqueue_ack")
         telemetry = function_body(source, "app_ble_worker_publish_telemetry")
+        self.assertIn("app_ble_session_token_t", header)
+        self.assertRegex(
+            header,
+            r"app_ble_worker_enqueue_ack\(const app_ble_session_token_t \*token",
+        )
+        self.assertRegex(
+            header,
+            r"app_ble_worker_publish_telemetry\(const app_ble_session_token_t \*token",
+        )
+        self.assertNotIn("message->generation = g_app_ble_generation", source)
         self.assertIn("rt_mq_send", ack)
         self.assertNotIn("rt_mq_urgent", ack)
+        self.assertIn("rt_enter_critical", ack)
+        self.assertIn("rt_exit_critical", ack)
+        self.assertLess(ack.index("rt_enter_critical"), ack.index("rt_mq_send"))
+        self.assertLess(ack.index("rt_mq_send"), ack.rindex("rt_exit_critical"))
         self.assertIn("g_app_ble_telemetry_pending", telemetry)
+        self.assertIn("rt_enter_critical", telemetry)
+        self.assertNotIn("rt_mutex_take", telemetry)
+
+    def test_session_handover_serializes_ack_reset_with_enqueue(self):
+        source = production_worker_source()
+        begin = function_body(source, "app_ble_worker_begin_session")
+        reset = function_body(source, "app_ble_worker_reset_session")
+        for body in (begin, reset):
+            self.assertIn("rt_enter_critical", body)
+            self.assertIn("rt_exit_critical", body)
+            self.assertLess(body.index("rt_enter_critical"),
+                            body.index("g_app_ble_tx_ack_mq"))
+            self.assertLess(body.index("g_app_ble_tx_ack_mq"),
+                            body.rindex("rt_exit_critical"))
 
     def test_persistent_notify_buffer_is_completion_gated(self):
         worker = production_worker_source()
@@ -167,8 +195,13 @@ class M33BleWorkerStaticTest(unittest.TestCase):
         self.assertIn("app_ble_worker_notify_try_acquire", drain)
         self.assertLess(drain.index("rt_mq_recv"),
                         drain.index("app_ble_worker_notify_try_acquire"))
-        self.assertIn("app_ble_worker_notify_release", drain)
-        self.assertIn("app_ble_worker_notify_release", callback)
+        req = function_body(gatt, "app_bt_gatt_req_cb")
+        self.assertIn("app_ble_worker_notify_abort", drain)
+        self.assertIn("app_ble_worker_notify_buffer_returned", callback)
+        self.assertIn("app_ble_worker_notify_operation_complete", req)
+        self.assertIn("GATT_HANDLE_VALUE_NOTIF", req)
+        self.assertIn("HDLC_NUS_TX_VALUE", req)
+        self.assertNotIn("app_ble_worker_notify_release", callback)
         self.assertIn("g_app_ble_notify_buffer", gatt)
 
     def test_service_owns_worker_lifecycle(self):

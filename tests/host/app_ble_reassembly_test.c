@@ -217,21 +217,23 @@ static void test_tx_ack_queue_is_bounded_and_precedes_coalesced_telemetry(void)
     static const uint8_t telemetry_old[] = "old\n";
     static const uint8_t telemetry_new[] = "new\n";
     app_ble_tx_message_t message;
+    app_ble_session_token_t token;
     unsigned int i;
 
     assert(app_ble_worker_init() == 0);
     assert(app_ble_worker_begin_session(9u) == 0);
-    assert(app_ble_worker_publish_telemetry(9u,
+    assert(app_ble_worker_get_session_token(&token) == 0);
+    assert(app_ble_worker_publish_telemetry(&token,
                                             telemetry_old,
                                             sizeof(telemetry_old) - 1u) == 0);
-    assert(app_ble_worker_publish_telemetry(9u,
+    assert(app_ble_worker_publish_telemetry(&token,
                                             telemetry_new,
                                             sizeof(telemetry_new) - 1u) == 0);
     for (i = 0u; i < APP_BLE_TX_ACK_QUEUE_DEPTH; ++i)
     {
-        assert(app_ble_worker_enqueue_ack(9u, &ack_values[i], 1u) == 0);
+        assert(app_ble_worker_enqueue_ack(&token, &ack_values[i], 1u) == 0);
     }
-    assert(app_ble_worker_enqueue_ack(9u, &ack_values[4], 1u) != 0);
+    assert(app_ble_worker_enqueue_ack(&token, &ack_values[4], 1u) != 0);
 
     for (i = 0u; i < APP_BLE_TX_ACK_QUEUE_DEPTH; ++i)
     {
@@ -252,33 +254,57 @@ static void test_tx_rejects_oversize_and_disconnect_invalidates_pending(void)
     uint8_t oversize[APP_BLE_TX_PAYLOAD_MAX + 1u] = {0};
     static const uint8_t payload[] = "pending\n";
     app_ble_tx_message_t message;
+    app_ble_session_token_t old_token;
+    app_ble_session_token_t new_token;
 
     assert(app_ble_worker_init() == 0);
     assert(app_ble_worker_begin_session(10u) == 0);
-    assert(app_ble_worker_enqueue_ack(10u, oversize, sizeof(oversize)) != 0);
-    assert(app_ble_worker_publish_telemetry(10u, oversize, sizeof(oversize)) != 0);
-    assert(app_ble_worker_enqueue_ack(10u, payload, sizeof(payload) - 1u) == 0);
-    assert(app_ble_worker_publish_telemetry(10u, payload, sizeof(payload) - 1u) == 0);
+    assert(app_ble_worker_get_session_token(&old_token) == 0);
+    assert(app_ble_worker_enqueue_ack(&old_token, oversize, sizeof(oversize)) != 0);
+    assert(app_ble_worker_publish_telemetry(&old_token, oversize, sizeof(oversize)) != 0);
+    assert(app_ble_worker_enqueue_ack(&old_token, payload, sizeof(payload) - 1u) == 0);
+    assert(app_ble_worker_publish_telemetry(&old_token, payload, sizeof(payload) - 1u) == 0);
 
     app_ble_worker_reset_session(10u);
     assert(app_ble_worker_host_dequeue_tx(&message) == 0);
-    assert(app_ble_worker_begin_session(11u) == 0);
-    assert(app_ble_worker_enqueue_ack(10u, payload, sizeof(payload) - 1u) != 0);
+    assert(app_ble_worker_begin_session(10u) == 0);
+    assert(app_ble_worker_get_session_token(&new_token) == 0);
+    assert(app_ble_worker_enqueue_ack(&old_token, payload, sizeof(payload) - 1u) != 0);
+    assert(app_ble_worker_publish_telemetry(&old_token, payload, sizeof(payload) - 1u) != 0);
+    assert(app_ble_worker_enqueue_ack(&new_token, payload, sizeof(payload) - 1u) == 0);
 }
 
-static void test_notify_buffer_stays_busy_across_session_reset_until_completion(void)
+static void test_notify_gate_requires_buffer_return_and_operation_completion(void)
 {
+    app_ble_session_token_t token;
+
     assert(app_ble_worker_init() == 0);
     assert(app_ble_worker_begin_session(12u) == 0);
-    assert(app_ble_worker_notify_try_acquire());
-    assert(!app_ble_worker_notify_try_acquire());
+    assert(app_ble_worker_get_session_token(&token) == 0);
+    assert(app_ble_worker_notify_try_acquire(&token));
+    assert(!app_ble_worker_notify_try_acquire(&token));
 
     app_ble_worker_reset_session(12u);
     assert(app_ble_worker_begin_session(13u) != 0);
-    app_ble_worker_notify_release();
+    app_ble_worker_notify_buffer_returned();
+    assert(app_ble_worker_begin_session(13u) != 0);
+    app_ble_worker_notify_operation_complete(token.conn_id);
     assert(app_ble_worker_begin_session(13u) == 0);
-    assert(app_ble_worker_notify_try_acquire());
-    app_ble_worker_notify_release();
+
+    assert(app_ble_worker_get_session_token(&token) == 0);
+    assert(app_ble_worker_notify_try_acquire(&token));
+    app_ble_worker_notify_operation_complete((uint16_t)(token.conn_id + 1u));
+    app_ble_worker_notify_buffer_returned();
+    assert(app_ble_worker_begin_session(14u) != 0);
+    app_ble_worker_notify_operation_complete(token.conn_id);
+    assert(app_ble_worker_begin_session(14u) == 0);
+
+    assert(app_ble_worker_get_session_token(&token) == 0);
+    assert(app_ble_worker_notify_try_acquire(&token));
+    app_ble_worker_notify_operation_complete(token.conn_id);
+    assert(app_ble_worker_begin_session(15u) != 0);
+    app_ble_worker_notify_buffer_returned();
+    assert(app_ble_worker_begin_session(15u) == 0);
 }
 
 int main(void)
@@ -294,7 +320,7 @@ int main(void)
     test_queue_full_does_not_overwrite_and_generation_invalidates_old();
     test_tx_ack_queue_is_bounded_and_precedes_coalesced_telemetry();
     test_tx_rejects_oversize_and_disconnect_invalidates_pending();
-    test_notify_buffer_stays_busy_across_session_reset_until_completion();
+    test_notify_gate_requires_buffer_return_and_operation_completion();
     puts("app_ble_reassembly_test: PASS");
     return 0;
 }

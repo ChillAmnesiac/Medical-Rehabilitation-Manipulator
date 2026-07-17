@@ -138,6 +138,22 @@ static uint32_t g_app_ble_generation;
 static uint16_t g_app_ble_conn_id;
 static uint32_t g_app_ble_rx_queue_drops;
 static uint8_t g_app_ble_notify_busy;
+static uint8_t g_app_ble_notify_buffer_returned;
+static uint8_t g_app_ble_notify_operation_complete;
+static app_ble_session_token_t g_app_ble_notify_token;
+
+static void app_ble_worker_host_try_release_notify(void)
+{
+    if ((g_app_ble_notify_busy != 0u) &&
+        (g_app_ble_notify_buffer_returned != 0u) &&
+        (g_app_ble_notify_operation_complete != 0u))
+    {
+        g_app_ble_notify_busy = 0u;
+        g_app_ble_notify_buffer_returned = 0u;
+        g_app_ble_notify_operation_complete = 0u;
+        memset(&g_app_ble_notify_token, 0, sizeof(g_app_ble_notify_token));
+    }
+}
 
 static void app_ble_worker_host_clear_queue(void)
 {
@@ -162,6 +178,9 @@ app_ble_worker_result_t app_ble_worker_init(void)
     g_app_ble_conn_id = 0u;
     g_app_ble_rx_queue_drops = 0u;
     g_app_ble_notify_busy = 0u;
+    g_app_ble_notify_buffer_returned = 0u;
+    g_app_ble_notify_operation_complete = 0u;
+    memset(&g_app_ble_notify_token, 0, sizeof(g_app_ble_notify_token));
     return APP_BLE_HOST_OK;
 }
 
@@ -230,26 +249,38 @@ app_ble_worker_result_t app_ble_worker_enqueue(uint16_t conn_id,
 static app_ble_worker_result_t app_ble_worker_host_prepare_tx(
     app_ble_tx_message_t *message,
     app_ble_tx_kind_t kind,
-    uint16_t conn_id,
+    const app_ble_session_token_t *token,
     const uint8_t *data,
     uint16_t length)
 {
-    if ((message == NULL) || (conn_id == 0u) ||
-        (conn_id != g_app_ble_conn_id) || (data == NULL) ||
+    if ((message == NULL) || (token == NULL) ||
+        !app_ble_worker_session_is_current(token->generation, token->conn_id) ||
+        (data == NULL) ||
         (length == 0u) || (length > APP_BLE_TX_PAYLOAD_MAX))
     {
         return APP_BLE_HOST_ERROR;
     }
 
-    message->generation = g_app_ble_generation;
-    message->conn_id = conn_id;
+    message->generation = token->generation;
+    message->conn_id = token->conn_id;
     message->length = length;
     message->kind = kind;
     memcpy(message->data, data, length);
     return APP_BLE_HOST_OK;
 }
 
-app_ble_worker_result_t app_ble_worker_enqueue_ack(uint16_t conn_id,
+app_ble_worker_result_t app_ble_worker_get_session_token(app_ble_session_token_t *token)
+{
+    if ((token == NULL) || (g_app_ble_conn_id == 0u))
+    {
+        return APP_BLE_HOST_ERROR;
+    }
+    token->generation = g_app_ble_generation;
+    token->conn_id = g_app_ble_conn_id;
+    return APP_BLE_HOST_OK;
+}
+
+app_ble_worker_result_t app_ble_worker_enqueue_ack(const app_ble_session_token_t *token,
                                                    const uint8_t *data,
                                                    uint16_t length)
 {
@@ -261,7 +292,7 @@ app_ble_worker_result_t app_ble_worker_enqueue_ack(uint16_t conn_id,
     }
     message = &g_app_ble_host_ack_queue[g_app_ble_host_ack_tail];
     if (app_ble_worker_host_prepare_tx(message, APP_BLE_TX_KIND_ACK,
-                                       conn_id, data, length) != APP_BLE_HOST_OK)
+                                       token, data, length) != APP_BLE_HOST_OK)
     {
         return APP_BLE_HOST_ERROR;
     }
@@ -271,13 +302,13 @@ app_ble_worker_result_t app_ble_worker_enqueue_ack(uint16_t conn_id,
     return APP_BLE_HOST_OK;
 }
 
-app_ble_worker_result_t app_ble_worker_publish_telemetry(uint16_t conn_id,
+app_ble_worker_result_t app_ble_worker_publish_telemetry(const app_ble_session_token_t *token,
                                                          const uint8_t *data,
                                                          uint16_t length)
 {
     if (app_ble_worker_host_prepare_tx(&g_app_ble_host_telemetry,
                                        APP_BLE_TX_KIND_TELEMETRY,
-                                       conn_id, data, length) != APP_BLE_HOST_OK)
+                                       token, data, length) != APP_BLE_HOST_OK)
     {
         return APP_BLE_HOST_ERROR;
     }
@@ -332,19 +363,49 @@ int app_ble_worker_is_current_thread(void)
     return 1;
 }
 
-int app_ble_worker_notify_try_acquire(void)
+int app_ble_worker_notify_try_acquire(const app_ble_session_token_t *token)
 {
-    if (g_app_ble_notify_busy != 0u)
+    if ((token == NULL) || (g_app_ble_notify_busy != 0u) ||
+        !app_ble_worker_session_is_current(token->generation, token->conn_id))
     {
         return 0;
     }
     g_app_ble_notify_busy = 1u;
+    g_app_ble_notify_buffer_returned = 0u;
+    g_app_ble_notify_operation_complete = 0u;
+    g_app_ble_notify_token = *token;
     return 1;
 }
 
-void app_ble_worker_notify_release(void)
+void app_ble_worker_notify_buffer_returned(void)
 {
-    g_app_ble_notify_busy = 0u;
+    if (g_app_ble_notify_busy != 0u)
+    {
+        g_app_ble_notify_buffer_returned = 1u;
+        app_ble_worker_host_try_release_notify();
+    }
+}
+
+void app_ble_worker_notify_operation_complete(uint16_t conn_id)
+{
+    if ((g_app_ble_notify_busy != 0u) &&
+        (conn_id == g_app_ble_notify_token.conn_id))
+    {
+        g_app_ble_notify_operation_complete = 1u;
+        app_ble_worker_host_try_release_notify();
+    }
+}
+
+void app_ble_worker_notify_abort(const app_ble_session_token_t *token)
+{
+    if ((token != NULL) && (g_app_ble_notify_busy != 0u) &&
+        (token->generation == g_app_ble_notify_token.generation) &&
+        (token->conn_id == g_app_ble_notify_token.conn_id))
+    {
+        g_app_ble_notify_buffer_returned = 1u;
+        g_app_ble_notify_operation_complete = 1u;
+        app_ble_worker_host_try_release_notify();
+    }
 }
 
 uint32_t app_ble_worker_drop_count(void)
@@ -370,7 +431,6 @@ static rt_uint8_t g_app_ble_rx_mq_pool[
 static struct rt_messagequeue g_app_ble_tx_ack_mq;
 static rt_uint8_t g_app_ble_tx_ack_mq_pool[
     RT_MQ_BUF_SIZE(sizeof(app_ble_tx_message_t), APP_BLE_TX_ACK_QUEUE_DEPTH)];
-static struct rt_mutex g_app_ble_telemetry_lock;
 static app_ble_tx_message_t g_app_ble_telemetry;
 static rt_bool_t g_app_ble_telemetry_pending;
 static struct rt_thread g_app_ble_worker_thread;
@@ -379,6 +439,9 @@ static volatile rt_uint32_t g_app_ble_generation;
 static volatile rt_uint16_t g_app_ble_conn_id;
 static volatile rt_uint32_t g_app_ble_rx_queue_drops;
 static volatile rt_bool_t g_app_ble_notify_busy;
+static volatile rt_bool_t g_app_ble_notify_buffer_returned;
+static volatile rt_bool_t g_app_ble_notify_operation_complete;
+static app_ble_session_token_t g_app_ble_notify_token;
 static rt_bool_t g_app_ble_worker_initialized;
 static rt_bool_t g_app_ble_worker_started;
 
@@ -401,6 +464,21 @@ static void app_ble_worker_snapshot_session(rt_uint32_t *generation,
         *conn_id = g_app_ble_conn_id;
     }
     rt_hw_interrupt_enable(level);
+}
+
+app_ble_worker_result_t app_ble_worker_get_session_token(app_ble_session_token_t *token)
+{
+    rt_base_t level;
+
+    if (token == RT_NULL)
+    {
+        return -RT_EINVAL;
+    }
+    level = rt_hw_interrupt_disable();
+    token->generation = g_app_ble_generation;
+    token->conn_id = g_app_ble_conn_id;
+    rt_hw_interrupt_enable(level);
+    return token->conn_id == 0u ? -RT_ERROR : RT_EOK;
 }
 
 static int app_ble_worker_notify_is_busy(void)
@@ -428,25 +506,72 @@ int app_ble_worker_is_current_thread(void)
     return rt_thread_self() == &g_app_ble_worker_thread;
 }
 
-int app_ble_worker_notify_try_acquire(void)
+static void app_ble_worker_notify_try_release_locked(void)
+{
+    if (g_app_ble_notify_busy && g_app_ble_notify_buffer_returned &&
+        g_app_ble_notify_operation_complete)
+    {
+        g_app_ble_notify_busy = RT_FALSE;
+        g_app_ble_notify_buffer_returned = RT_FALSE;
+        g_app_ble_notify_operation_complete = RT_FALSE;
+        rt_memset(&g_app_ble_notify_token, 0, sizeof(g_app_ble_notify_token));
+    }
+}
+
+int app_ble_worker_notify_try_acquire(const app_ble_session_token_t *token)
 {
     rt_base_t level;
     int acquired = 0;
 
     level = rt_hw_interrupt_disable();
-    if (!g_app_ble_notify_busy)
+    if ((token != RT_NULL) && !g_app_ble_notify_busy &&
+        (token->generation == g_app_ble_generation) &&
+        (token->conn_id != 0u) && (token->conn_id == g_app_ble_conn_id))
     {
         g_app_ble_notify_busy = RT_TRUE;
+        g_app_ble_notify_buffer_returned = RT_FALSE;
+        g_app_ble_notify_operation_complete = RT_FALSE;
+        g_app_ble_notify_token = *token;
         acquired = 1;
     }
     rt_hw_interrupt_enable(level);
     return acquired;
 }
 
-void app_ble_worker_notify_release(void)
+void app_ble_worker_notify_buffer_returned(void)
 {
     rt_base_t level = rt_hw_interrupt_disable();
-    g_app_ble_notify_busy = RT_FALSE;
+    if (g_app_ble_notify_busy)
+    {
+        g_app_ble_notify_buffer_returned = RT_TRUE;
+        app_ble_worker_notify_try_release_locked();
+    }
+    rt_hw_interrupt_enable(level);
+}
+
+void app_ble_worker_notify_operation_complete(uint16_t conn_id)
+{
+    rt_base_t level = rt_hw_interrupt_disable();
+    if (g_app_ble_notify_busy &&
+        (conn_id == g_app_ble_notify_token.conn_id))
+    {
+        g_app_ble_notify_operation_complete = RT_TRUE;
+        app_ble_worker_notify_try_release_locked();
+    }
+    rt_hw_interrupt_enable(level);
+}
+
+void app_ble_worker_notify_abort(const app_ble_session_token_t *token)
+{
+    rt_base_t level = rt_hw_interrupt_disable();
+    if ((token != RT_NULL) && g_app_ble_notify_busy &&
+        (token->generation == g_app_ble_notify_token.generation) &&
+        (token->conn_id == g_app_ble_notify_token.conn_id))
+    {
+        g_app_ble_notify_buffer_returned = RT_TRUE;
+        g_app_ble_notify_operation_complete = RT_TRUE;
+        app_ble_worker_notify_try_release_locked();
+    }
     rt_hw_interrupt_enable(level);
 }
 
@@ -468,6 +593,7 @@ static rt_err_t app_ble_worker_send_tx(const app_ble_tx_message_t *message)
 static void app_ble_worker_drain_tx(void)
 {
     app_ble_tx_message_t message;
+    app_ble_session_token_t token;
     rt_ssize_t recv_len;
     rt_bool_t message_pending = RT_FALSE;
 
@@ -487,27 +613,29 @@ static void app_ble_worker_drain_tx(void)
 
     if (!message_pending)
     {
-        rt_mutex_take(&g_app_ble_telemetry_lock, RT_WAITING_FOREVER);
+        rt_enter_critical();
         if (g_app_ble_telemetry_pending)
         {
             message = g_app_ble_telemetry;
             g_app_ble_telemetry_pending = RT_FALSE;
             message_pending = RT_TRUE;
         }
-        rt_mutex_release(&g_app_ble_telemetry_lock);
+        rt_exit_critical();
     }
     if (!message_pending)
     {
         return;
     }
-    if (!app_ble_worker_notify_try_acquire())
+    token.generation = message.generation;
+    token.conn_id = message.conn_id;
+    if (!app_ble_worker_notify_try_acquire(&token))
     {
         app_ble_diag_note_notify_failure();
         return;
     }
     if (app_ble_worker_send_tx(&message) != RT_EOK)
     {
-        app_ble_worker_notify_release();
+        app_ble_worker_notify_abort(&token);
     }
 }
 
@@ -623,16 +751,6 @@ app_ble_worker_result_t app_ble_worker_init(void)
         return result;
     }
 
-    result = rt_mutex_init(&g_app_ble_telemetry_lock,
-                           "ble_tel",
-                           RT_IPC_FLAG_PRIO);
-    if (result != RT_EOK)
-    {
-        (void)rt_mq_detach(&g_app_ble_tx_ack_mq);
-        (void)rt_mq_detach(&g_app_ble_rx_mq);
-        return result;
-    }
-
     result = rt_thread_init(&g_app_ble_worker_thread,
                             "ble_work",
                             app_ble_worker_entry,
@@ -643,7 +761,6 @@ app_ble_worker_result_t app_ble_worker_init(void)
                             APP_BLE_WORKER_TICK);
     if (result != RT_EOK)
     {
-        (void)rt_mutex_detach(&g_app_ble_telemetry_lock);
         (void)rt_mq_detach(&g_app_ble_tx_ack_mq);
         (void)rt_mq_detach(&g_app_ble_rx_mq);
         return result;
@@ -654,6 +771,9 @@ app_ble_worker_result_t app_ble_worker_init(void)
     g_app_ble_rx_queue_drops = 0u;
     g_app_ble_telemetry_pending = RT_FALSE;
     g_app_ble_notify_busy = RT_FALSE;
+    g_app_ble_notify_buffer_returned = RT_FALSE;
+    g_app_ble_notify_operation_complete = RT_FALSE;
+    rt_memset(&g_app_ble_notify_token, 0, sizeof(g_app_ble_notify_token));
     g_app_ble_worker_initialized = RT_TRUE;
     return RT_EOK;
 }
@@ -694,25 +814,27 @@ app_ble_worker_result_t app_ble_worker_begin_session(uint16_t conn_id)
     {
         return result;
     }
+    rt_enter_critical();
     result = rt_mq_control(&g_app_ble_tx_ack_mq, RT_IPC_CMD_RESET, RT_NULL);
     if (result != RT_EOK)
     {
+        rt_exit_critical();
         return result;
     }
-    rt_mutex_take(&g_app_ble_telemetry_lock, RT_WAITING_FOREVER);
     g_app_ble_telemetry_pending = RT_FALSE;
-    rt_mutex_release(&g_app_ble_telemetry_lock);
 
     level = rt_hw_interrupt_disable();
     if (g_app_ble_notify_busy)
     {
         rt_hw_interrupt_enable(level);
+        rt_exit_critical();
         app_ble_diag_note_tx_session_busy_reject();
         return -RT_EBUSY;
     }
     g_app_ble_generation = app_ble_worker_next_generation(g_app_ble_generation);
     g_app_ble_conn_id = conn_id;
     rt_hw_interrupt_enable(level);
+    rt_exit_critical();
     return RT_EOK;
 }
 
@@ -725,20 +847,21 @@ void app_ble_worker_reset_session(uint16_t conn_id)
         return;
     }
 
+    rt_enter_critical();
     level = rt_hw_interrupt_disable();
     if ((conn_id != 0u) && (conn_id != g_app_ble_conn_id))
     {
         rt_hw_interrupt_enable(level);
+        rt_exit_critical();
         return;
     }
     g_app_ble_generation = app_ble_worker_next_generation(g_app_ble_generation);
     g_app_ble_conn_id = 0u;
     rt_hw_interrupt_enable(level);
-    (void)rt_mq_control(&g_app_ble_rx_mq, RT_IPC_CMD_RESET, RT_NULL);
     (void)rt_mq_control(&g_app_ble_tx_ack_mq, RT_IPC_CMD_RESET, RT_NULL);
-    rt_mutex_take(&g_app_ble_telemetry_lock, RT_WAITING_FOREVER);
     g_app_ble_telemetry_pending = RT_FALSE;
-    rt_mutex_release(&g_app_ble_telemetry_lock);
+    rt_exit_critical();
+    (void)rt_mq_control(&g_app_ble_rx_mq, RT_IPC_CMD_RESET, RT_NULL);
 }
 
 app_ble_worker_result_t app_ble_worker_enqueue(uint16_t conn_id,
@@ -789,35 +912,38 @@ app_ble_worker_result_t app_ble_worker_enqueue(uint16_t conn_id,
 
 static rt_err_t app_ble_worker_prepare_tx(app_ble_tx_message_t *message,
                                           app_ble_tx_kind_t kind,
-                                          uint16_t conn_id,
+                                          const app_ble_session_token_t *token,
                                           const uint8_t *data,
                                           uint16_t length)
 {
     rt_base_t level;
 
     if (!g_app_ble_worker_initialized || (message == RT_NULL) ||
-        (conn_id == 0u) || (data == RT_NULL) || (length == 0u) ||
+        (token == RT_NULL) || (data == RT_NULL) || (length == 0u) ||
         (length > APP_BLE_TX_PAYLOAD_MAX))
     {
         return -RT_EINVAL;
     }
 
     level = rt_hw_interrupt_disable();
-    if (conn_id != g_app_ble_conn_id)
+    if ((token->generation != g_app_ble_generation) ||
+        (token->conn_id == 0u) || (token->conn_id != g_app_ble_conn_id))
     {
         rt_hw_interrupt_enable(level);
         return -RT_ERROR;
     }
-    message->generation = g_app_ble_generation;
-    message->conn_id = conn_id;
+    message->generation = token->generation;
+    message->conn_id = token->conn_id;
     rt_hw_interrupt_enable(level);
     message->length = length;
     message->kind = kind;
     rt_memcpy(message->data, data, length);
-    return RT_EOK;
+    return app_ble_worker_session_is_current(token->generation, token->conn_id)
+               ? RT_EOK
+               : -RT_ERROR;
 }
 
-app_ble_worker_result_t app_ble_worker_enqueue_ack(uint16_t conn_id,
+app_ble_worker_result_t app_ble_worker_enqueue_ack(const app_ble_session_token_t *token,
                                                    const uint8_t *data,
                                                    uint16_t length)
 {
@@ -827,26 +953,39 @@ app_ble_worker_result_t app_ble_worker_enqueue_ack(uint16_t conn_id,
     rt_uint32_t queue_depth;
 
     result = app_ble_worker_prepare_tx(&message, APP_BLE_TX_KIND_ACK,
-                                       conn_id, data, length);
+                                       token, data, length);
     if (result != RT_EOK)
     {
         return result;
     }
+    rt_enter_critical();
+    if (!app_ble_worker_session_is_current(token->generation, token->conn_id))
+    {
+        rt_exit_critical();
+        app_ble_diag_note_tx_stale_drop();
+        return -RT_ERROR;
+    }
     result = rt_mq_send(&g_app_ble_tx_ack_mq, &message, sizeof(message));
+    level = rt_hw_interrupt_disable();
+    queue_depth = g_app_ble_tx_ack_mq.entry;
+    rt_hw_interrupt_enable(level);
+    rt_exit_critical();
     if (result != RT_EOK)
     {
         app_ble_diag_note_tx_ack_drop();
         return result;
     }
+    if (!app_ble_worker_session_is_current(token->generation, token->conn_id))
+    {
+        app_ble_diag_note_tx_stale_drop();
+        return -RT_ERROR;
+    }
 
-    level = rt_hw_interrupt_disable();
-    queue_depth = g_app_ble_tx_ack_mq.entry;
-    rt_hw_interrupt_enable(level);
     app_ble_diag_note_tx_queue_depth(queue_depth);
     return RT_EOK;
 }
 
-app_ble_worker_result_t app_ble_worker_publish_telemetry(uint16_t conn_id,
+app_ble_worker_result_t app_ble_worker_publish_telemetry(const app_ble_session_token_t *token,
                                                          const uint8_t *data,
                                                          uint16_t length)
 {
@@ -856,17 +995,23 @@ app_ble_worker_result_t app_ble_worker_publish_telemetry(uint16_t conn_id,
 
     result = app_ble_worker_prepare_tx(&message,
                                        APP_BLE_TX_KIND_TELEMETRY,
-                                       conn_id, data, length);
+                                       token, data, length);
     if (result != RT_EOK)
     {
         return result;
     }
 
-    rt_mutex_take(&g_app_ble_telemetry_lock, RT_WAITING_FOREVER);
+    rt_enter_critical();
+    if (!app_ble_worker_session_is_current(token->generation, token->conn_id))
+    {
+        rt_exit_critical();
+        app_ble_diag_note_tx_stale_drop();
+        return -RT_ERROR;
+    }
     replaced = g_app_ble_telemetry_pending;
     g_app_ble_telemetry = message;
     g_app_ble_telemetry_pending = RT_TRUE;
-    rt_mutex_release(&g_app_ble_telemetry_lock);
+    rt_exit_critical();
     if (replaced)
     {
         app_ble_diag_note_tx_telemetry_coalesced();
