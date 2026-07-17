@@ -50,6 +50,19 @@ static rt_bool_t rehab_feedback_is_fresh(const control_motor_feedback_t *fb, rt_
                : RT_FALSE;
 }
 
+static rt_err_t rehab_feedback_active_check(const control_motor_feedback_t *fb, rt_tick_t now)
+{
+    if (!rehab_feedback_is_fresh(fb, now))
+    {
+        return -RT_ETIMEOUT;
+    }
+    if (fb->fault_summary != 0U)
+    {
+        return -RT_ERROR;
+    }
+    return RT_EOK;
+}
+
 static rt_err_t rehab_service_prepare_feedback(rt_uint8_t m33_joint_id)
 {
     control_motor_feedback_t fb;
@@ -69,10 +82,17 @@ static rt_err_t rehab_service_prepare_feedback(rt_uint8_t m33_joint_id)
     {
         rt_tick_t now = rt_tick_get();
 
-        if ((control_get_motor_feedback(m33_joint_id, &fb) == RT_EOK) &&
-            rehab_feedback_is_fresh(&fb, now))
+        if (control_get_motor_feedback(m33_joint_id, &fb) == RT_EOK)
         {
-            return RT_EOK;
+            ret = rehab_feedback_active_check(&fb, now);
+            if (ret == RT_EOK)
+            {
+                return RT_EOK;
+            }
+            if (ret == -RT_ERROR)
+            {
+                return ret;
+            }
         }
         rt_thread_mdelay(10U);
     } while ((rt_tick_get() - start) < timeout);
@@ -191,13 +211,22 @@ static rt_err_t rehab_service_prepare_feedback_mask(rt_uint8_t joint_mask)
         for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
         {
             control_motor_feedback_t fb;
+            rt_err_t feedback_ret;
 
             if (!rehab_service_joint_mask_has(joint_mask, joint))
             {
                 continue;
             }
-            if ((control_get_motor_feedback(joint, &fb) != RT_EOK) ||
-                !rehab_feedback_is_fresh(&fb, now))
+            feedback_ret = control_get_motor_feedback(joint, &fb);
+            if (feedback_ret == RT_EOK)
+            {
+                feedback_ret = rehab_feedback_active_check(&fb, now);
+            }
+            if (feedback_ret == -RT_ERROR)
+            {
+                return feedback_ret;
+            }
+            if (feedback_ret != RT_EOK)
             {
                 all_fresh = RT_FALSE;
                 break;
@@ -827,6 +856,7 @@ static rt_err_t rehab_service_apply_strategy_output(rt_uint8_t m33_joint,
                                                     const rehab_strategy_output_t *out)
 {
     rt_err_t ret = RT_EOK;
+    control_motor_feedback_t latest_fb;
 
     if (out == RT_NULL)
     {
@@ -847,7 +877,19 @@ static rt_err_t rehab_service_apply_strategy_output(rt_uint8_t m33_joint,
 
     if (out->type == REHAB_STRATEGY_OUTPUT_CURRENT)
     {
-        ret = control_motor_current_control(m33_joint, out->current_a);
+        ret = control_get_motor_feedback(m33_joint, &latest_fb);
+        if (ret == RT_EOK)
+        {
+            ret = rehab_feedback_active_check(&latest_fb, rt_tick_get());
+        }
+        if (ret != RT_EOK)
+        {
+            (void)control_motor_stop(m33_joint, RT_FALSE);
+        }
+        else
+        {
+            ret = control_motor_current_control(m33_joint, out->current_a);
+        }
     }
     else if ((mode == REHAB_DEMO_MODE_ACTIVE_FOLLOW) ||
              (mode == REHAB_DEMO_MODE_ASSIST) ||
@@ -935,13 +977,18 @@ static void rehab_service_worker(void *parameter)
             for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
             {
                 control_motor_feedback_t fb;
+                rt_err_t feedback_ret;
 
                 if (!rehab_service_joint_mask_has(active_joint_mask, joint))
                 {
                     continue;
                 }
-                if ((control_get_motor_feedback(joint, &fb) != RT_EOK) ||
-                    !rehab_feedback_is_fresh(&fb, now))
+                feedback_ret = control_get_motor_feedback(joint, &fb);
+                if (feedback_ret == RT_EOK)
+                {
+                    feedback_ret = rehab_feedback_active_check(&fb, now);
+                }
+                if (feedback_ret != RT_EOK)
                 {
                     fault_joint = joint;
                     rehab_service_note_fault_mask(active_joint_mask,
@@ -949,8 +996,8 @@ static void rehab_service_worker(void *parameter)
                                                   mode,
                                                   mode_generation,
                                                   CONTROL_STATUS_DETAIL_MOTOR_FAULT,
-                                                  -RT_ETIMEOUT);
-                    output_ret = -RT_ETIMEOUT;
+                                                  feedback_ret);
+                    output_ret = feedback_ret;
                     break;
                 }
             }
@@ -1005,11 +1052,14 @@ static void rehab_service_worker(void *parameter)
                 {
                     continue;
                 }
-                if ((control_get_motor_feedback(joint, &fb) != RT_EOK) ||
-                    !rehab_feedback_is_fresh(&fb, now))
+                output_ret = control_get_motor_feedback(joint, &fb);
+                if (output_ret == RT_EOK)
+                {
+                    output_ret = rehab_feedback_active_check(&fb, now);
+                }
+                if (output_ret != RT_EOK)
                 {
                     fault_joint = joint;
-                    output_ret = -RT_ETIMEOUT;
                     break;
                 }
 

@@ -7,6 +7,49 @@ SERVICE_C = (ROOT / "applications" / "control" / "rehab_service.c").read_text(en
 
 
 class RehabServiceActuationStaticTest(unittest.TestCase):
+    def test_active_feedback_guard_rejects_stale_and_faulted_feedback(self):
+        start = SERVICE_C.index("static rt_err_t rehab_feedback_active_check")
+        end = SERVICE_C.index("static rt_err_t rehab_service_prepare_feedback", start)
+        body = SERVICE_C[start:end]
+        self.assertIn("rehab_feedback_is_fresh(fb, now)", body)
+        self.assertIn("fb->fault_summary != 0U", body)
+        self.assertIn("return -RT_ETIMEOUT;", body)
+        self.assertIn("return -RT_ERROR;", body)
+
+    def test_feedback_prepare_rejects_fault_before_mode_transition(self):
+        start = SERVICE_C.index("static rt_err_t rehab_service_prepare_feedback(")
+        end = SERVICE_C.index("static float rehab_service_positive_or_default", start)
+        body = SERVICE_C[start:end]
+        self.assertIn("rehab_feedback_active_check(&fb, now)", body)
+
+    def test_mask_feedback_prepare_rejects_fault_before_mode_transition(self):
+        start = SERVICE_C.index("static rt_err_t rehab_service_prepare_feedback_mask")
+        end = SERVICE_C.index("static void rehab_service_reset_all_strategy_states_locked", start)
+        body = SERVICE_C[start:end]
+        self.assertIn("rehab_feedback_active_check(&fb, now)", body)
+        self.assertIn("if (feedback_ret == -RT_ERROR)", body)
+
+    def test_worker_checks_fault_before_running_strategy(self):
+        start = SERVICE_C.index("static void rehab_service_worker")
+        end = SERVICE_C.index("rt_err_t rehab_service_init", start)
+        body = SERVICE_C[start:end]
+        guard = body.index("rehab_feedback_active_check(&fb, now)")
+        strategy = body.index("rehab_assist_strategy_step")
+        self.assertLess(guard, strategy)
+
+    def test_current_write_rechecks_feedback_under_actuation_lock(self):
+        start = SERVICE_C.index("static rt_err_t rehab_service_apply_strategy_output")
+        end = SERVICE_C.index("static void rehab_service_worker", start)
+        body = SERVICE_C[start:end]
+        lock = body.index("rt_mutex_take(&s_rehab.actuation_lock")
+        read = body.index("control_get_motor_feedback(m33_joint, &latest_fb)")
+        guard = body.index("rehab_feedback_active_check(&latest_fb, rt_tick_get())")
+        current = body.index("control_motor_current_control(m33_joint, out->current_a)")
+        self.assertLess(lock, read)
+        self.assertLess(read, guard)
+        self.assertLess(guard, current)
+        self.assertIn("control_motor_stop(m33_joint, RT_FALSE)", body[guard:current])
+
     def test_fault_stop_is_generation_guarded_and_serialized(self):
         start = SERVICE_C.index("static void rehab_service_note_fault_mask")
         end = SERVICE_C.index("static void rehab_service_note_fault(", start)
