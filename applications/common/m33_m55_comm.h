@@ -355,6 +355,7 @@ typedef struct
 } m33_m55_message_t;
 
 rt_err_t m33_m55_comm_init(void);
+rt_err_t m33_m55_comm_try_publish(const m33_m55_message_t *msg);
 rt_err_t m33_m55_comm_publish(const m33_m55_message_t *msg);
 rt_err_t m33_m55_comm_consume(m33_m55_message_t *msg);
 rt_bool_t m33_m55_comm_is_ready(void);
