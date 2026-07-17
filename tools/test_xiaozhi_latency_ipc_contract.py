@@ -53,9 +53,24 @@ _Static_assert(VOICE_LATENCY_FLAG_REAL_WAKE == 2UL, "real wake flag ABI");
 _Static_assert(VOICE_LATENCY_FLAG_MANUAL == 4UL, "manual flag ABI");
 _Static_assert(VOICE_LATENCY_FLAG_QA_TEXT == 8UL, "QA text flag ABI");
 _Static_assert(sizeof(voice_latency_msg_t) == 44, "latency payload ABI");
-_Static_assert(offsetof(voice_latency_msg_t, flags) == 4, "flags offset");
-_Static_assert(offsetof(voice_latency_msg_t, wake_to_first_write_ms) == 40,
-               "final latency field offset");
+#define ASSERT_U32_FIELD(field, expected_offset)                             \
+    _Static_assert(offsetof(voice_latency_msg_t, field) == expected_offset, \
+                   #field " offset");                                      \
+    _Static_assert(_Generic(((voice_latency_msg_t *)0)->field,              \
+                            rt_uint32_t: 1, default: 0),                     \
+                   #field " type")
+ASSERT_U32_FIELD(turn_seq, 0);
+ASSERT_U32_FIELD(flags, 4);
+ASSERT_U32_FIELD(wake_to_listen_ms, 8);
+ASSERT_U32_FIELD(last_voice_to_stop_ms, 12);
+ASSERT_U32_FIELD(stop_to_stt_ms, 16);
+ASSERT_U32_FIELD(stt_to_llm_ms, 20);
+ASSERT_U32_FIELD(llm_to_tts_start_ms, 24);
+ASSERT_U32_FIELD(tts_start_to_first_packet_ms, 28);
+ASSERT_U32_FIELD(first_packet_to_first_write_ms, 32);
+ASSERT_U32_FIELD(speech_end_to_first_write_ms, 36);
+ASSERT_U32_FIELD(wake_to_first_write_ms, 40);
+#undef ASSERT_U32_FIELD
 _Static_assert(offsetof(m33_m55_message_t, payload) == 8, "payload offset");
 _Static_assert(offsetof(m33_m55_message_t, payload.voice_latency) == 8,
                "latency union offset");
