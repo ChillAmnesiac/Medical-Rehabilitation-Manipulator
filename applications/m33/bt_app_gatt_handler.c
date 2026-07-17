@@ -56,7 +56,13 @@ wiced_bt_gatt_status_t app_bt_gatt_callback(wiced_bt_gatt_evt_t event,
 {
     wiced_bt_gatt_status_t gatt_status = WICED_BT_SUCCESS;
     uint16_t error_handle = 0u;
-    wiced_bt_gatt_attribute_request_t *p_attr_req = &p_event_data->attribute_request;
+    wiced_bt_gatt_attribute_request_t *p_attr_req;
+
+    if (p_event_data == RT_NULL)
+    {
+        return WICED_BT_GATT_ILLEGAL_PARAMETER;
+    }
+    p_attr_req = &p_event_data->attribute_request;
 
     g_bt_app_gatt_event_count++;
     rt_kprintf("[bt] GATT evt=0x%02X\n", (unsigned int)event);
@@ -85,8 +91,16 @@ wiced_bt_gatt_status_t app_bt_gatt_callback(wiced_bt_gatt_evt_t event,
                    (unsigned int)p_event_data->buffer_request.len_requested);
         p_event_data->buffer_request.buffer.p_app_rsp_buffer =
             app_bt_alloc_buffer(p_event_data->buffer_request.len_requested);
-        p_event_data->buffer_request.buffer.p_app_ctxt = (void *)app_bt_free_buffer;
-        gatt_status = WICED_BT_GATT_SUCCESS;
+        if (p_event_data->buffer_request.buffer.p_app_rsp_buffer == RT_NULL)
+        {
+            p_event_data->buffer_request.buffer.p_app_ctxt = RT_NULL;
+            gatt_status = WICED_BT_GATT_INSUF_RESOURCE;
+        }
+        else
+        {
+            p_event_data->buffer_request.buffer.p_app_ctxt = (void *)app_bt_free_buffer;
+            gatt_status = WICED_BT_GATT_SUCCESS;
+        }
         break;
 
     case GATT_APP_BUFFER_TRANSMITTED_EVT:
@@ -111,6 +125,11 @@ wiced_bt_gatt_status_t app_bt_gatt_req_cb(wiced_bt_gatt_attribute_request_t *p_a
                                           uint16_t *p_error_handle)
 {
     wiced_bt_gatt_status_t gatt_status = WICED_BT_SUCCESS;
+
+    if ((p_attr_req == RT_NULL) || (p_error_handle == RT_NULL))
+    {
+        return WICED_BT_GATT_ILLEGAL_PARAMETER;
+    }
 
     switch (p_attr_req->opcode)
     {
@@ -179,6 +198,10 @@ wiced_bt_gatt_status_t app_bt_gatt_req_cb(wiced_bt_gatt_attribute_request_t *p_a
 
 wiced_bt_gatt_status_t app_bt_gatt_conn_status_cb(wiced_bt_gatt_connection_status_t *p_conn_status)
 {
+    if (p_conn_status == RT_NULL)
+    {
+        return WICED_BT_GATT_ILLEGAL_PARAMETER;
+    }
     if (p_conn_status->connected)
     {
         return app_bt_gatt_connection_up(p_conn_status);
@@ -232,10 +255,21 @@ wiced_bt_gatt_status_t app_bt_gatt_req_write_handler(uint16_t conn_id,
                                                      uint16_t *p_error_handle)
 {
     RT_UNUSED(conn_id);
-    RT_UNUSED(opcode);
     RT_UNUSED(len_req);
 
+    if ((p_write_req == RT_NULL) || (p_error_handle == RT_NULL))
+    {
+        return WICED_BT_GATT_ILLEGAL_PARAMETER;
+    }
     *p_error_handle = p_write_req->handle;
+    if (p_write_req->offset != 0u)
+    {
+        return WICED_BT_GATT_INVALID_OFFSET;
+    }
+    if ((p_write_req->val_len != 0u) && (p_write_req->p_val == RT_NULL))
+    {
+        return WICED_BT_GATT_INVALID_PDU;
+    }
     rt_kprintf("[bt] GATT write handle=0x%04X offset=%u val_len=%u req_len=%u opcode=0x%02X\n",
                p_write_req->handle,
                (unsigned int)p_write_req->offset,
@@ -377,17 +411,24 @@ wiced_bt_gatt_status_t app_bt_set_value(uint16_t attr_handle,
     {
         return WICED_BT_GATT_INVALID_ATTR_LEN;
     }
+    if ((len != 0u) && (p_val == RT_NULL))
+    {
+        return WICED_BT_GATT_INVALID_PDU;
+    }
+    if ((attr_handle == HDLD_NUS_TX_CLIENT_CHAR_CONFIG) && (len != 2u))
+    {
+        return WICED_BT_GATT_INVALID_ATTR_LEN;
+    }
 
-    memcpy(p_attr->p_data, p_val, len);
+    if (len != 0u)
+    {
+        memcpy(p_attr->p_data, p_val, len);
+    }
     p_attr->cur_len = len;
 
     switch (attr_handle)
     {
     case HDLD_NUS_TX_CLIENT_CHAR_CONFIG:
-        if (len != 2u)
-        {
-            return WICED_BT_GATT_INVALID_ATTR_LEN;
-        }
         app_nus_tx_client_char_config[0] = p_val[0];
         app_nus_tx_client_char_config[1] = p_val[1];
         return WICED_BT_GATT_SUCCESS;
@@ -464,12 +505,19 @@ void app_bt_gatt_increment_notify_value(void)
 
 rt_err_t bt_app_gatt_init(bt_app_gatt_adv_restart_t adv_restart_cb)
 {
+    rt_err_t ret;
     wiced_bt_gatt_status_t status;
 
     g_bt_app_adv_restart_cb = adv_restart_cb;
     if (g_bt_app_gatt_ready)
     {
         return RT_EOK;
+    }
+
+    ret = app_ble_service_init();
+    if (ret != RT_EOK)
+    {
+        return ret;
     }
 
     status = wiced_bt_gatt_register(app_bt_gatt_callback);
