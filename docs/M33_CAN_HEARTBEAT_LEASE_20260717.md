@@ -89,7 +89,7 @@ rtk python tools/test_m33_can_rx_owner_static.py
 
 ## 5. 烧录后验证顺序
 
-本次构建尚未烧录。先做不触发动作的检查：
+2026-07-17 已使用 `tools/flash_m33_verified.ps1` 烧录 `build/rtthread.hex`。OpenOCD 完成原始地址校验和缓存失效后的 XIP 地址校验，并启动 M33。随后只做不触发动作的检查：
 
 ```text
 cmd_control_debug
@@ -105,9 +105,19 @@ CTRL_DBG_LEASE: mode=0 gen=<n> timeout=0 retry=0 latched=0 hb_timeout_ms=2500
 
 然后恢复 NanoPi CAN，连续发送 `0x321` 心跳并重复执行 `cmd_control_debug`，确认 `hb` 增长且 `timeout` 不增长。只有完成急停、限位、反馈新鲜度和电机故障检查后，才在机械卸载或受控工装上测试活动模式超时：停止心跳超过 2500 ms，预期 `timeout` 加一、模式回到 PASSIVE；若 STOP 发送失败，`latched=1` 且 `retry` 以 100 ms 节流增长。
 
+本次实机被动烟测结果：
+
+```text
+CTRL_DBG: rx_total=2 hb=48 ros_id=1 parsed=1 enq=1 applied=1 qfail=0
+CTRL_DBG_Q: emergency=1 stale=0 recheck_reject=0 apply_fail=0 ttl_ms=500
+CTRL_DBG_LEASE: mode=0 gen=1 timeout=0 retry=0 latched=0 hb_timeout_ms=2500
+```
+
+继续观察后 `hb` 从 48 增长到 64，其余计数不变。NanoPi `can0` 为 1 Mbps、`ERROR-ACTIVE`，TX/RX error、bus error 和 bus-off 均为 0。因此已验证新固件的心跳接收、被动命令解析、入队、消费和应用路径；尚未验证活动模式下停止心跳触发的条件 STOP。
+
 ## 6. 保留问题
 
 1. 记忆回放的 `control_motor_position_control()` 仍是历史路径，尚未纳入 generation/actuation 保护；因此本次租约明确不监管 MEMORY 模式。
-2. NanoPi 已于 2026-07-17 恢复，当前板上旧队列固件已验证 `0x320/0x321 -> M33 -> 0x322` 被动链路；但本文新增 lease 固件尚未烧录，因此 `CTRL_DBG_LEASE` 和 2500 ms 条件 STOP 仍未做实机验证。
+2. NanoPi 已于 2026-07-17 恢复，新 lease 固件已验证 `0x320/0x321 -> M33 -> 0x322` 被动链路和 `CTRL_DBG_LEASE` 诊断；2500 ms 条件 STOP 仍需在机械卸载或受控工装上验证。
 3. 蓝牙配对和 App 代码本次未修改。接入前仍需单独审查回调栈、对象生命周期、MTU/长度校验、重复初始化和 M33/M55 共享资源冲突。
-4. 本次没有烧录，也没有发送主动、助力、抗阻动作命令；不能仅凭主机测试声称实机安全闭环完成。
+4. 本次已烧录并仅发送被动模式命令，没有发送主动、助力、抗阻动作命令；不能仅凭被动链路测试声称实机安全闭环完成。
