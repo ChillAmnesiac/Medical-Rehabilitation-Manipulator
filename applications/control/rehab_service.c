@@ -50,6 +50,36 @@ static rt_bool_t rehab_feedback_is_fresh(const control_motor_feedback_t *fb, rt_
                : RT_FALSE;
 }
 
+static rt_err_t rehab_service_prepare_feedback(rt_uint8_t m33_joint_id)
+{
+    control_motor_feedback_t fb;
+    rt_tick_t start;
+    rt_tick_t timeout;
+    rt_err_t ret;
+
+    ret = control_motor_set_active_report(m33_joint_id, RT_TRUE);
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    start = rt_tick_get();
+    timeout = rt_tick_from_millisecond(CONTROL_REHAB_FEEDBACK_PREPARE_TIMEOUT_MS);
+    do
+    {
+        rt_tick_t now = rt_tick_get();
+
+        if ((control_get_motor_feedback(m33_joint_id, &fb) == RT_EOK) &&
+            rehab_feedback_is_fresh(&fb, now))
+        {
+            return RT_EOK;
+        }
+        rt_thread_mdelay(10U);
+    } while ((rt_tick_get() - start) < timeout);
+
+    return -RT_ETIMEOUT;
+}
+
 static float rehab_service_positive_or_default(float value, float fallback)
 {
     return (value > 0.0f) ? value : fallback;
@@ -1175,6 +1205,18 @@ static rt_err_t rehab_service_enter_mode_on_m33(rehab_demo_mode_t mode,
         {
             ret = -RT_EINVAL;
             detail = CONTROL_STATUS_DETAIL_JOINT_UNCALIBRATED;
+        }
+    }
+
+    if ((ret == RT_EOK) &&
+        ((mode == REHAB_DEMO_MODE_ACTIVE_FOLLOW) ||
+         (mode == REHAB_DEMO_MODE_ASSIST) ||
+         (mode == REHAB_DEMO_MODE_RESIST)))
+    {
+        ret = rehab_service_prepare_feedback(m33_joint_id);
+        if (ret != RT_EOK)
+        {
+            detail = CONTROL_STATUS_DETAIL_MOTOR_FAULT;
         }
     }
 

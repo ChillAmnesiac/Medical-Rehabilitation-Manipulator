@@ -19,6 +19,20 @@ class RehabServiceActuationStaticTest(unittest.TestCase):
         self.assertGreaterEqual(SERVICE_C.count("if (s_rehab.stop_pending)"), 2)
         self.assertGreaterEqual(SERVICE_C.count("return -RT_EBUSY;"), 4)
 
+    def test_active_mode_prepares_fresh_feedback_before_state_transition(self):
+        start = SERVICE_C.index("static rt_err_t rehab_service_enter_mode_on_m33")
+        end = SERVICE_C.index("static rt_err_t rehab_service_enter_mode(", start)
+        body = SERVICE_C[start:end]
+        self.assertIn("rehab_service_prepare_feedback(m33_joint_id)", body)
+        prepare = body.index("rehab_service_prepare_feedback(m33_joint_id)")
+        transition = body.index("rehab_service_apply_status_locked(")
+        self.assertLess(prepare, transition)
+
+    def test_feedback_prepare_requests_reporting_with_bounded_wait(self):
+        self.assertIn("control_motor_set_active_report(m33_joint_id, RT_TRUE)", SERVICE_C)
+        self.assertIn("CONTROL_REHAB_FEEDBACK_PREPARE_TIMEOUT_MS", SERVICE_C)
+        self.assertIn("return -RT_ETIMEOUT;", SERVICE_C)
+
 
 if __name__ == "__main__":
     unittest.main()
