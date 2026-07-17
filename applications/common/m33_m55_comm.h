@@ -290,8 +290,11 @@ typedef struct
     rt_uint32_t wake_to_first_write_ms;
 } voice_latency_msg_t;
 
-#define REHAB_MODE_PROTOCOL_VERSION       (1UL)
+#define REHAB_MODE_PROTOCOL_VERSION       (2UL)
 #define REHAB_MODE_SOURCE_VOICE           (1UL)
+#define REHAB_MODE_ACTION_SET_MODE        (0UL)
+#define REHAB_MODE_ACTION_LEVEL_UP        (1UL)
+#define REHAB_MODE_ACTION_LEVEL_DOWN      (2UL)
 #define REHAB_MODE_REQUEST_MODE_PASSIVE   (0UL)
 #define REHAB_MODE_REQUEST_MODE_ASSIST    (3UL)
 #define REHAB_MODE_REQUEST_MODE_RESIST    (4UL)
@@ -318,7 +321,7 @@ typedef struct
     rt_uint32_t mode;
     rt_uint32_t joint_mask;
     rt_uint32_t ttl_ms;
-    rt_uint32_t reserved0;
+    rt_uint32_t action;
 } rehab_mode_request_msg_t;
 
 typedef struct
