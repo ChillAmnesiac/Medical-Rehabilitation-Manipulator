@@ -69,6 +69,31 @@ rehab status mode=passive detail=0 last=0
 
 本次关节基本静止，扭矩和速度在策略触发阈值附近，因此观测电流为 0 A；它证明反馈准备和模式进入已恢复，但不能替代操作者手动施力时的助力方向、幅值和连续运行测试。STOP 后运行参数已恢复为 `assist_max=1.0 A`。
 
-## 6. 剩余范围
+## 6. NanoPi/CAN mask 入口补强
 
-本提交只修复 `rehab_service_enter_mode_on_m33()` 的单关节入口。NanoPi/CAN 使用多关节 mask 时走 `rehab_service_set_mode_mask()`，仍需以独立小提交加入逐关节反馈准备和全失败回滚，避免扩大本次改动范围。
+后续独立提交 `ccbc93604 fix(rehab): prepare feedback for CAN joint masks` 修复了 `rehab_service_set_mode_mask()`：
+
+1. 先向 mask 中全部电机发送主动上报请求。
+2. 使用一个共享的 300 ms 窗口等待全部反馈新鲜，不按关节累计超时时间。
+3. 任一请求失败或任一反馈未就绪，都保持原模式并记录 `MOTOR_FAULT`，不会进入部分关节已启动的状态。
+4. 反馈全部就绪后才取得 `actuation_lock` 并提交模式转换。
+
+回归测试从预期的 2 项失败转为 6 项通过，租约静态测试 6 项保持通过，SCons 增量编译通过。新镜像完成 verified flash 后，从 NanoPi 发送 PASSIVE 烟测得到：
+
+```text
+CTRL_DBG: rx_total=2 hb=42 ros_id=1 parsed=1 enq=1 applied=1 qfail=0
+CTRL_DBG_Q: emergency=1 stale=0 recheck_reject=0 apply_fail=0 ttl_ms=500
+CTRL_DBG_LEASE: mode=0 gen=1 timeout=0 retry=0 latched=0 hb_timeout_ms=2500
+```
+
+## 7. 尚未进行的活动 mask 实测
+
+当前 `0x320 SET_MODE` 解析器没有从 payload 读取 joint mask，而是固定使用：
+
+```text
+CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK = 0x38
+```
+
+`0x38` 对应 M33 关节 4、5、6，不是单关节 5。历史文档中“Byte5 是 active_joint_mask”的描述与当前代码不一致。为了避免一次远程 ASSIST 同时驱动三个关节，本次只完成 PASSIVE 端到端复测，没有从 NanoPi 发送活动模式命令。
+
+下一步应先确定兼容方案：扩展 `0x320 SET_MODE` 明确携带并校验 joint mask，或者将单关节台架默认 mask 改为经过确认的单 bit。该协议决策必须同步修改 NanoPi、M33 和协议文档后再做活动实测，不能只改 M33 常量。
