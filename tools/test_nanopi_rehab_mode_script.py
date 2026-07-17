@@ -53,9 +53,9 @@ class NanoPiRehabModeScriptTest(unittest.TestCase):
     def test_prints_exact_frames_and_stops_on_cansend_failure(self):
         self.assertIn("set -euo pipefail", self.script)
         self.assertIn('321#${seq_hex}', self.script)
-        self.assertIn('320#04${seq_hex}00', self.script)
+        self.assertIn('320#04${seq_hex}000000000000', self.script)
         self.assertIn('echo "tx 321#${seq_hex}"', self.script)
-        self.assertIn('echo "tx 320#04${seq_hex}00"', self.script)
+        self.assertIn('echo "tx 320#04${seq_hex}000000000000"', self.script)
 
     def run_script(self, mode, link_info=HEALTHY_LINK, extra_args=(), can_fail_at=0):
         if BASH is None:
@@ -110,7 +110,7 @@ class NanoPiRehabModeScriptTest(unittest.TestCase):
         result, frames = self.run_script("passive")
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(frames, ["can0 321#01", "can0 321#01", "can0 320#040100"])
+        self.assertEqual(frames, ["can0 321#01", "can0 321#01", "can0 320#0401000000000000"])
 
     def test_lower_up_does_not_satisfy_up_preflight(self):
         result, frames = self.run_script("passive", HEALTHY_LINK.replace("NOARP,UP,", "NOARP,"))

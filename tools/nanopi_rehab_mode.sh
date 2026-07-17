@@ -70,7 +70,7 @@ sleep 0.05
 echo "tx 321#${seq_hex}"
 cansend "$iface" "321#${seq_hex}"
 sleep 0.05
-echo "tx 320#04${seq_hex}00"
-cansend "$iface" "320#04${seq_hex}00"
+echo "tx 320#04${seq_hex}000000000000"
+cansend "$iface" "320#04${seq_hex}000000000000"
 
 echo "sent rehab mode=passive seq=0x${seq_hex} iface=${iface}"
