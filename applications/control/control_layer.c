@@ -3313,6 +3313,7 @@ static void ctrl_ros_cmd_entry(void *parameter)
     control_ros_safety_assessment_t assessment;
     rt_bool_t normal_pending = RT_FALSE;
     rt_err_t ret;
+    rt_ssize_t recv_size;
 
     RT_UNUSED(parameter);
 
@@ -3331,10 +3332,11 @@ static void ctrl_ros_cmd_entry(void *parameter)
         }
         else
         {
-            if (rt_mq_recv(&s_ros_cmd_mq,
-                           &deferred_normal,
-                           sizeof(deferred_normal),
-                           rt_tick_from_millisecond(CONTROL_ROS_EMERGENCY_POLL_MS)) != RT_EOK)
+            recv_size = rt_mq_recv(&s_ros_cmd_mq,
+                                   &deferred_normal,
+                                   sizeof(deferred_normal),
+                                   rt_tick_from_millisecond(CONTROL_ROS_EMERGENCY_POLL_MS));
+            if (recv_size != (rt_ssize_t)sizeof(deferred_normal))
             {
                 continue;
             }

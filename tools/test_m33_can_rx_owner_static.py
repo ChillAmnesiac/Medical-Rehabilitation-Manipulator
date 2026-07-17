@@ -115,6 +115,26 @@ class M33CanRxOwnerStaticTest(unittest.TestCase):
         self.assertIn("normal_pending = RT_TRUE", body)
         self.assertIn("cmd = deferred_normal", body)
 
+    def test_ros_consumer_accepts_rt_mq_recv_message_length(self):
+        body = function_body(
+            self.control_c,
+            "static void ctrl_ros_cmd_entry",
+            "int control_layer_init",
+        )
+        self.assertIn("rt_ssize_t recv_size", body)
+        self.assertIn("recv_size = rt_mq_recv(&s_ros_cmd_mq", body)
+        self.assertIn(
+            "recv_size != (rt_ssize_t)sizeof(deferred_normal)",
+            body,
+        )
+        self.assertNotIn(
+            "rt_mq_recv(&s_ros_cmd_mq,\n"
+            "                           &deferred_normal,\n"
+            "                           sizeof(deferred_normal),\n"
+            "                           rt_tick_from_millisecond(CONTROL_ROS_EMERGENCY_POLL_MS)) != RT_EOK",
+            body,
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
