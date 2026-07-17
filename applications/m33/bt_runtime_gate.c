@@ -1,6 +1,7 @@
 #include <finsh.h>
 #include <rtthread.h>
 
+#include "app_ble_diag.h"
 #include "app_ble_service.h"
 #include "bt_hci_transport.h"
 
@@ -36,6 +37,9 @@ static int m33_ble_gate_init(void)
     {
         g_m33_ble_gate_lock_ready = RT_TRUE;
     }
+    app_ble_diag_note_gate_state((rt_uint32_t)M33_ENABLE_APP_BLE_RUNTIME,
+                                 (rt_uint32_t)g_m33_ble_gate_state,
+                                 g_m33_ble_gate_last_error);
     return ret;
 }
 INIT_COMPONENT_EXPORT(m33_ble_gate_init);
@@ -65,6 +69,9 @@ static rt_err_t m33_ble_gate_start(void)
         return ret;
     }
     g_m33_ble_gate_state = M33_BLE_GATE_STARTING;
+    app_ble_diag_note_gate_state(1U,
+                                 (rt_uint32_t)g_m33_ble_gate_state,
+                                 g_m33_ble_gate_last_error);
     rt_mutex_release(&g_m33_ble_gate_lock);
 
     ret = app_ble_service_init();
@@ -86,6 +93,9 @@ static rt_err_t m33_ble_gate_start(void)
     g_m33_ble_gate_state = (ret == RT_EOK) ?
                            M33_BLE_GATE_RUNNING :
                            M33_BLE_GATE_FAILED;
+    app_ble_diag_note_gate_state(1U,
+                                 (rt_uint32_t)g_m33_ble_gate_state,
+                                 g_m33_ble_gate_last_error);
     rt_mutex_release(&g_m33_ble_gate_lock);
     return ret;
 #else

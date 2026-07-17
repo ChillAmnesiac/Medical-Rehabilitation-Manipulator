@@ -9,6 +9,7 @@
 #include "cybt_platform_hci.h"
 #include "cybt_platform_trace.h"
 #include "cybt_platform_config.h"
+#include "app_ble_diag.h"
 
 #define BT_HCI_LOG(fmt, ...) rt_kprintf("[bt.hci] " fmt "\n", ##__VA_ARGS__)
 #define BT_HCI_VLOG(...) ((void)0)
@@ -386,6 +387,7 @@ uint8_t cybt_platform_task_get_queue_utilization(uint8_t task_id)
     size_t used = 0;
     size_t total = 0;
     cy_queue_t *queue = RT_NULL;
+    uint8_t percent;
 
     if (task_id >= BT_TASK_NUM)
     {
@@ -404,7 +406,9 @@ uint8_t cybt_platform_task_get_queue_utilization(uint8_t task_id)
     }
 
     total = (task_id == BT_TASK_ID_HCI_RX) ? HCI_RX_TASK_QUEUE_COUNT : HCI_TX_TASK_QUEUE_COUNT;
-    return (uint8_t)((used * 100u) / total);
+    percent = (uint8_t)((used * 100u) / total);
+    app_ble_diag_note_hci_queue_percent(task_id, percent);
+    return percent;
 }
 
 uint8_t cybt_platform_task_get_tx_heap_utilization(uint16_t *p_largest_free_size)
