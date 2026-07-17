@@ -219,6 +219,8 @@ typedef struct
 /* 初始化控制层：打开/初始化 CAN，创建后台线程，初始化传感器子模块。 */
 int control_layer_init(const char *can_name);
 void control_layer_poll_once(void);
+/* Read-only initialization state for admission checks. */
+rt_bool_t control_layer_is_initialized(void);
 
 /* 使能指定关节电机。joint_id 为机械臂关节编号，不是底层 motor_id。 */
 rt_err_t control_motor_enable(rt_uint8_t joint_id);

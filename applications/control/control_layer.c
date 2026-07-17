@@ -3997,6 +3997,11 @@ rt_bool_t control_motor_is_joint_calibrated(rt_uint8_t joint_id)
     return ctrl_motor_joint_is_calibrated(joint_id);
 }
 
+rt_bool_t control_layer_is_initialized(void)
+{
+    return s_is_inited;
+}
+
 /* 对底层 motor_id 发送私有协议 Get_ID。
  * 这个函数不需要 joint_id，用于扫描/确认电机实际 ID。
  */
