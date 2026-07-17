@@ -140,3 +140,41 @@ build/rtthread.hex  SHA-256 AD36FB5F9764BCD3D186B77F5F3B399A991921C03284CFC7C884
 初版提交 `57aa69dea` 使用 `RT_IPC_CMD_RESET` 处理满队列。复审发现 reset 可能同时删除先前排队的另一条 STOP，因此后续修正提交改为独立安全锁存。板端联调应使用包含修正提交的版本，不应停留在初版提交。
 
 下一独立步骤是在 `ros_cmd`/rehab 服务所有权内实现心跳租约到期后的条件化停机，并确保停机失败可重试。不能把多关节 STOP 重新放回 CAN RX 线程，否则会再次阻塞收包。
+
+## 7. 最终固件板端记录
+
+最终修正提交：`07e6f27dd fix(control): preserve latched emergency commands`。
+
+使用 `tools/flash_m33_verified.ps1` 烧录最终 `build/rtthread.hex`：
+
+```text
+raw verify: 593920 bytes
+XIP verify: 585452 bytes
+result: Verified flash completed successfully
+```
+
+烧录后 COM16 Shell 正常。`ps` 显示：
+
+```text
+ros_cmd   priority=19 stack=2048 max_used=22% suspend
+ctrl_can  priority=18 stack=2048 max_used=13% suspend
+rehab_sv  priority=21 stack=1536 max_used=44% suspend
+tshell    priority=20 stack=4096 max_used=16% running
+```
+
+未发现线程栈逼近上限或 Shell 饿死。首次 `cmd_control_debug` 为：
+
+```text
+ros_id=0 parsed=0 enq=0 applied=0 qfail=0
+emergency=0 stale=0 recheck_reject=0 apply_fail=0
+F103 ack=0 sensor=0 health=0
+```
+
+当时外部总线没有任何流量。NanoPi `192.168.3.36` 无 ping，TCP 22 建连后在 SSH 密钥交换前由远端关闭，M33 的 F103/心跳计数也保持 0。因此最终修正版尚未完成 NanoPi `passive` 板端冒烟，不能把本次记录解释为端到端验证通过。
+
+NanoPi/总线供电恢复后补测：
+
+1. 连续两次 `cmd_control_debug`，确认 `hb` 或 F103 计数增长。
+2. 运行 `tools/nanopi_rehab_mode.sh passive`。
+3. 再执行 `cmd_control_debug`，确认 `ros_id/parsed/enq/applied/emergency` 各增长 1。
+4. 确认 `qfail/stale/recheck_reject/apply_fail` 不增长，模式仍为 PASSIVE。
