@@ -53,6 +53,14 @@ static rt_bool_t rehab_mode_adapter_lease_supervised(rehab_demo_mode_t mode)
                : RT_FALSE;
 }
 
+static rt_bool_t rehab_mode_adapter_source_supported(rehab_cmd_source_t source)
+{
+    return ((source == REHAB_CMD_SOURCE_CAN) ||
+            (source == REHAB_CMD_SOURCE_VOICE))
+               ? RT_TRUE
+               : RT_FALSE;
+}
+
 static rehab_demo_mode_t rehab_mode_adapter_to_service_mode(rehab_mode_t mode,
                                                             rehab_mode_submode_t submode)
 {
@@ -148,6 +156,10 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
     {
         return -RT_EINVAL;
     }
+    if (!rehab_mode_adapter_source_supported(cmd->source))
+    {
+        return -RT_EINVAL;
+    }
     ret = rehab_mode_manager_init();
     if (ret != RT_EOK)
     {
@@ -186,19 +198,19 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
 
     if (service_mode == REHAB_DEMO_MODE_PASSIVE)
     {
-        ret = rehab_service_stop(REHAB_CMD_SOURCE_CAN);
+        ret = rehab_service_stop(cmd->source);
     }
     else if (service_mode == REHAB_DEMO_MODE_MEMORY_RECORD)
     {
-        ret = rehab_service_record_start(0U, REHAB_JOINT_ELBOW, REHAB_CMD_SOURCE_CAN);
+        ret = rehab_service_record_start(0U, REHAB_JOINT_ELBOW, cmd->source);
     }
     else if (service_mode == REHAB_DEMO_MODE_MEMORY_PLAYBACK)
     {
-        ret = rehab_service_play_start(0U, REHAB_JOINT_ELBOW, REHAB_CMD_SOURCE_CAN);
+        ret = rehab_service_play_start(0U, REHAB_JOINT_ELBOW, cmd->source);
     }
     else
     {
-        ret = rehab_service_set_mode_mask(service_mode, joint_mask, REHAB_CMD_SOURCE_CAN);
+        ret = rehab_service_set_mode_mask(service_mode, joint_mask, cmd->source);
     }
 
     if (ret == RT_EOK)
@@ -211,10 +223,11 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
     if (ret == RT_EOK)
     {
         rehab_can_lease_note_mode(&s_rehab_adapter.lease,
-                                  ((service_status.source == REHAB_CMD_SOURCE_CAN) &&
+                                  (rehab_mode_adapter_source_supported(service_status.source) &&
                                    rehab_mode_adapter_lease_supervised(service_status.mode))
                                       ? RT_TRUE
                                       : RT_FALSE,
+                                  (rt_uint8_t)service_status.source,
                                   service_status.mode_generation);
         s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_NONE;
     }
@@ -252,6 +265,8 @@ void rehab_mode_manager_note_heartbeat(void)
 void rehab_mode_manager_tick(void)
 {
     rt_uint32_t expected_generation;
+    rt_uint8_t expected_source_value;
+    rehab_cmd_source_t expected_source;
     rt_err_t ret;
     rt_bool_t should_stop;
 
@@ -266,6 +281,7 @@ void rehab_mode_manager_tick(void)
         rt_tick_get(),
         rt_tick_from_millisecond(CONTROL_ROS_HEARTBEAT_TIMEOUT_MS),
         rt_tick_from_millisecond(REHAB_MODE_STOP_RETRY_MS),
+        &expected_source_value,
         &expected_generation);
     rt_mutex_release(&s_rehab_adapter.lock);
 
@@ -274,7 +290,8 @@ void rehab_mode_manager_tick(void)
         return;
     }
 
-    ret = rehab_service_stop_if_owned(REHAB_CMD_SOURCE_CAN,
+    expected_source = (rehab_cmd_source_t)expected_source_value;
+    ret = rehab_service_stop_if_owned(expected_source,
                                       expected_generation,
                                       CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT);
 

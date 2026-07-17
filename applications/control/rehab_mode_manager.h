@@ -39,6 +39,7 @@ typedef struct
 {
     rehab_mode_t mode;
     rehab_mode_submode_t submode;
+    rehab_cmd_source_t source;
     rt_uint8_t joint_mask;
     rt_uint8_t assist_direction_mask;
     float max_velocity_rad_s;

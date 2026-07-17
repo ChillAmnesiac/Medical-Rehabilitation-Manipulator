@@ -13,6 +13,7 @@ void rehab_can_lease_note_heartbeat(rehab_can_lease_t *lease, rt_tick_t now)
 
 void rehab_can_lease_note_mode(rehab_can_lease_t *lease,
                                rt_bool_t active,
+                               rt_uint8_t owner_source,
                                rt_uint32_t mode_generation)
 {
     if (lease == RT_NULL)
@@ -21,6 +22,7 @@ void rehab_can_lease_note_mode(rehab_can_lease_t *lease,
     }
 
     lease->active = active;
+    lease->owner_source = owner_source;
     lease->mode_generation = mode_generation;
     lease->stop_latched = RT_FALSE;
     lease->has_stop_attempt = RT_FALSE;
@@ -30,9 +32,11 @@ rt_bool_t rehab_can_lease_claim_stop(rehab_can_lease_t *lease,
                                      rt_tick_t now,
                                      rt_tick_t timeout_ticks,
                                      rt_tick_t retry_ticks,
+                                     rt_uint8_t *owner_source,
                                      rt_uint32_t *mode_generation)
 {
-    if ((lease == RT_NULL) || (mode_generation == RT_NULL) || !lease->active)
+    if ((lease == RT_NULL) || (owner_source == RT_NULL) ||
+        (mode_generation == RT_NULL) || !lease->active)
     {
         return RT_FALSE;
     }
@@ -56,6 +60,7 @@ rt_bool_t rehab_can_lease_claim_stop(rehab_can_lease_t *lease,
 
     lease->last_stop_attempt_tick = now;
     lease->has_stop_attempt = RT_TRUE;
+    *owner_source = lease->owner_source;
     *mode_generation = lease->mode_generation;
     return RT_TRUE;
 }

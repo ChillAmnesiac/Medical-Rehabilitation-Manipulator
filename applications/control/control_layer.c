@@ -3245,6 +3245,7 @@ static rt_err_t ctrl_apply_rehab_mode_command(const control_ros_command_t *cmd)
     rt_memset(&mode_cmd, 0, sizeof(mode_cmd));
     mode_cmd.mode = (rehab_mode_t)cmd->mode;
     mode_cmd.submode = REHAB_MODE_SUBMODE_IDLE;
+    mode_cmd.source = REHAB_CMD_SOURCE_CAN;
     mode_cmd.joint_mask = cmd->joint_mask;
     mode_cmd.assist_direction_mask = 0U;
     mode_cmd.max_velocity_rad_s =

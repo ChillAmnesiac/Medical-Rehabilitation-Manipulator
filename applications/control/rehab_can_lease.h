@@ -10,6 +10,7 @@ typedef struct
     rt_uint32_t mode_generation;
     rt_uint32_t timeout_count;
     rt_uint32_t stop_retry_count;
+    rt_uint8_t owner_source;
     rt_bool_t has_heartbeat;
     rt_bool_t active;
     rt_bool_t stop_latched;
@@ -19,11 +20,13 @@ typedef struct
 void rehab_can_lease_note_heartbeat(rehab_can_lease_t *lease, rt_tick_t now);
 void rehab_can_lease_note_mode(rehab_can_lease_t *lease,
                                rt_bool_t active,
+                               rt_uint8_t owner_source,
                                rt_uint32_t mode_generation);
 rt_bool_t rehab_can_lease_claim_stop(rehab_can_lease_t *lease,
                                      rt_tick_t now,
                                      rt_tick_t timeout_ticks,
                                      rt_tick_t retry_ticks,
+                                     rt_uint8_t *owner_source,
                                      rt_uint32_t *mode_generation);
 void rehab_can_lease_note_stop_result(rehab_can_lease_t *lease,
                                       rt_bool_t stopped,
