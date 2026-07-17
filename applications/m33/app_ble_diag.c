@@ -7,8 +7,6 @@
 
 #define APP_BLE_DIAG_STACK_HIGH_PERCENT 75U
 
-extern cy_thread_t cybt_task[BT_TASK_NUM];
-
 static app_ble_diag_snapshot_t g_app_ble_diag;
 
 static void app_ble_diag_increment(rt_uint32_t *value)
@@ -57,19 +55,33 @@ void app_ble_diag_note_notify_failure(void)
 
 void app_ble_diag_note_hci_queue_percent(rt_uint32_t task_id, rt_uint32_t percent)
 {
+    rt_base_t level;
+
     if ((percent == CYBT_INVALID_QUEUE_UTILIZATION) || (percent > 100U))
     {
         return;
     }
 
+    level = rt_hw_interrupt_disable();
     if (task_id == BT_TASK_ID_HCI_RX)
     {
-        app_ble_diag_note_peak(&g_app_ble_diag.hci_rx_queue_peak_percent, percent);
+        g_app_ble_diag.hci_rx_queue_last_percent = percent;
+        g_app_ble_diag.hci_rx_queue_sample_available = 1U;
+        if (percent > g_app_ble_diag.hci_rx_queue_sampled_peak_percent)
+        {
+            g_app_ble_diag.hci_rx_queue_sampled_peak_percent = percent;
+        }
     }
     else if (task_id == BT_TASK_ID_HCI_TX)
     {
-        app_ble_diag_note_peak(&g_app_ble_diag.hci_tx_queue_peak_percent, percent);
+        g_app_ble_diag.hci_tx_queue_last_percent = percent;
+        g_app_ble_diag.hci_tx_queue_sample_available = 1U;
+        if (percent > g_app_ble_diag.hci_tx_queue_sampled_peak_percent)
+        {
+            g_app_ble_diag.hci_tx_queue_sampled_peak_percent = percent;
+        }
     }
+    rt_hw_interrupt_enable(level);
 }
 
 void app_ble_diag_note_gate_state(rt_uint32_t enabled, rt_uint32_t state, rt_err_t last_error)
@@ -82,7 +94,7 @@ void app_ble_diag_note_gate_state(rt_uint32_t enabled, rt_uint32_t state, rt_err
     rt_hw_interrupt_enable(level);
 }
 
-static app_ble_diag_stack_t app_ble_diag_stack_snapshot(rt_thread_t thread)
+static app_ble_diag_stack_t app_ble_diag_stack_snapshot_locked(rt_thread_t thread)
 {
     app_ble_diag_stack_t result = {0};
     rt_uint8_t *base;
@@ -117,15 +129,33 @@ static app_ble_diag_stack_t app_ble_diag_stack_snapshot(rt_thread_t thread)
     return result;
 }
 
+static app_ble_diag_stack_t app_ble_diag_named_stack_snapshot(const char *name)
+{
+    app_ble_diag_stack_t result;
+    rt_thread_t thread;
+
+    rt_enter_critical();
+    thread = rt_thread_find((char *)name);
+    result = app_ble_diag_stack_snapshot_locked(thread);
+    rt_exit_critical();
+    return result;
+}
+
+static app_ble_diag_stack_t app_ble_diag_shell_stack_snapshot(void)
+{
+    app_ble_diag_stack_t result;
+
+    rt_enter_critical();
+    result = app_ble_diag_stack_snapshot_locked(rt_thread_self());
+    rt_exit_critical();
+    return result;
+}
+
 void app_ble_diag_snapshot(app_ble_diag_snapshot_t *out)
 {
     rt_size_t heap_total = 0;
     rt_size_t heap_used = 0;
     rt_size_t heap_max_used = 0;
-    rt_uint16_t hci_tx_largest = 0;
-    rt_uint32_t hci_rx_queue_percent;
-    rt_uint32_t hci_tx_queue_percent;
-    rt_uint32_t hci_tx_heap_percent;
     rt_base_t level;
 
     if (out == RT_NULL)
@@ -133,18 +163,9 @@ void app_ble_diag_snapshot(app_ble_diag_snapshot_t *out)
         return;
     }
 
-    hci_rx_queue_percent = cybt_platform_task_get_queue_utilization(BT_TASK_ID_HCI_RX);
-    hci_tx_queue_percent = cybt_platform_task_get_queue_utilization(BT_TASK_ID_HCI_TX);
-    hci_tx_heap_percent = cybt_platform_task_get_tx_heap_utilization(&hci_tx_largest);
-
     level = rt_hw_interrupt_disable();
     *out = g_app_ble_diag;
     rt_hw_interrupt_enable(level);
-
-    out->hci_rx_queue_percent = hci_rx_queue_percent;
-    out->hci_tx_queue_percent = hci_tx_queue_percent;
-    out->hci_tx_heap_percent = hci_tx_heap_percent;
-    out->hci_tx_largest_free_bytes = hci_tx_largest;
 
 #ifdef RT_USING_HEAP
     rt_memory_info(&heap_total, &heap_used, &heap_max_used);
@@ -152,21 +173,22 @@ void app_ble_diag_snapshot(app_ble_diag_snapshot_t *out)
     out->heap_min_free_bytes = (rt_uint32_t)(heap_total - heap_max_used);
 #endif
 
-    out->hci_rx_stack = app_ble_diag_stack_snapshot((rt_thread_t)cybt_task[BT_TASK_ID_HCI_RX]);
-    out->hci_tx_stack = app_ble_diag_stack_snapshot((rt_thread_t)cybt_task[BT_TASK_ID_HCI_TX]);
-    out->ble_worker_stack = app_ble_diag_stack_snapshot(rt_thread_find("ble_work"));
-    out->rehab_stack = app_ble_diag_stack_snapshot(rt_thread_find("rehab_svc"));
-    out->shell_stack = app_ble_diag_stack_snapshot(rt_thread_find("tshell"));
+    out->ble_worker_stack = app_ble_diag_named_stack_snapshot("ble_work");
+    out->rehab_stack = app_ble_diag_named_stack_snapshot("rehab_sv");
+    out->shell_stack = app_ble_diag_shell_stack_snapshot();
 }
 
-static void app_ble_diag_print_stack(const char *name, const app_ble_diag_stack_t *stack)
+static void app_ble_diag_print_stack(const char *name,
+                                     const app_ble_diag_stack_t *stack,
+                                     const char *unavailable_reason)
 {
-    rt_kprintf("BLE_DIAG_STACK: name=%s available=%lu used=%lu size=%lu percent=%lu\n",
+    rt_kprintf("BLE_DIAG_STACK: name=%s available=%lu used=%lu size=%lu percent=%lu reason=%s\n",
                name,
                (unsigned long)stack->available,
                (unsigned long)stack->used_bytes,
                (unsigned long)stack->size_bytes,
-               (unsigned long)stack->used_percent);
+               (unsigned long)stack->used_percent,
+               stack->available ? "ok" : unavailable_reason);
     if (stack->available && (stack->used_percent >= APP_BLE_DIAG_STACK_HIGH_PERCENT))
     {
         rt_kprintf("BLE_DIAG_STACK_HIGH: name=%s percent=%lu\n",
@@ -192,21 +214,21 @@ static int cmd_m33_ble_diag(int argc, char **argv)
                (unsigned long)diag.rx_queue_peak,
                (unsigned long)diag.tx_queue_peak,
                (unsigned long)diag.notify_failures);
-    rt_kprintf("BLE_DIAG_HCI: rx_pct=%lu rx_peak_pct=%lu tx_pct=%lu tx_peak_pct=%lu tx_heap_pct=%lu tx_heap_source=unsupported tx_largest_free=%lu largest_source=unsupported\n",
-               (unsigned long)diag.hci_rx_queue_percent,
-               (unsigned long)diag.hci_rx_queue_peak_percent,
-               (unsigned long)diag.hci_tx_queue_percent,
-               (unsigned long)diag.hci_tx_queue_peak_percent,
-               (unsigned long)diag.hci_tx_heap_percent,
-               (unsigned long)diag.hci_tx_largest_free_bytes);
+    rt_kprintf("BLE_DIAG_HCI: rx_sample=%lu rx_last_pct=%lu rx_sampled_peak_pct=%lu tx_sample=%lu tx_last_pct=%lu tx_sampled_peak_pct=%lu tx_heap_source=unsupported largest_source=unsupported\n",
+               (unsigned long)diag.hci_rx_queue_sample_available,
+               (unsigned long)diag.hci_rx_queue_last_percent,
+               (unsigned long)diag.hci_rx_queue_sampled_peak_percent,
+               (unsigned long)diag.hci_tx_queue_sample_available,
+               (unsigned long)diag.hci_tx_queue_last_percent,
+               (unsigned long)diag.hci_tx_queue_sampled_peak_percent);
     rt_kprintf("BLE_DIAG_HEAP: free=%lu min_free=%lu largest_free=unsupported\n",
                (unsigned long)diag.heap_free_bytes,
                (unsigned long)diag.heap_min_free_bytes);
-    app_ble_diag_print_stack("hci_rx", &diag.hci_rx_stack);
-    app_ble_diag_print_stack("hci_tx", &diag.hci_tx_stack);
-    app_ble_diag_print_stack("ble_worker", &diag.ble_worker_stack);
-    app_ble_diag_print_stack("rehab_svc", &diag.rehab_stack);
-    app_ble_diag_print_stack("tshell", &diag.shell_stack);
+    app_ble_diag_print_stack("hci_rx", &diag.hci_rx_stack, "unsupported");
+    app_ble_diag_print_stack("hci_tx", &diag.hci_tx_stack, "unsupported");
+    app_ble_diag_print_stack("ble_worker", &diag.ble_worker_stack, "not_found");
+    app_ble_diag_print_stack("rehab_svc", &diag.rehab_stack, "not_found");
+    app_ble_diag_print_stack("tshell", &diag.shell_stack, "not_found");
     return RT_EOK;
 }
 MSH_CMD_EXPORT_ALIAS(cmd_m33_ble_diag, m33_ble_diag, show bounded M33 BLE runtime diagnostics);

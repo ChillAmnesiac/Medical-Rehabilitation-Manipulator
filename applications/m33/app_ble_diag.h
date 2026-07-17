@@ -22,10 +22,12 @@ typedef struct
     rt_uint32_t rx_queue_peak;
     rt_uint32_t tx_queue_peak;
     rt_uint32_t notify_failures;
-    rt_uint32_t hci_rx_queue_percent;
-    rt_uint32_t hci_tx_queue_percent;
-    rt_uint32_t hci_rx_queue_peak_percent;
-    rt_uint32_t hci_tx_queue_peak_percent;
+    rt_uint32_t hci_rx_queue_last_percent;
+    rt_uint32_t hci_tx_queue_last_percent;
+    rt_uint32_t hci_rx_queue_sampled_peak_percent;
+    rt_uint32_t hci_tx_queue_sampled_peak_percent;
+    rt_uint32_t hci_rx_queue_sample_available;
+    rt_uint32_t hci_tx_queue_sample_available;
     rt_uint32_t heap_free_bytes;
     rt_uint32_t heap_min_free_bytes;
     rt_uint32_t hci_tx_heap_percent;
