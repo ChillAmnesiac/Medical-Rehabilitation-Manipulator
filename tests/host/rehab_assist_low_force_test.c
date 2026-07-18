@@ -62,14 +62,9 @@ static void test_low_force_velocity_fallback_is_bounded_and_resets(void)
     rehab_assist_strategy_state_t state;
     rehab_strategy_output_t out;
     rehab_strategy_params_t params = assist_params();
-    control_motor_feedback_t fb = feedback(0.0f, 0.009f);
+    control_motor_feedback_t fb = feedback(0.0f, 0.02f);
 
     rehab_assist_strategy_reset(&state);
-    rehab_assist_strategy_step(&state, &params, &fb, 1.0f, &out);
-    require_true(out.type == REHAB_STRATEGY_OUTPUT_STOP,
-                 "velocity below the enter threshold must stay stopped");
-
-    fb.vel_rad_s = 0.02f;
     rehab_assist_strategy_step(&state, &params, &fb, 1.0f, &out);
     require_true(out.engaged == RT_TRUE, "velocity fallback should engage without torque");
     require_true(out.type == REHAB_STRATEGY_OUTPUT_CURRENT,
@@ -92,9 +87,28 @@ static void test_low_force_velocity_fallback_is_bounded_and_resets(void)
                   "a new engagement must restart the slew from zero");
 }
 
+static void test_stationary_assist_ramps_positive_preload(void)
+{
+    rehab_assist_strategy_state_t state;
+    rehab_strategy_output_t out;
+    rehab_strategy_params_t params = assist_params();
+    control_motor_feedback_t fb = feedback(0.0f, 0.0f);
+
+    rehab_assist_strategy_reset(&state);
+    rehab_assist_strategy_step(&state, &params, &fb, 1.0f, &out);
+
+    require_true(out.engaged == RT_TRUE,
+                 "stationary assist must engage gravity preload");
+    require_true(out.type == REHAB_STRATEGY_OUTPUT_CURRENT,
+                 "stationary assist must request current control");
+    require_close(out.current_a, 0.03f, 0.0001f,
+                  "stationary preload must ramp in the configured assist direction");
+}
+
 int main(void)
 {
     test_low_force_velocity_fallback_is_bounded_and_resets();
+    test_stationary_assist_ramps_positive_preload();
     printf("rehab_assist_low_force_test PASS\n");
     return 0;
 }
