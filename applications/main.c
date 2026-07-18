@@ -8,6 +8,7 @@
 #include "common/m33_m55_comm.h"
 #include "m33/audio_capture.h"
 #include "m33/audio_playback.h"
+#include "m33/app_ble_service.h"
 #include "m33/can_driver.h"
 #include "drv_can.h"
 #include "m33/control_manager.h"
@@ -35,6 +36,7 @@ __attribute__((weak)) struct _reent _impure_data;
 #define M33_CM55_TX_STUCK_RESTART_MS 8000U
 #define M33_CM55_AUTO_RESTART_ENABLE 0
 #define M33_IPC_PUMP_PERIOD_MS 5U
+#define M33_APP_BLE_STATUS_HEARTBEAT_MS 1000U
 #define M33_IPC_PUMP_STACK_SIZE 4096U
 #define M33_IPC_INIT_STACK_SIZE 4096U
 #define M33_IPC_INIT_DELAY_MS 1000U
@@ -76,6 +78,11 @@ static rt_tick_t g_cm55_last_watchdog_log_tick = 0U;
 static rt_thread_t g_ipc_pump_thread = RT_NULL;
 static rt_thread_t g_ipc_init_thread = RT_NULL;
 static rt_bool_t g_m55_bridge_started = RT_FALSE;
+static rt_bool_t g_app_ble_status_initialized = RT_FALSE;
+static rt_bool_t g_app_ble_status_connected = RT_FALSE;
+static rt_bool_t g_app_ble_status_dirty = RT_TRUE;
+static rt_uint32_t g_app_ble_status_link_seq = 0U;
+static rt_tick_t g_app_ble_status_last_publish_tick = 0U;
 static sensor_data_t g_main_sensor;
 static control_status_t g_main_control;
 volatile rt_uint32_t g_m33_boot_marker = 0U;
@@ -826,6 +833,50 @@ static void m33_watchdog_cm55_voice_status(void)
 #endif
 }
 
+static void m33_publish_app_ble_status(void)
+{
+    app_ble_runtime_t runtime;
+    m33_m55_message_t msg;
+    rt_tick_t now;
+    rt_uint32_t elapsed_ms;
+
+    if (app_ble_service_get_runtime_snapshot(&runtime) != RT_EOK)
+    {
+        return;
+    }
+
+    now = rt_tick_get();
+    if (!g_app_ble_status_initialized ||
+        (runtime.connected != g_app_ble_status_connected))
+    {
+        g_app_ble_status_initialized = RT_TRUE;
+        g_app_ble_status_connected = runtime.connected;
+        g_app_ble_status_link_seq++;
+        g_app_ble_status_dirty = RT_TRUE;
+    }
+
+    elapsed_ms = (rt_uint32_t)((now - g_app_ble_status_last_publish_tick) *
+                               1000U / RT_TICK_PER_SECOND);
+    if (!g_app_ble_status_dirty &&
+        (elapsed_ms < M33_APP_BLE_STATUS_HEARTBEAT_MS))
+    {
+        return;
+    }
+
+    rt_memset(&msg, 0, sizeof(msg));
+    msg.type = MSG_TYPE_APP_BLE_STATUS;
+    msg.seq = g_app_ble_status_link_seq;
+    msg.payload.app_ble_status.version = APP_BLE_STATUS_PROTOCOL_VERSION;
+    msg.payload.app_ble_status.connected = runtime.connected ? 1U : 0U;
+    msg.payload.app_ble_status.link_seq = g_app_ble_status_link_seq;
+
+    if (m33_m55_comm_try_publish(&msg) == RT_EOK)
+    {
+        g_app_ble_status_dirty = RT_FALSE;
+        g_app_ble_status_last_publish_tick = now;
+    }
+}
+
 static void m33_ipc_pump_entry(void *parameter)
 {
     RT_UNUSED(parameter);
@@ -839,6 +890,7 @@ static void m33_ipc_pump_entry(void *parameter)
             m33_handle_ipc_command();
             m33_flush_tts_audio_if_idle();
             m33_watchdog_cm55_voice_status();
+            m33_publish_app_ble_status();
         }
         rt_thread_mdelay(M33_IPC_PUMP_PERIOD_MS);
     }
