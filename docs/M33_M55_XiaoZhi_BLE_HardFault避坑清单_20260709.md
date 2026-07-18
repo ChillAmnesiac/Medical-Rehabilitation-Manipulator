@@ -150,7 +150,7 @@ stop = 4
 
 ### 风险
 
-M55 推理结果看似只是 `rest/elbow_flex/elbow_extend/shoulder_flex`，但回传路径会碰：
+M55 推理结果看似只是 `elbow_curl/rest/shoulder_flex`，但回传路径会碰：
 
 ```text
 M33/M55 IPC queue
@@ -181,7 +181,7 @@ ISR/callback 里解析大 payload 或 rt_kprintf 大段日志
 ```c
 typedef struct {
     uint8_t version;
-    uint8_t result_code;   /* 0 rest, 1 elbow_flex, 2 elbow_extend, 3 shoulder_flex */
+    uint8_t result_code;   /* 0 elbow_curl, 1 rest, 2 shoulder_flex */
     uint8_t confidence;    /* 0-100 */
     uint8_t flags;
     uint32_t seq;
