@@ -38,9 +38,31 @@ static void test_assist_overspeed_checks_both_directions(void)
                  "negative overspeed must trip");
 }
 
+static void test_joint5_position_must_stay_inside_calibrated_range(void)
+{
+    control_motor_feedback_t fb = feedback(0.0f);
+
+    fb.pos_rad = 6.238f;
+    require_true(rehab_assist_position_safe(5U, &fb),
+                 "joint 5 hard minimum must be allowed");
+
+    fb.pos_rad = 7.829f;
+    require_true(rehab_assist_position_safe(5U, &fb),
+                 "joint 5 hard maximum must be allowed");
+
+    fb.pos_rad = 5.801f;
+    require_true(!rehab_assist_position_safe(5U, &fb),
+                 "joint 5 below the hard minimum must be rejected");
+
+    fb.pos_rad = 7.900f;
+    require_true(!rehab_assist_position_safe(5U, &fb),
+                 "joint 5 above the hard maximum must be rejected");
+}
+
 int main(void)
 {
     test_assist_overspeed_checks_both_directions();
+    test_joint5_position_must_stay_inside_calibrated_range();
     printf("rehab_assist_safety_test PASS\n");
     return 0;
 }
