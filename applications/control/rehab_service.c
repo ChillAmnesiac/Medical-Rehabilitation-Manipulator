@@ -758,6 +758,7 @@ static void rehab_service_apply_status_locked(rehab_demo_mode_t mode,
     s_rehab.status.active_joint_mask = active_joint_mask;
     s_rehab.status.detail = detail;
     s_rehab.status.last_fault_joint = 0U;
+    s_rehab.status.last_fault_stage = 0U;
     s_rehab.status.last_fault_feedback_age_ms = 0U;
     s_rehab.status.last_result = result;
     s_rehab.stop_pending = RT_FALSE;
@@ -774,17 +775,11 @@ static void rehab_service_note_fault_mask(rt_uint8_t joint_mask,
                                           rehab_demo_mode_t expected_mode,
                                           rt_uint32_t expected_generation,
                                           rt_uint8_t detail,
-                                          rt_err_t result)
+                                          rt_err_t result,
+                                          rt_uint8_t fault_stage,
+                                          rt_uint16_t fault_age_ms)
 {
-    control_motor_feedback_t fault_fb;
-    rt_uint16_t fault_age_ms = 0xFFFFU;
     rt_bool_t should_stop;
-
-    if ((control_get_motor_feedback(m33_joint, &fault_fb) == RT_EOK) &&
-        (fault_fb.timestamp != 0U))
-    {
-        fault_age_ms = rehab_ticks_to_ms_u16(rt_tick_get() - fault_fb.timestamp);
-    }
 
     if (!rehab_service_joint_mask_valid(joint_mask))
     {
@@ -806,6 +801,7 @@ static void rehab_service_note_fault_mask(rt_uint8_t joint_mask,
     s_rehab.status.assist_engaged = RT_FALSE;
     s_rehab.status.assist_engaged_mask = 0U;
     s_rehab.status.last_fault_joint = m33_joint;
+    s_rehab.status.last_fault_stage = fault_stage;
     s_rehab.status.last_fault_feedback_age_ms = fault_age_ms;
     rehab_service_clear_observation_locked();
     s_rehab.stopped_for_fault = RT_TRUE;
@@ -830,7 +826,9 @@ static void rehab_service_note_fault(rt_uint8_t m33_joint,
                                   expected_mode,
                                   expected_generation,
                                   detail,
-                                  result);
+                                  result,
+                                  3U,
+                                  0xFFFFU);
 }
 
 static void rehab_service_complete_to_passive(rt_uint8_t m33_joint, rt_err_t result)
@@ -1050,6 +1048,7 @@ static void rehab_service_worker(void *parameter)
             rt_uint8_t assist_engaged_mask = 0U;
             rt_uint8_t joint;
             rt_uint8_t fault_joint = m33_joint;
+            rt_uint16_t fault_age_ms = 0xFFFFU;
             rt_err_t output_ret = RT_EOK;
 
             for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
@@ -1061,6 +1060,7 @@ static void rehab_service_worker(void *parameter)
                 {
                     continue;
                 }
+                rt_memset(&fb, 0, sizeof(fb));
                 feedback_ret = control_get_motor_feedback(joint, &fb);
                 if (feedback_ret == RT_EOK)
                 {
@@ -1069,12 +1069,18 @@ static void rehab_service_worker(void *parameter)
                 if (feedback_ret != RT_EOK)
                 {
                     fault_joint = joint;
+                    if (fb.timestamp != 0U)
+                    {
+                        fault_age_ms = rehab_ticks_to_ms_u16(now - fb.timestamp);
+                    }
                     rehab_service_note_fault_mask(active_joint_mask,
                                                   fault_joint,
                                                   mode,
                                                   mode_generation,
                                                   CONTROL_STATUS_DETAIL_MOTOR_FAULT,
-                                                  feedback_ret);
+                                                  feedback_ret,
+                                                  1U,
+                                                  fault_age_ms);
                     output_ret = feedback_ret;
                     break;
                 }
@@ -1200,7 +1206,9 @@ static void rehab_service_worker(void *parameter)
                                               mode,
                                               mode_generation,
                                               CONTROL_STATUS_DETAIL_MOTOR_FAULT,
-                                              output_ret);
+                                              output_ret,
+                                              2U,
+                                              0xFFFFU);
                 rt_thread_mdelay(CONTROL_REHAB_SERVICE_PERIOD_MS);
                 continue;
             }

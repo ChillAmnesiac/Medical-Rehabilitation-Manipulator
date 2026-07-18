@@ -86,13 +86,16 @@ class RehabServiceActuationStaticTest(unittest.TestCase):
 
     def test_fault_status_preserves_joint_and_feedback_age(self):
         self.assertIn("last_fault_joint", SERVICE_H)
+        self.assertIn("last_fault_stage", SERVICE_H)
         self.assertIn("last_fault_feedback_age_ms", SERVICE_H)
         start = SERVICE_C.index("static void rehab_service_note_fault_mask")
         end = SERVICE_C.index("static void rehab_service_note_fault(", start)
         body = SERVICE_C[start:end]
         self.assertIn("s_rehab.status.last_fault_joint = m33_joint", body)
+        self.assertIn("s_rehab.status.last_fault_stage = fault_stage", body)
         self.assertIn("s_rehab.status.last_fault_feedback_age_ms", body)
         self.assertIn("fault_joint=%u", SHELL_C)
+        self.assertIn("fault_stage=%u", SHELL_C)
         self.assertIn("fault_age_ms=%u", SHELL_C)
 
     def test_failed_stop_latch_blocks_normal_mode_entry(self):

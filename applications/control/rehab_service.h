@@ -46,6 +46,7 @@ typedef struct
     rt_uint8_t active_joint_mask;
     rt_uint8_t detail;
     rt_uint8_t last_fault_joint;
+    rt_uint8_t last_fault_stage;
     rt_uint16_t last_fault_feedback_age_ms;
     rt_uint8_t flags;
     rt_uint8_t assist_engaged_mask;
