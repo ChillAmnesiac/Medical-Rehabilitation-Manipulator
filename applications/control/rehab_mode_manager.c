@@ -1,12 +1,14 @@
 #include "rehab_mode_manager.h"
 
 #include "control_layer_cfg.h"
+#include "rehab_app_lease.h"
 #include "rehab_can_lease.h"
 
 typedef struct
 {
     struct rt_mutex command_lock;
     struct rt_mutex lock;
+    rehab_app_lease_t app_lease;
     rehab_can_lease_t lease;
     rt_uint8_t last_sequence;
     rt_uint8_t last_reject_sequence;
@@ -19,7 +21,9 @@ static rehab_mode_adapter_runtime_t s_rehab_adapter;
 enum
 {
     REHAB_MODE_ADAPTER_CMD_MARKER = CONTROL_REHAB_MODE_CMD_MARKER,
-    REHAB_MODE_STOP_RETRY_MS = 100U
+    REHAB_MODE_STOP_RETRY_MS = 100U,
+    REHAB_APP_MODE_MIN_TTL_MS = 200U,
+    REHAB_APP_MODE_MAX_TTL_MS = 2000U
 };
 
 static rt_bool_t rehab_mode_adapter_heartbeat_ok(rt_tick_t now)
@@ -182,6 +186,14 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
     }
 
     rt_mutex_take(&s_rehab_adapter.command_lock, RT_WAITING_FOREVER);
+    rehab_service_get_status(&service_status);
+    if ((cmd->mode != REHAB_MODE_PASSIVE) &&
+        (service_status.mode != REHAB_DEMO_MODE_PASSIVE) &&
+        (service_status.source == REHAB_CMD_SOURCE_APP_BLE))
+    {
+        rt_mutex_release(&s_rehab_adapter.command_lock);
+        return -RT_EBUSY;
+    }
     now = rt_tick_get();
     rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
     if ((cmd->mode != REHAB_MODE_PASSIVE) &&
@@ -241,6 +253,7 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
     s_rehab_adapter.last_sequence = cmd->sequence;
     if (ret == RT_EOK)
     {
+        rehab_app_lease_revoke(&s_rehab_adapter.app_lease);
         rehab_can_lease_note_mode(&s_rehab_adapter.lease,
                                   (rehab_mode_adapter_source_supported(service_status.source) &&
                                    rehab_mode_adapter_lease_supervised(service_status.mode))
@@ -259,6 +272,149 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
     rt_mutex_release(&s_rehab_adapter.command_lock);
 
     return ret;
+}
+
+rt_err_t rehab_mode_manager_apply_app_command(const rehab_app_mode_command_t *cmd)
+{
+    rehab_demo_mode_t service_mode;
+    rehab_service_status_t service_status;
+    rt_tick_t now;
+    rt_err_t ret;
+    rt_err_t rollback_ret;
+    rt_bool_t lease_started;
+
+    if ((cmd == RT_NULL) || (cmd->request_id == 0U) ||
+        (cmd->session_generation == 0U) ||
+        (cmd->joint_mask != CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK) ||
+        (cmd->ttl_ms < REHAB_APP_MODE_MIN_TTL_MS) ||
+        (cmd->ttl_ms > REHAB_APP_MODE_MAX_TTL_MS) ||
+        ((cmd->mode != REHAB_MODE_ACTIVE) &&
+         (cmd->mode != REHAB_MODE_ASSIST) &&
+         (cmd->mode != REHAB_MODE_RESIST)))
+    {
+        return -RT_EINVAL;
+    }
+
+    ret = rehab_mode_manager_init();
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    rt_mutex_take(&s_rehab_adapter.command_lock, RT_WAITING_FOREVER);
+    rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
+    if (!rehab_app_lease_can_begin(&s_rehab_adapter.app_lease,
+                                   (rt_uint8_t)REHAB_CMD_SOURCE_APP_BLE,
+                                   cmd->session_generation))
+    {
+        rt_mutex_release(&s_rehab_adapter.lock);
+        rt_mutex_release(&s_rehab_adapter.command_lock);
+        return -RT_EBUSY;
+    }
+    rt_mutex_release(&s_rehab_adapter.lock);
+
+    rehab_service_get_status(&service_status);
+    if ((service_status.mode != REHAB_DEMO_MODE_PASSIVE) &&
+        (service_status.source != REHAB_CMD_SOURCE_APP_BLE))
+    {
+        rt_mutex_release(&s_rehab_adapter.command_lock);
+        return -RT_EBUSY;
+    }
+
+    service_mode = rehab_mode_adapter_to_service_mode(cmd->mode,
+                                                      REHAB_MODE_SUBMODE_IDLE);
+    ret = rehab_service_set_mode_mask_if_unchanged(
+        service_mode,
+        cmd->joint_mask,
+        REHAB_CMD_SOURCE_APP_BLE,
+        service_status.source,
+        service_status.mode_generation);
+    if (ret == RT_EOK)
+    {
+        rehab_service_get_status(&service_status);
+        if ((service_status.source != REHAB_CMD_SOURCE_APP_BLE) ||
+            (service_status.mode != service_mode) ||
+            (service_status.active_joint_mask != cmd->joint_mask))
+        {
+            ret = -RT_EBUSY;
+        }
+    }
+
+    if (ret == RT_EOK)
+    {
+        now = rt_tick_get();
+        rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
+        lease_started = rehab_app_lease_begin(
+            &s_rehab_adapter.app_lease,
+            (rt_uint8_t)REHAB_CMD_SOURCE_APP_BLE,
+            service_status.mode_generation,
+            cmd->session_generation,
+            now,
+            rt_tick_from_millisecond(cmd->ttl_ms));
+        if (lease_started)
+        {
+            rehab_can_lease_note_mode(&s_rehab_adapter.lease,
+                                      RT_FALSE,
+                                      (rt_uint8_t)REHAB_CMD_SOURCE_APP_BLE,
+                                      service_status.mode_generation);
+            s_rehab_adapter.last_sequence = (rt_uint8_t)cmd->request_id;
+            s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_NONE;
+        }
+        rt_mutex_release(&s_rehab_adapter.lock);
+
+        if (!lease_started)
+        {
+            rollback_ret = rehab_service_stop_if_owned(
+                REHAB_CMD_SOURCE_APP_BLE,
+                service_status.mode_generation,
+                CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT);
+            rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
+            if ((rollback_ret == RT_EOK) || (rollback_ret == -RT_EBUSY))
+            {
+                rehab_app_lease_revoke(&s_rehab_adapter.app_lease);
+            }
+            else
+            {
+                s_rehab_adapter.last_reject_sequence = (rt_uint8_t)cmd->request_id;
+                s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_MOTOR_FAULT;
+            }
+            rt_mutex_release(&s_rehab_adapter.lock);
+            ret = ((rollback_ret == RT_EOK) || (rollback_ret == -RT_EBUSY))
+                      ? -RT_EBUSY
+                      : rollback_ret;
+        }
+    }
+
+    rt_mutex_release(&s_rehab_adapter.command_lock);
+    return ret;
+}
+
+rt_err_t rehab_mode_manager_note_app_heartbeat(rt_uint32_t session_generation)
+{
+    rehab_service_status_t service_status;
+    rt_bool_t accepted;
+    rt_err_t ret;
+
+    if (session_generation == 0U)
+    {
+        return -RT_EINVAL;
+    }
+    ret = rehab_mode_manager_init();
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    rehab_service_get_status(&service_status);
+    rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
+    accepted = rehab_app_lease_note_heartbeat(
+        &s_rehab_adapter.app_lease,
+        (rt_uint8_t)service_status.source,
+        service_status.mode_generation,
+        session_generation,
+        rt_tick_get());
+    rt_mutex_release(&s_rehab_adapter.lock);
+    return accepted ? RT_EOK : -RT_EBUSY;
 }
 
 void rehab_mode_manager_record_reject(rt_uint8_t sequence, rt_uint8_t detail)

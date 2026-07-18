@@ -51,6 +51,15 @@ typedef struct
 typedef struct
 {
     rehab_mode_t mode;
+    rt_uint8_t joint_mask;
+    rt_uint32_t request_id;
+    rt_uint32_t session_generation;
+    rt_uint32_t ttl_ms;
+} rehab_app_mode_command_t;
+
+typedef struct
+{
+    rehab_mode_t mode;
     rehab_mode_submode_t submode;
     rt_uint8_t active_joint_mask;
     rt_uint8_t flags;
@@ -66,6 +75,8 @@ typedef struct
 
 rt_err_t rehab_mode_manager_init(void);
 rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd);
+rt_err_t rehab_mode_manager_apply_app_command(const rehab_app_mode_command_t *cmd);
+rt_err_t rehab_mode_manager_note_app_heartbeat(rt_uint32_t session_generation);
 void rehab_mode_manager_record_reject(rt_uint8_t sequence, rt_uint8_t detail);
 void rehab_mode_manager_note_heartbeat(void);
 void rehab_mode_manager_tick(void);
