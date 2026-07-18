@@ -126,16 +126,16 @@ if (m33_ble_gate_start()) {}
         self.assertEqual(len(matches), 1)
         self.assertIsNone(CALL_RE.search("static rt_err_t m33_ble_gate_start(void)"))
 
-    def test_runtime_is_disabled_by_default_and_never_auto_started(self):
+    def test_runtime_fallback_is_disabled_and_never_auto_started(self):
         self.assertIn("#define M33_ENABLE_APP_BLE_RUNTIME 0", GATE_C)
         self.assertNotIn("INIT_APP_EXPORT", GATE_C)
         self.assertNotIn("INIT_ENV_EXPORT", GATE_C)
 
-    def test_validation_build_requires_explicit_ble_runtime_opt_in(self):
+    def test_normal_build_includes_runtime_with_explicit_opt_out(self):
         self.assertIn("M33_APP_BLE_RUNTIME", M33_SCONSCRIPT)
         self.assertRegex(
             M33_SCONSCRIPT,
-            r"os\.environ\.get\(\s*['\"]M33_APP_BLE_RUNTIME['\"]\s*,\s*['\"]0['\"]\s*\)\s*==\s*['\"]1['\"]",
+            r"os\.environ\.get\(\s*['\"]M33_APP_BLE_RUNTIME['\"]\s*,\s*['\"]1['\"]\s*\)\s*==\s*['\"]1['\"]",
         )
         self.assertIn("M33_ENABLE_APP_BLE_RUNTIME=1", M33_SCONSCRIPT)
         self.assertRegex(

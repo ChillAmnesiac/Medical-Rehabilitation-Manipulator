@@ -215,11 +215,12 @@ class M33BleWorkerStaticTest(unittest.TestCase):
         self.assertIn("app_ble_worker_enqueue", function_body(source, "app_ble_service_enqueue_rx"))
         self.assertIn("app_ble_worker_reset_session", function_body(source, "app_ble_service_reset_rx_session"))
 
-    def test_worker_cannot_reach_control_can_or_motor(self):
+    def test_worker_dispatches_only_through_mode_manager(self):
         source = read(WORKER_C)
+        self.assertIn('include "rehab_mode_manager.h"', source)
+        self.assertIn("rehab_mode_manager_apply_app_command", source)
         for forbidden in (
             "control_layer",
-            "rehab_mode_manager",
             "rehab_service",
             "ifx_can",
             "Cy_CANFD",
@@ -228,7 +229,7 @@ class M33BleWorkerStaticTest(unittest.TestCase):
         ):
             self.assertNotIn(forbidden, source)
 
-    def test_runtime_gate_remains_default_off(self):
+    def test_runtime_gate_has_safe_fallback_when_build_define_is_absent(self):
         source = read(GATE_C)
         self.assertRegex(source, r"#define\s+M33_ENABLE_APP_BLE_RUNTIME\s+0\b")
 
