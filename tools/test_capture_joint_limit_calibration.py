@@ -97,6 +97,17 @@ class JointLimitCalibrationTest(unittest.TestCase):
                 max_abs_velocity_rad_s=0.20,
             )
 
+    def test_initial_endpoint_can_use_first_low_velocity_sample(self):
+        endpoint = self.module.select_endpoint_position(
+            [0.278, 0.900, 2.491],
+            [0.009, 0.60, 0.018],
+            bounds=(0, 3),
+            max_abs_velocity_rad_s=0.20,
+            edge="first",
+        )
+
+        self.assertAlmostEqual(endpoint, 0.278)
+
     def test_stage_accepts_one_new_feedback_event(self):
         self.module.validate_stage_sample_count(stage="lower_start", count=1)
 

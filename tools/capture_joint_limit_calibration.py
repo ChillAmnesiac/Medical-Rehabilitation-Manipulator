@@ -126,17 +126,21 @@ def select_endpoint_position(
     *,
     bounds: tuple[int, int],
     max_abs_velocity_rad_s: float,
+    edge: str = "last",
 ) -> float:
     start, end = bounds
     if start < 0 or end > len(positions) or end > len(velocities) or start >= end:
         raise ValueError("endpoint sample bounds are invalid")
-    endpoint_velocity = velocities[end - 1]
+    if edge not in ("first", "last"):
+        raise ValueError("endpoint edge must be first or last")
+    endpoint_index = start if edge == "first" else end - 1
+    endpoint_velocity = velocities[endpoint_index]
     if abs(endpoint_velocity) > max_abs_velocity_rad_s:
         raise ValueError(
             "endpoint velocity "
             f"{endpoint_velocity:.6f} rad/s exceeds {max_abs_velocity_rad_s:.6f} rad/s"
         )
-    return positions[end - 1]
+    return positions[endpoint_index]
 
 
 def validate_stage_sample_count(*, stage: str, count: int) -> None:
@@ -313,10 +317,7 @@ def main(argv: list[str] | None = None) -> int:
         collector.prime()
         lower_start_bounds = collector.capture_until_enter(
             stage="lower_start",
-            prompt=(
-                "At the lower limit, move a few degrees away and back, hold it, "
-                "then press Enter: "
-            ),
+            prompt="Place the joint at the lower limit, hold it still, then press Enter: ",
             timeout_sec=args.motion_timeout_sec,
         )
         upper_bounds = collector.capture_until_enter(
@@ -343,6 +344,7 @@ def main(argv: list[str] | None = None) -> int:
         velocities,
         bounds=lower_start_bounds,
         max_abs_velocity_rad_s=args.endpoint_max_velocity_rad_s,
+        edge="first",
     )
     upper = select_endpoint_position(
         unwrapped,
