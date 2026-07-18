@@ -17,6 +17,17 @@ def body(text, start_marker, end_marker):
 
 
 class RehabCommandSourceStaticTest(unittest.TestCase):
+    def test_app_ble_source_is_appended_without_renumbering_existing_sources(self):
+        self.assertRegex(
+            SERVICE_H,
+            r"typedef enum\s*\{\s*"
+            r"REHAB_CMD_SOURCE_BENCH_MSH\s*=\s*0\s*,\s*"
+            r"REHAB_CMD_SOURCE_CAN\s*,\s*"
+            r"REHAB_CMD_SOURCE_VOICE\s*,\s*"
+            r"REHAB_CMD_SOURCE_APP_BLE\s*,\s*"
+            r"\}\s*rehab_cmd_source_t\s*;",
+        )
+
     def test_voice_is_distinct_and_command_source_is_explicit(self):
         self.assertIn("REHAB_CMD_SOURCE_VOICE", SERVICE_H)
         command = body(MANAGER_H, "typedef struct\n{\n    rehab_mode_t mode;", "} rehab_mode_command_t;")
@@ -38,13 +49,20 @@ class RehabCommandSourceStaticTest(unittest.TestCase):
         self.assertIn("rehab_service_play_start(0U, REHAB_JOINT_ELBOW, cmd->source)", apply_command)
         self.assertIn("rehab_service_set_mode_mask(service_mode, joint_mask, cmd->source)", apply_command)
 
-    def test_conditioned_stop_accepts_only_can_or_voice_and_matches_owner(self):
+    def test_conditioned_stop_accepts_app_ble_and_matches_owner(self):
         stop = body(SERVICE_C, "rt_err_t rehab_service_stop_if_owned", "rt_err_t rehab_service_record_start")
         self.assertIn("expected_source != REHAB_CMD_SOURCE_CAN", stop)
         self.assertIn("expected_source != REHAB_CMD_SOURCE_VOICE", stop)
+        self.assertIn("expected_source != REHAB_CMD_SOURCE_APP_BLE", stop)
+        self.assertRegex(
+            stop,
+            r"expected_source != REHAB_CMD_SOURCE_CAN\)\s*&&\s*"
+            r"\(expected_source != REHAB_CMD_SOURCE_VOICE\)\s*&&\s*"
+            r"\(expected_source != REHAB_CMD_SOURCE_APP_BLE\)",
+        )
         self.assertIn("s_rehab.status.source != expected_source", stop)
         self.assertIn("s_rehab.status.mode_generation != expected_generation", stop)
-        self.assertNotIn("REHAB_CMD_SOURCE_BENCH_MSH) ||", stop)
+        self.assertNotIn("expected_source != REHAB_CMD_SOURCE_BENCH_MSH", stop)
 
     def test_timeout_uses_leased_owner_source_and_shell_stays_bench(self):
         tick = body(MANAGER_C, "void rehab_mode_manager_tick", "rt_bool_t rehab_mode_manager_accepts_ros_target")

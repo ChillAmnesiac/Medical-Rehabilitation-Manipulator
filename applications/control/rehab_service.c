@@ -1533,7 +1533,8 @@ rt_err_t rehab_service_stop_if_owned(rehab_cmd_source_t expected_source,
     rt_mutex_take(&s_rehab.actuation_lock, RT_WAITING_FOREVER);
     rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
     if (((expected_source != REHAB_CMD_SOURCE_CAN) &&
-         (expected_source != REHAB_CMD_SOURCE_VOICE)) ||
+         (expected_source != REHAB_CMD_SOURCE_VOICE) &&
+         (expected_source != REHAB_CMD_SOURCE_APP_BLE)) ||
         (s_rehab.status.source != expected_source) ||
         (s_rehab.status.mode == REHAB_DEMO_MODE_PASSIVE) ||
         (s_rehab.status.mode_generation != expected_generation))

@@ -25,6 +25,7 @@ typedef enum
     REHAB_CMD_SOURCE_BENCH_MSH = 0,
     REHAB_CMD_SOURCE_CAN,
     REHAB_CMD_SOURCE_VOICE,
+    REHAB_CMD_SOURCE_APP_BLE,
 } rehab_cmd_source_t;
 
 typedef enum
