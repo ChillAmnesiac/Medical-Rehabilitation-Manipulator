@@ -104,6 +104,20 @@ class JointLimitCalibrationTest(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, "no new feedback"):
             self.module.validate_stage_sample_count(stage="lower_start", count=0)
 
+    def test_stream_parser_keeps_feedback_line_split_across_reads(self):
+        parser = self.module.FeedbackStreamParser(joint=4)
+
+        first = parser.feed(
+            "MOTOR[4]: id=4 proto=0 mode=0 fault=0x00 pos_mrad=1519 "
+            "vel_mrad_s=-14 tor_"
+        )
+        second = parser.feed("mNm=0 temp_dC=300 tick=8123631\r\nmsh />")
+
+        self.assertEqual(first, [])
+        self.assertEqual(len(second), 1)
+        self.assertEqual(second[0].tick, 8123631)
+        self.assertAlmostEqual(second[0].raw_rad, 1.519)
+
 
 if __name__ == "__main__":
     unittest.main()

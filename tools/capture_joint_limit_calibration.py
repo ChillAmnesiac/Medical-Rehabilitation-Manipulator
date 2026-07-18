@@ -51,6 +51,23 @@ def parse_fresh_feedback(text: str, *, joint: int) -> list[FeedbackSample]:
     return samples
 
 
+class FeedbackStreamParser:
+    def __init__(self, *, joint: int) -> None:
+        self.joint = joint
+        self.buffer = ""
+
+    def feed(self, text: str) -> list[FeedbackSample]:
+        self.buffer += text
+        lines = self.buffer.splitlines(keepends=True)
+        if lines and not lines[-1].endswith(("\n", "\r")):
+            self.buffer = lines.pop()
+        else:
+            self.buffer = ""
+        if len(self.buffer) > 4096:
+            self.buffer = self.buffer[-4096:]
+        return parse_fresh_feedback("".join(lines), joint=self.joint)
+
+
 def unwrap_positions(raw_positions: list[float], *, period_rad: float) -> list[float]:
     if not raw_positions:
         return []
@@ -156,6 +173,7 @@ class SerialFeedbackCollector:
         self.last_rearm_monotonic = 0.0
         self.rows: list[dict[str, float | int | str]] = []
         self.started_monotonic = time.monotonic()
+        self.feedback_parser = FeedbackStreamParser(joint=joint)
 
         time.sleep(0.3)
         self.port.read_all()
@@ -179,7 +197,7 @@ class SerialFeedbackCollector:
         time.sleep(self.poll_interval_sec)
         text = self.port.read_all().decode("utf-8", errors="replace")
         accepted = 0
-        for sample in parse_fresh_feedback(text, joint=self.joint):
+        for sample in self.feedback_parser.feed(text):
             if sample.tick == self.last_tick:
                 continue
             self.last_tick = sample.tick
