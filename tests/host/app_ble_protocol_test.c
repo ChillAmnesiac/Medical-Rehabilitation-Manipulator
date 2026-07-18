@@ -126,10 +126,37 @@ static void test_mode_bounds(void)
 
 static void test_training_is_fixed_profile(void)
 {
+    app_ble_request_t request;
+
+    request = parse_ok(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\","
+        "\"request_id\":201,\"profile\":\"fixed_elbow_flex_extend_v1\","
+        "\"joint_mask\":16,\"ttl_ms\":1000}");
+    assert(request.training == APP_BLE_TRAINING_FIXED_ELBOW_FLEX_EXTEND);
+    assert(request.joint_mask == APP_BLE_PROTOCOL_FIXED_ELBOW_MASK);
+
+    request = parse_ok(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\","
+        "\"request_id\":202,\"profile\":\"fixed_shoulder_planar_v1\","
+        "\"joint_mask\":32,\"ttl_ms\":1000}");
+    assert(request.training == APP_BLE_TRAINING_FIXED_SHOULDER_PLANAR);
+    assert(request.joint_mask == APP_BLE_PROTOCOL_FIXED_SHOULDER_PLANAR_MASK);
+
+    request = parse_ok(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\","
+        "\"request_id\":203,\"profile\":\"fixed_coordinated_elbow_shoulder_v1\","
+        "\"joint_mask\":48,\"ttl_ms\":1000}");
+    assert(request.training == APP_BLE_TRAINING_FIXED_COORDINATED);
+    assert(request.joint_mask == APP_BLE_PROTOCOL_FIXED_COORDINATED_MASK);
+
     reject_text(
         "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\"," 
         "\"request_id\":1,\"profile\":\"single_joint_curl_j6_v1\"," 
         "\"joint_mask\":16,\"ttl_ms\":1000}");
+    reject_text(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\","
+        "\"request_id\":1,\"profile\":\"fixed_shoulder_fore_aft_v1\","
+        "\"joint_mask\":8,\"ttl_ms\":1000}");
     reject_text(
         "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\"," 
         "\"request_id\":1,\"profile\":\"single_joint_curl_j5_v1\"," 
@@ -138,6 +165,18 @@ static void test_training_is_fixed_profile(void)
         "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\"," 
         "\"request_id\":1,\"profile\":\"single_joint_curl_j5_v1\"," 
         "\"joint_mask\":16,\"ttl_ms\":1000,\"top_mrad\":6238}");
+    reject_text(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\","
+        "\"request_id\":1,\"profile\":\"fixed_elbow_flex_extend_v1\","
+        "\"joint_mask\":16,\"ttl_ms\":1000,\"velocity\":0.12}");
+    reject_text(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\","
+        "\"request_id\":1,\"profile\":\"fixed_elbow_flex_extend_v1\","
+        "\"joint_mask\":16,\"ttl_ms\":1000,\"current\":1.0}");
+    reject_text(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\","
+        "\"request_id\":1,\"profile\":\"fixed_elbow_flex_extend_v1\","
+        "\"joint_mask\":16,\"ttl_ms\":1000,\"points\":[1,2]}");
 }
 
 static void test_strict_numbers(void)

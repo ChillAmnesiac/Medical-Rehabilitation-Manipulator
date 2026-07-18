@@ -89,6 +89,10 @@ static rehab_demo_mode_t rehab_mode_adapter_to_service_mode(rehab_mode_t mode,
     {
         return REHAB_DEMO_MODE_CURL;
     }
+    if ((mode == REHAB_MODE_FIXED_ACTION) && (submode == REHAB_MODE_SUBMODE_IDLE))
+    {
+        return REHAB_DEMO_MODE_FIXED_ACTION;
+    }
     if ((mode == REHAB_MODE_MEMORY) && (submode == REHAB_MODE_SUBMODE_RECORD))
     {
         return REHAB_DEMO_MODE_MEMORY_RECORD;
@@ -119,6 +123,8 @@ static rehab_mode_t rehab_mode_adapter_from_service_mode(rehab_demo_mode_t mode,
         return REHAB_MODE_RESIST;
     case REHAB_DEMO_MODE_CURL:
         return REHAB_MODE_CURL;
+    case REHAB_DEMO_MODE_FIXED_ACTION:
+        return REHAB_MODE_FIXED_ACTION;
     case REHAB_DEMO_MODE_MEMORY_RECORD:
         *submode = REHAB_MODE_SUBMODE_RECORD;
         return REHAB_MODE_MEMORY;
@@ -288,11 +294,15 @@ rt_err_t rehab_mode_manager_apply_app_command(const rehab_app_mode_command_t *cm
 {
     rehab_demo_mode_t service_mode;
     rehab_service_status_t service_status;
+    const rehab_fixed_action_profile_t *fixed_profile;
     rt_tick_t now;
     rt_err_t ret;
     rt_err_t rollback_ret;
     rt_bool_t lease_started;
 
+    fixed_profile = (cmd != RT_NULL)
+        ? rehab_fixed_action_profile(cmd->fixed_action)
+        : RT_NULL;
     if ((cmd == RT_NULL) || (cmd->request_id == 0U) ||
         (cmd->session_generation == 0U) ||
         (cmd->ttl_ms < REHAB_APP_MODE_MIN_TTL_MS) ||
@@ -300,10 +310,17 @@ rt_err_t rehab_mode_manager_apply_app_command(const rehab_app_mode_command_t *cm
         ((cmd->mode != REHAB_MODE_ACTIVE) &&
          (cmd->mode != REHAB_MODE_ASSIST) &&
          (cmd->mode != REHAB_MODE_RESIST) &&
-         (cmd->mode != REHAB_MODE_CURL)) ||
+         (cmd->mode != REHAB_MODE_CURL) &&
+         (cmd->mode != REHAB_MODE_FIXED_ACTION)) ||
         (((cmd->mode == REHAB_MODE_CURL) &&
-          (cmd->joint_mask != CONTROL_REHAB_CURL_JOINT_MASK)) ||
-         ((cmd->mode != REHAB_MODE_CURL) &&
+          ((cmd->joint_mask != CONTROL_REHAB_CURL_JOINT_MASK) ||
+           (cmd->fixed_action != REHAB_FIXED_ACTION_NONE))) ||
+         ((cmd->mode == REHAB_MODE_FIXED_ACTION) &&
+          ((fixed_profile == RT_NULL) ||
+           !fixed_profile->enabled ||
+           (cmd->joint_mask != fixed_profile->joint_mask))) ||
+         (((cmd->mode != REHAB_MODE_CURL) &&
+           (cmd->mode != REHAB_MODE_FIXED_ACTION)) &&
           (cmd->joint_mask != CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK))))
     {
         return -RT_EINVAL;
@@ -340,6 +357,14 @@ rt_err_t rehab_mode_manager_apply_app_command(const rehab_app_mode_command_t *cm
     if (service_mode == REHAB_DEMO_MODE_CURL)
     {
         ret = rehab_service_curl_start_if_unchanged(
+            REHAB_CMD_SOURCE_APP_BLE,
+            service_status.source,
+            service_status.mode_generation);
+    }
+    else if (service_mode == REHAB_DEMO_MODE_FIXED_ACTION)
+    {
+        ret = rehab_service_fixed_action_start_if_unchanged(
+            cmd->fixed_action,
             REHAB_CMD_SOURCE_APP_BLE,
             service_status.source,
             service_status.mode_generation);

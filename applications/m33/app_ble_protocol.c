@@ -309,7 +309,43 @@ static int parse_training(const uint8_t *frame, const jsmntok_t *token,
         *out_training = APP_BLE_TRAINING_CURL_J5;
         return 1;
     }
+    if (token_equals(frame, token, "fixed_elbow_flex_extend_v1"))
+    {
+        *out_training = APP_BLE_TRAINING_FIXED_ELBOW_FLEX_EXTEND;
+        return 1;
+    }
+    if (token_equals(frame, token, "fixed_shoulder_planar_v1"))
+    {
+        *out_training = APP_BLE_TRAINING_FIXED_SHOULDER_PLANAR;
+        return 1;
+    }
+    if (token_equals(frame, token, "fixed_coordinated_elbow_shoulder_v1"))
+    {
+        *out_training = APP_BLE_TRAINING_FIXED_COORDINATED;
+        return 1;
+    }
+    if (token_equals(frame, token, "fixed_shoulder_fore_aft_v1"))
+    {
+        *out_training = APP_BLE_TRAINING_FIXED_SHOULDER_FORE_AFT;
+        return 1;
+    }
     return 0;
+}
+
+static uint8_t training_joint_mask(app_ble_training_t training)
+{
+    switch (training)
+    {
+    case APP_BLE_TRAINING_CURL_J5:
+    case APP_BLE_TRAINING_FIXED_ELBOW_FLEX_EXTEND:
+        return APP_BLE_PROTOCOL_FIXED_ELBOW_MASK;
+    case APP_BLE_TRAINING_FIXED_SHOULDER_PLANAR:
+        return APP_BLE_PROTOCOL_FIXED_SHOULDER_PLANAR_MASK;
+    case APP_BLE_TRAINING_FIXED_COORDINATED:
+        return APP_BLE_PROTOCOL_FIXED_COORDINATED_MASK;
+    default:
+        return 0u;
+    }
 }
 
 static int parse_mode(const uint8_t *frame, const jsmntok_t *token,
@@ -408,7 +444,9 @@ app_ble_protocol_result_t app_ble_protocol_parse(const uint8_t *frame,
         case FIELD_JOINT_MASK:
             if (!parse_u32(frame, value, &number) ||
                 ((number != APP_BLE_PROTOCOL_REHAB_MASK) &&
-                 (number != APP_BLE_PROTOCOL_CURL_J5_MASK)))
+                 (number != APP_BLE_PROTOCOL_FIXED_ELBOW_MASK) &&
+                 (number != APP_BLE_PROTOCOL_FIXED_SHOULDER_PLANAR_MASK) &&
+                 (number != APP_BLE_PROTOCOL_FIXED_COORDINATED_MASK)))
             {
                 return APP_BLE_PROTOCOL_INVALID;
             }
@@ -444,10 +482,12 @@ app_ble_protocol_result_t app_ble_protocol_parse(const uint8_t *frame,
     }
     else if (request.type == APP_BLE_REQUEST_TRAINING)
     {
+        uint8_t expected_mask = training_joint_mask(request.training);
+
         if (fields != (FIELD_SCHEMA | FIELD_TYPE | FIELD_REQUEST_ID |
                        FIELD_PROFILE | FIELD_JOINT_MASK | FIELD_TTL_MS) ||
-            (request.training != APP_BLE_TRAINING_CURL_J5) ||
-            (request.joint_mask != APP_BLE_PROTOCOL_CURL_J5_MASK))
+            (expected_mask == 0u) ||
+            (request.joint_mask != expected_mask))
         {
             return APP_BLE_PROTOCOL_INVALID;
         }

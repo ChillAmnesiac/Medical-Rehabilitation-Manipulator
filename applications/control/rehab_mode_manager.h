@@ -17,6 +17,7 @@ typedef enum
     REHAB_MODE_ASSIST = 3,
     REHAB_MODE_RESIST = 4,
     REHAB_MODE_CURL = 5,
+    REHAB_MODE_FIXED_ACTION = 6,
 } rehab_mode_t;
 
 typedef enum
@@ -53,6 +54,7 @@ typedef struct
 {
     rehab_mode_t mode;
     rt_uint8_t joint_mask;
+    rehab_fixed_action_id_t fixed_action;
     rt_uint32_t request_id;
     rt_uint32_t session_generation;
     rt_uint32_t ttl_ms;

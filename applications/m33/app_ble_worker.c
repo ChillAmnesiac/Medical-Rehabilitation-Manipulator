@@ -682,7 +682,29 @@ static void app_ble_worker_handle_frame(const uint8_t *frame,
         rt_memset(&command, 0, sizeof(command));
         if (request.type == APP_BLE_REQUEST_TRAINING)
         {
-            command.mode = REHAB_MODE_CURL;
+            switch (request.training)
+            {
+            case APP_BLE_TRAINING_CURL_J5:
+                command.mode = REHAB_MODE_CURL;
+                command.fixed_action = REHAB_FIXED_ACTION_NONE;
+                break;
+            case APP_BLE_TRAINING_FIXED_ELBOW_FLEX_EXTEND:
+                command.mode = REHAB_MODE_FIXED_ACTION;
+                command.fixed_action = REHAB_FIXED_ACTION_ELBOW_FLEX_EXTEND;
+                break;
+            case APP_BLE_TRAINING_FIXED_SHOULDER_PLANAR:
+                command.mode = REHAB_MODE_FIXED_ACTION;
+                command.fixed_action = REHAB_FIXED_ACTION_SHOULDER_PLANAR;
+                break;
+            case APP_BLE_TRAINING_FIXED_COORDINATED:
+                command.mode = REHAB_MODE_FIXED_ACTION;
+                command.fixed_action = REHAB_FIXED_ACTION_COORDINATED;
+                break;
+            default:
+                command.mode = REHAB_MODE_PASSIVE;
+                command.fixed_action = REHAB_FIXED_ACTION_NONE;
+                break;
+            }
         }
         else if (request.mode == APP_BLE_MODE_ACTIVE)
         {
