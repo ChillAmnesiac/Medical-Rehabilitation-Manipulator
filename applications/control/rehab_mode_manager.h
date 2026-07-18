@@ -16,6 +16,7 @@ typedef enum
     REHAB_MODE_MEMORY = 2,
     REHAB_MODE_ASSIST = 3,
     REHAB_MODE_RESIST = 4,
+    REHAB_MODE_CURL = 5,
 } rehab_mode_t;
 
 typedef enum

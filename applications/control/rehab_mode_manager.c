@@ -85,6 +85,10 @@ static rehab_demo_mode_t rehab_mode_adapter_to_service_mode(rehab_mode_t mode,
     {
         return REHAB_DEMO_MODE_RESIST;
     }
+    if ((mode == REHAB_MODE_CURL) && (submode == REHAB_MODE_SUBMODE_IDLE))
+    {
+        return REHAB_DEMO_MODE_CURL;
+    }
     if ((mode == REHAB_MODE_MEMORY) && (submode == REHAB_MODE_SUBMODE_RECORD))
     {
         return REHAB_DEMO_MODE_MEMORY_RECORD;
@@ -113,6 +117,8 @@ static rehab_mode_t rehab_mode_adapter_from_service_mode(rehab_demo_mode_t mode,
         return REHAB_MODE_ASSIST;
     case REHAB_DEMO_MODE_RESIST:
         return REHAB_MODE_RESIST;
+    case REHAB_DEMO_MODE_CURL:
+        return REHAB_MODE_CURL;
     case REHAB_DEMO_MODE_MEMORY_RECORD:
         *submode = REHAB_MODE_SUBMODE_RECORD;
         return REHAB_MODE_MEMORY;
@@ -289,12 +295,16 @@ rt_err_t rehab_mode_manager_apply_app_command(const rehab_app_mode_command_t *cm
 
     if ((cmd == RT_NULL) || (cmd->request_id == 0U) ||
         (cmd->session_generation == 0U) ||
-        (cmd->joint_mask != CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK) ||
         (cmd->ttl_ms < REHAB_APP_MODE_MIN_TTL_MS) ||
         (cmd->ttl_ms > REHAB_APP_MODE_MAX_TTL_MS) ||
         ((cmd->mode != REHAB_MODE_ACTIVE) &&
          (cmd->mode != REHAB_MODE_ASSIST) &&
-         (cmd->mode != REHAB_MODE_RESIST)))
+         (cmd->mode != REHAB_MODE_RESIST) &&
+         (cmd->mode != REHAB_MODE_CURL)) ||
+        (((cmd->mode == REHAB_MODE_CURL) &&
+          (cmd->joint_mask != CONTROL_REHAB_CURL_JOINT_MASK)) ||
+         ((cmd->mode != REHAB_MODE_CURL) &&
+          (cmd->joint_mask != CONTROL_REHAB_ASSIST_DEFAULT_JOINT_MASK))))
     {
         return -RT_EINVAL;
     }
@@ -327,12 +337,22 @@ rt_err_t rehab_mode_manager_apply_app_command(const rehab_app_mode_command_t *cm
 
     service_mode = rehab_mode_adapter_to_service_mode(cmd->mode,
                                                       REHAB_MODE_SUBMODE_IDLE);
-    ret = rehab_service_set_mode_mask_if_unchanged(
-        service_mode,
-        cmd->joint_mask,
-        REHAB_CMD_SOURCE_APP_BLE,
-        service_status.source,
-        service_status.mode_generation);
+    if (service_mode == REHAB_DEMO_MODE_CURL)
+    {
+        ret = rehab_service_curl_start_if_unchanged(
+            REHAB_CMD_SOURCE_APP_BLE,
+            service_status.source,
+            service_status.mode_generation);
+    }
+    else
+    {
+        ret = rehab_service_set_mode_mask_if_unchanged(
+            service_mode,
+            cmd->joint_mask,
+            REHAB_CMD_SOURCE_APP_BLE,
+            service_status.source,
+            service_status.mode_generation);
+    }
     if (ret == RT_EOK)
     {
         rehab_service_get_status(&service_status);
