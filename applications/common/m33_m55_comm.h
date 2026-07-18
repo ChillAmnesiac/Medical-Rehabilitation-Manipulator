@@ -27,7 +27,8 @@ typedef enum
     MSG_TYPE_VOICE_CONFIG,
     MSG_TYPE_VOICE_LATENCY,
     MSG_TYPE_REHAB_MODE_REQUEST = 17,
-    MSG_TYPE_REHAB_MODE_RESULT = 18
+    MSG_TYPE_REHAB_MODE_RESULT = 18,
+    MSG_TYPE_APP_BLE_STATUS = 19
 } m33_m55_msg_type_t;
 
 typedef enum
@@ -290,6 +291,15 @@ typedef struct
     rt_uint32_t wake_to_first_write_ms;
 } voice_latency_msg_t;
 
+#define APP_BLE_STATUS_PROTOCOL_VERSION (1UL)
+
+typedef struct
+{
+    rt_uint32_t version;
+    rt_uint32_t connected;
+    rt_uint32_t link_seq;
+} app_ble_status_msg_t;
+
 #define REHAB_MODE_PROTOCOL_VERSION       (2UL)
 #define REHAB_MODE_SOURCE_VOICE           (1UL)
 #define REHAB_MODE_ACTION_SET_MODE        (0UL)
@@ -352,6 +362,7 @@ typedef struct
         voice_status_msg_t voice_status;
         voice_config_msg_t voice_config;
         voice_latency_msg_t voice_latency;
+        app_ble_status_msg_t app_ble_status;
         rehab_mode_request_msg_t rehab_mode_request;
         rehab_mode_result_msg_t rehab_mode_result;
     } payload;
