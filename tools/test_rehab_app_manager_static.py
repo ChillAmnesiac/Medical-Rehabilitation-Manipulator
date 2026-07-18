@@ -28,6 +28,8 @@ class RehabAppManagerStaticTest(unittest.TestCase):
             self.assertIn(field, command)
         self.assertIn("rehab_mode_manager_apply_app_command", MANAGER_H)
         self.assertIn("rehab_mode_manager_note_app_heartbeat", MANAGER_H)
+        self.assertIn("rehab_mode_manager_note_app_disconnect", MANAGER_H)
+        self.assertIn("rehab_mode_manager_stop_app", MANAGER_H)
 
     def test_app_mode_uses_independent_lease_and_generation_guard(self):
         self.assertIn('#include "rehab_app_lease.h"', MANAGER_C)
@@ -84,6 +86,51 @@ class RehabAppManagerStaticTest(unittest.TestCase):
         self.assertIn("cmd->mode != REHAB_MODE_PASSIVE", apply_legacy)
         self.assertIn("return -RT_EBUSY", apply_legacy)
         self.assertIn("rehab_app_lease_revoke", apply_legacy)
+
+    def test_timeout_and_disconnect_use_generation_conditioned_stop(self):
+        tick = body(
+            MANAGER_C,
+            "void rehab_mode_manager_tick",
+            "rt_bool_t rehab_mode_manager_accepts_ros_target",
+        )
+        disconnect = body(
+            MANAGER_C,
+            "rt_err_t rehab_mode_manager_note_app_disconnect",
+            "rt_err_t rehab_mode_manager_stop_app",
+        )
+        self.assertIn("rehab_app_lease_claim_timeout_stop", tick)
+        self.assertIn("rehab_service_stop_if_owned", tick)
+        self.assertIn("rehab_app_lease_note_stop_result", tick)
+        self.assertIn("explicit_stop_latched", tick)
+        self.assertIn("rehab_service_stop(REHAB_CMD_SOURCE_APP_BLE)", tick)
+        self.assertLess(
+            tick.index("explicit_stop_latched"),
+            tick.index("rehab_app_lease_claim_timeout_stop"),
+        )
+        self.assertIn("rehab_app_lease_claim_disconnect_stop", disconnect)
+        self.assertIn("rehab_service_stop_if_owned", disconnect)
+        self.assertIn("rehab_app_lease_note_stop_result", disconnect)
+        self.assertIn("s_rehab_adapter.command_lock", disconnect)
+
+    def test_explicit_app_stop_allows_stop_but_rejects_old_session_owner(self):
+        stop = body(
+            MANAGER_C,
+            "rt_err_t rehab_mode_manager_stop_app",
+            "void rehab_mode_manager_record_reject",
+        )
+        self.assertIn("s_rehab_adapter.app_lease.active", stop)
+        self.assertIn("s_rehab_adapter.app_lease.session_generation != session_generation", stop)
+        self.assertIn("rehab_service_stop(REHAB_CMD_SOURCE_APP_BLE)", stop)
+        self.assertIn("rehab_app_lease_revoke", stop)
+        self.assertLess(
+            stop.index("if (s_rehab_adapter.explicit_stop_latched)"),
+            stop.index("s_rehab_adapter.explicit_stop_latched = RT_TRUE"),
+        )
+        self.assertLess(
+            stop.index("s_rehab_adapter.explicit_stop_latched = RT_TRUE"),
+            stop.index("rehab_service_stop(REHAB_CMD_SOURCE_APP_BLE)"),
+        )
+        self.assertIn("s_rehab_adapter.explicit_stop_retry_count++", stop)
 
 
 if __name__ == "__main__":

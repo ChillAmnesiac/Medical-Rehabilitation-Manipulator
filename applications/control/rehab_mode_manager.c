@@ -10,9 +10,13 @@ typedef struct
     struct rt_mutex lock;
     rehab_app_lease_t app_lease;
     rehab_can_lease_t lease;
+    rt_tick_t explicit_stop_last_attempt_tick;
+    rt_uint32_t explicit_stop_retry_count;
     rt_uint8_t last_sequence;
     rt_uint8_t last_reject_sequence;
     rt_uint8_t last_reject_detail;
+    rt_bool_t explicit_stop_latched;
+    rt_bool_t explicit_stop_has_attempt;
     rt_bool_t initialized;
 } rehab_mode_adapter_runtime_t;
 
@@ -417,6 +421,124 @@ rt_err_t rehab_mode_manager_note_app_heartbeat(rt_uint32_t session_generation)
     return accepted ? RT_EOK : -RT_EBUSY;
 }
 
+rt_err_t rehab_mode_manager_note_app_disconnect(rt_uint32_t session_generation)
+{
+    rt_uint32_t expected_generation;
+    rt_uint32_t claimed_session_generation;
+    rt_uint8_t expected_source_value;
+    rehab_cmd_source_t expected_source;
+    rt_err_t ret;
+    rt_bool_t should_stop;
+
+    if (session_generation == 0U)
+    {
+        return -RT_EINVAL;
+    }
+    ret = rehab_mode_manager_init();
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    rt_mutex_take(&s_rehab_adapter.command_lock, RT_WAITING_FOREVER);
+    rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
+    if (s_rehab_adapter.explicit_stop_latched)
+    {
+        rt_mutex_release(&s_rehab_adapter.lock);
+        rt_mutex_release(&s_rehab_adapter.command_lock);
+        return -RT_EBUSY;
+    }
+    should_stop = rehab_app_lease_claim_disconnect_stop(
+        &s_rehab_adapter.app_lease,
+        session_generation,
+        rt_tick_get(),
+        rt_tick_from_millisecond(REHAB_MODE_STOP_RETRY_MS),
+        &expected_source_value,
+        &expected_generation,
+        &claimed_session_generation);
+    rt_mutex_release(&s_rehab_adapter.lock);
+
+    if (!should_stop)
+    {
+        rt_mutex_release(&s_rehab_adapter.command_lock);
+        return -RT_EBUSY;
+    }
+
+    expected_source = (rehab_cmd_source_t)expected_source_value;
+    ret = rehab_service_stop_if_owned(expected_source,
+                                      expected_generation,
+                                      CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT);
+    rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
+    rehab_app_lease_note_stop_result(&s_rehab_adapter.app_lease,
+                                     (ret == RT_EOK) ? RT_TRUE : RT_FALSE,
+                                     (ret == -RT_EBUSY) ? RT_TRUE : RT_FALSE);
+    if ((ret != RT_EOK) && (ret != -RT_EBUSY))
+    {
+        s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_MOTOR_FAULT;
+    }
+    rt_mutex_release(&s_rehab_adapter.lock);
+    rt_mutex_release(&s_rehab_adapter.command_lock);
+    (void)claimed_session_generation;
+    return ret;
+}
+
+rt_err_t rehab_mode_manager_stop_app(rt_uint32_t session_generation)
+{
+    rt_err_t ret;
+
+    if (session_generation == 0U)
+    {
+        return -RT_EINVAL;
+    }
+    ret = rehab_mode_manager_init();
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    rt_mutex_take(&s_rehab_adapter.command_lock, RT_WAITING_FOREVER);
+    rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
+    if (s_rehab_adapter.explicit_stop_latched)
+    {
+        rt_mutex_release(&s_rehab_adapter.lock);
+        rt_mutex_release(&s_rehab_adapter.command_lock);
+        return -RT_EBUSY;
+    }
+    if (s_rehab_adapter.app_lease.active &&
+        (s_rehab_adapter.app_lease.session_generation != session_generation))
+    {
+        rt_mutex_release(&s_rehab_adapter.lock);
+        rt_mutex_release(&s_rehab_adapter.command_lock);
+        return -RT_EBUSY;
+    }
+    s_rehab_adapter.explicit_stop_latched = RT_TRUE;
+    s_rehab_adapter.explicit_stop_has_attempt = RT_TRUE;
+    s_rehab_adapter.explicit_stop_last_attempt_tick = rt_tick_get();
+    rt_mutex_release(&s_rehab_adapter.lock);
+
+    ret = rehab_service_stop(REHAB_CMD_SOURCE_APP_BLE);
+    rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
+    if (ret == RT_EOK)
+    {
+        s_rehab_adapter.explicit_stop_latched = RT_FALSE;
+        s_rehab_adapter.explicit_stop_has_attempt = RT_FALSE;
+        rehab_app_lease_revoke(&s_rehab_adapter.app_lease);
+        rehab_can_lease_note_mode(&s_rehab_adapter.lease,
+                                  RT_FALSE,
+                                  (rt_uint8_t)REHAB_CMD_SOURCE_APP_BLE,
+                                  0U);
+        s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_NONE;
+    }
+    else
+    {
+        s_rehab_adapter.explicit_stop_retry_count++;
+        s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_MOTOR_FAULT;
+    }
+    rt_mutex_release(&s_rehab_adapter.lock);
+    rt_mutex_release(&s_rehab_adapter.command_lock);
+    return ret;
+}
+
 void rehab_mode_manager_record_reject(rt_uint8_t sequence, rt_uint8_t detail)
 {
     if (rehab_mode_manager_init() != RT_EOK)
@@ -441,10 +563,14 @@ void rehab_mode_manager_note_heartbeat(void)
 void rehab_mode_manager_tick(void)
 {
     rt_uint32_t expected_generation;
+    rt_uint32_t expected_session_generation = 0U;
     rt_uint8_t expected_source_value;
     rehab_cmd_source_t expected_source;
     rt_err_t ret;
-    rt_bool_t should_stop;
+    rt_tick_t now;
+    rt_bool_t should_stop_explicit;
+    rt_bool_t should_stop_legacy;
+    rt_bool_t should_stop_app;
 
     if (rehab_mode_manager_init() != RT_EOK)
     {
@@ -453,34 +579,97 @@ void rehab_mode_manager_tick(void)
 
     rt_mutex_take(&s_rehab_adapter.command_lock, RT_WAITING_FOREVER);
     rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
-    should_stop = rehab_can_lease_claim_stop(
-        &s_rehab_adapter.lease,
-        rt_tick_get(),
-        rt_tick_from_millisecond(CONTROL_ROS_HEARTBEAT_TIMEOUT_MS),
-        rt_tick_from_millisecond(REHAB_MODE_STOP_RETRY_MS),
-        &expected_source_value,
-        &expected_generation);
+    now = rt_tick_get();
+    should_stop_explicit = s_rehab_adapter.explicit_stop_latched &&
+                           (!s_rehab_adapter.explicit_stop_has_attempt ||
+                            ((now - s_rehab_adapter.explicit_stop_last_attempt_tick) >=
+                             rt_tick_from_millisecond(REHAB_MODE_STOP_RETRY_MS)));
+    if (should_stop_explicit)
+    {
+        s_rehab_adapter.explicit_stop_last_attempt_tick = now;
+        s_rehab_adapter.explicit_stop_has_attempt = RT_TRUE;
+    }
+    should_stop_legacy = RT_FALSE;
+    should_stop_app = RT_FALSE;
+    if (!s_rehab_adapter.explicit_stop_latched)
+    {
+        should_stop_legacy = rehab_can_lease_claim_stop(
+            &s_rehab_adapter.lease,
+            now,
+            rt_tick_from_millisecond(CONTROL_ROS_HEARTBEAT_TIMEOUT_MS),
+            rt_tick_from_millisecond(REHAB_MODE_STOP_RETRY_MS),
+            &expected_source_value,
+            &expected_generation);
+        if (!should_stop_legacy)
+        {
+            should_stop_app = rehab_app_lease_claim_timeout_stop(
+                &s_rehab_adapter.app_lease,
+                now,
+                rt_tick_from_millisecond(REHAB_MODE_STOP_RETRY_MS),
+                &expected_source_value,
+                &expected_generation,
+                &expected_session_generation);
+        }
+    }
     rt_mutex_release(&s_rehab_adapter.lock);
 
-    if (!should_stop)
+    if (!should_stop_explicit && !should_stop_legacy && !should_stop_app)
     {
         rt_mutex_release(&s_rehab_adapter.command_lock);
         return;
     }
 
-    expected_source = (rehab_cmd_source_t)expected_source_value;
-    ret = rehab_service_stop_if_owned(expected_source,
-                                      expected_generation,
-                                      CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT);
+    if (should_stop_explicit)
+    {
+        ret = rehab_service_stop(REHAB_CMD_SOURCE_APP_BLE);
+    }
+    else
+    {
+        expected_source = (rehab_cmd_source_t)expected_source_value;
+        ret = rehab_service_stop_if_owned(expected_source,
+                                          expected_generation,
+                                          CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT);
+    }
 
     rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
-    rehab_can_lease_note_stop_result(&s_rehab_adapter.lease,
-                                     (ret == RT_EOK) ? RT_TRUE : RT_FALSE,
-                                     (ret == -RT_EBUSY) ? RT_TRUE : RT_FALSE);
+    if (should_stop_explicit)
+    {
+        if (ret == RT_EOK)
+        {
+            s_rehab_adapter.explicit_stop_latched = RT_FALSE;
+            s_rehab_adapter.explicit_stop_has_attempt = RT_FALSE;
+            rehab_app_lease_revoke(&s_rehab_adapter.app_lease);
+            rehab_can_lease_note_mode(&s_rehab_adapter.lease,
+                                      RT_FALSE,
+                                      (rt_uint8_t)REHAB_CMD_SOURCE_APP_BLE,
+                                      0U);
+        }
+        else
+        {
+            s_rehab_adapter.explicit_stop_retry_count++;
+        }
+    }
+    else if (should_stop_legacy)
+    {
+        rehab_can_lease_note_stop_result(&s_rehab_adapter.lease,
+                                         (ret == RT_EOK) ? RT_TRUE : RT_FALSE,
+                                         (ret == -RT_EBUSY) ? RT_TRUE : RT_FALSE);
+    }
+    else
+    {
+        rehab_app_lease_note_stop_result(&s_rehab_adapter.app_lease,
+                                         (ret == RT_EOK) ? RT_TRUE : RT_FALSE,
+                                         (ret == -RT_EBUSY) ? RT_TRUE : RT_FALSE);
+    }
     if (ret == RT_EOK)
     {
-        s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT;
-        s_rehab_adapter.last_reject_sequence = s_rehab_adapter.last_sequence;
+        s_rehab_adapter.last_reject_detail = should_stop_explicit
+                                                 ? CONTROL_STATUS_DETAIL_NONE
+                                                 : CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT;
+        if (!should_stop_explicit)
+        {
+            s_rehab_adapter.last_reject_sequence = s_rehab_adapter.last_sequence;
+        }
     }
     else if (ret != -RT_EBUSY)
     {
@@ -489,6 +678,7 @@ void rehab_mode_manager_tick(void)
     }
     rt_mutex_release(&s_rehab_adapter.lock);
     rt_mutex_release(&s_rehab_adapter.command_lock);
+    (void)expected_session_generation;
 }
 
 rt_bool_t rehab_mode_manager_accepts_ros_target(void)
