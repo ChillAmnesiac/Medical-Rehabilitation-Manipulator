@@ -57,7 +57,7 @@ static control_motor_feedback_t feedback(float torque_nm, float vel_rad_s)
     return fb;
 }
 
-static void test_low_force_velocity_fallback_is_bounded_and_resets(void)
+static void test_low_force_velocity_fallback_is_bounded_with_preload(void)
 {
     rehab_assist_strategy_state_t state;
     rehab_strategy_output_t out;
@@ -78,13 +78,13 @@ static void test_low_force_velocity_fallback_is_bounded_and_resets(void)
 
     fb.vel_rad_s = 0.005f;
     rehab_assist_strategy_step(&state, &params, &fb, 1.0f, &out);
-    require_true(out.type == REHAB_STRATEGY_OUTPUT_STOP,
-                 "velocity at the exit threshold must stop assist");
+    require_close(out.current_a, 0.09f, 0.0001f,
+                  "velocity exit must return smoothly toward gravity preload");
 
     fb.vel_rad_s = 0.02f;
     rehab_assist_strategy_step(&state, &params, &fb, 1.0f, &out);
-    require_close(out.current_a, 0.03f, 0.0001f,
-                  "a new engagement must restart the slew from zero");
+    require_close(out.current_a, 0.12f, 0.0001f,
+                  "motion assist must continue from preload without a current jump");
 }
 
 static void test_stationary_assist_ramps_positive_preload(void)
@@ -107,7 +107,7 @@ static void test_stationary_assist_ramps_positive_preload(void)
 
 int main(void)
 {
-    test_low_force_velocity_fallback_is_bounded_and_resets();
+    test_low_force_velocity_fallback_is_bounded_with_preload();
     test_stationary_assist_ramps_positive_preload();
     printf("rehab_assist_low_force_test PASS\n");
     return 0;
