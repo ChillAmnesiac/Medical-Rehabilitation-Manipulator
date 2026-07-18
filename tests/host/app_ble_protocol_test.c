@@ -46,6 +46,16 @@ static void test_valid_requests(void)
     assert(request.request_id == 103u);
 
     request = parse_ok(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\"," 
+        "\"request_id\":104,\"profile\":\"single_joint_curl_j5_v1\"," 
+        "\"joint_mask\":16,\"ttl_ms\":1000}");
+    assert(request.type == APP_BLE_REQUEST_TRAINING);
+    assert(request.training == APP_BLE_TRAINING_CURL_J5);
+    assert(request.request_id == 104u);
+    assert(request.joint_mask == APP_BLE_PROTOCOL_CURL_J5_MASK);
+    assert(request.ttl_ms == 1000u);
+
+    request = parse_ok(
         "{\"schema\":\"rehab_ble_v1\",\"type\":\"mode_request\","
         "\"request_id\":102,\"mode\":\"assist\",\"joint_mask\":56,"
         "\"ttl_ms\":1000}");
@@ -114,6 +124,22 @@ static void test_mode_bounds(void)
         "\"ttl_ms\":2001}");
 }
 
+static void test_training_is_fixed_profile(void)
+{
+    reject_text(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\"," 
+        "\"request_id\":1,\"profile\":\"single_joint_curl_j6_v1\"," 
+        "\"joint_mask\":16,\"ttl_ms\":1000}");
+    reject_text(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\"," 
+        "\"request_id\":1,\"profile\":\"single_joint_curl_j5_v1\"," 
+        "\"joint_mask\":56,\"ttl_ms\":1000}");
+    reject_text(
+        "{\"schema\":\"rehab_ble_v1\",\"type\":\"training_request\"," 
+        "\"request_id\":1,\"profile\":\"single_joint_curl_j5_v1\"," 
+        "\"joint_mask\":16,\"ttl_ms\":1000,\"top_mrad\":6238}");
+}
+
 static void test_strict_numbers(void)
 {
     reject_text("{\"schema\":\"rehab_ble_v1\",\"type\":\"heartbeat\",\"request_id\":0}");
@@ -178,6 +204,7 @@ int main(void)
     test_valid_requests();
     test_strict_schema();
     test_mode_bounds();
+    test_training_is_fixed_profile();
     test_strict_numbers();
     test_json_and_utf8_boundaries();
     test_invalid_arguments();

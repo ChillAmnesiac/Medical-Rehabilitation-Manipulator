@@ -14,6 +14,7 @@
 #define FIELD_MODE (1u << 3)
 #define FIELD_JOINT_MASK (1u << 4)
 #define FIELD_TTL_MS (1u << 5)
+#define FIELD_PROFILE (1u << 6)
 
 static int is_json_space(uint8_t byte)
 {
@@ -267,6 +268,10 @@ static uint32_t field_bit(const uint8_t *frame, const jsmntok_t *key)
     {
         return FIELD_TTL_MS;
     }
+    if (token_equals(frame, key, "profile"))
+    {
+        return FIELD_PROFILE;
+    }
     return 0u;
 }
 
@@ -283,9 +288,25 @@ static int parse_type(const uint8_t *frame, const jsmntok_t *token,
         *out_type = APP_BLE_REQUEST_MODE;
         return 1;
     }
+    if (token_equals(frame, token, "training_request"))
+    {
+        *out_type = APP_BLE_REQUEST_TRAINING;
+        return 1;
+    }
     if (token_equals(frame, token, "stop_request"))
     {
         *out_type = APP_BLE_REQUEST_STOP;
+        return 1;
+    }
+    return 0;
+}
+
+static int parse_training(const uint8_t *frame, const jsmntok_t *token,
+                          app_ble_training_t *out_training)
+{
+    if (token_equals(frame, token, "single_joint_curl_j5_v1"))
+    {
+        *out_training = APP_BLE_TRAINING_CURL_J5;
         return 1;
     }
     return 0;
@@ -386,7 +407,8 @@ app_ble_protocol_result_t app_ble_protocol_parse(const uint8_t *frame,
             break;
         case FIELD_JOINT_MASK:
             if (!parse_u32(frame, value, &number) ||
-                (number != APP_BLE_PROTOCOL_REHAB_MASK))
+                ((number != APP_BLE_PROTOCOL_REHAB_MASK) &&
+                 (number != APP_BLE_PROTOCOL_CURL_J5_MASK)))
             {
                 return APP_BLE_PROTOCOL_INVALID;
             }
@@ -400,6 +422,12 @@ app_ble_protocol_result_t app_ble_protocol_parse(const uint8_t *frame,
                 return APP_BLE_PROTOCOL_INVALID;
             }
             break;
+        case FIELD_PROFILE:
+            if (!parse_training(frame, value, &request.training))
+            {
+                return APP_BLE_PROTOCOL_INVALID;
+            }
+            break;
         default:
             return APP_BLE_PROTOCOL_INVALID;
         }
@@ -408,7 +436,18 @@ app_ble_protocol_result_t app_ble_protocol_parse(const uint8_t *frame,
     if (request.type == APP_BLE_REQUEST_MODE)
     {
         if (fields != (FIELD_SCHEMA | FIELD_TYPE | FIELD_REQUEST_ID |
-                       FIELD_MODE | FIELD_JOINT_MASK | FIELD_TTL_MS))
+                       FIELD_MODE | FIELD_JOINT_MASK | FIELD_TTL_MS) ||
+            (request.joint_mask != APP_BLE_PROTOCOL_REHAB_MASK))
+        {
+            return APP_BLE_PROTOCOL_INVALID;
+        }
+    }
+    else if (request.type == APP_BLE_REQUEST_TRAINING)
+    {
+        if (fields != (FIELD_SCHEMA | FIELD_TYPE | FIELD_REQUEST_ID |
+                       FIELD_PROFILE | FIELD_JOINT_MASK | FIELD_TTL_MS) ||
+            (request.training != APP_BLE_TRAINING_CURL_J5) ||
+            (request.joint_mask != APP_BLE_PROTOCOL_CURL_J5_MASK))
         {
             return APP_BLE_PROTOCOL_INVALID;
         }
