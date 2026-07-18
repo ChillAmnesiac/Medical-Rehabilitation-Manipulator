@@ -279,6 +279,8 @@ static rt_err_t rehab_service_stop_joint_mask(rt_uint8_t joint_mask, rt_bool_t c
 
 static rt_err_t rehab_service_prepare_current_mask(rt_uint8_t active_joint_mask)
 {
+    rt_tick_t start;
+    rt_tick_t timeout;
     rt_uint8_t joint;
 
     for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
@@ -296,7 +298,48 @@ static rt_err_t rehab_service_prepare_current_mask(rt_uint8_t active_joint_mask)
             return ret;
         }
     }
-    return RT_EOK;
+
+    start = rt_tick_get();
+    timeout = rt_tick_from_millisecond(CONTROL_REHAB_FEEDBACK_PREPARE_TIMEOUT_MS);
+    do
+    {
+        rt_bool_t all_ready = RT_TRUE;
+        rt_tick_t now = rt_tick_get();
+
+        for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+        {
+            control_motor_feedback_t fb;
+            rt_err_t ret;
+
+            if (!rehab_service_joint_mask_has(active_joint_mask, joint))
+            {
+                continue;
+            }
+            ret = control_get_motor_feedback(joint, &fb);
+            if (ret == RT_EOK)
+            {
+                ret = rehab_feedback_active_check(&fb, now);
+            }
+            if (ret == -RT_ERROR)
+            {
+                (void)rehab_service_stop_joint_mask(active_joint_mask, RT_FALSE);
+                return ret;
+            }
+            if ((ret != RT_EOK) || (fb.mode_state != 2U))
+            {
+                all_ready = RT_FALSE;
+                break;
+            }
+        }
+        if (all_ready)
+        {
+            return RT_EOK;
+        }
+        rt_thread_mdelay(5U);
+    } while ((rt_tick_get() - start) < timeout);
+
+    (void)rehab_service_stop_joint_mask(active_joint_mask, RT_FALSE);
+    return -RT_ETIMEOUT;
 }
 
 static void rehab_service_default_params(rehab_strategy_params_t *out)

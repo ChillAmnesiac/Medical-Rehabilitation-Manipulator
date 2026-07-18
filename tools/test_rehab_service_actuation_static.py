@@ -72,6 +72,8 @@ class RehabServiceActuationStaticTest(unittest.TestCase):
         helper_end = SERVICE_C.index("static void rehab_service_default_params", helper_start)
         helper = SERVICE_C[helper_start:helper_end]
         self.assertIn("control_motor_current_prepare(joint)", helper)
+        self.assertIn("fb.mode_state != 2U", helper)
+        self.assertIn("CONTROL_REHAB_FEEDBACK_PREPARE_TIMEOUT_MS", helper)
         self.assertIn("rehab_service_stop_joint_mask(active_joint_mask, RT_FALSE)", helper)
 
     def test_fault_stop_is_generation_guarded_and_serialized(self):
