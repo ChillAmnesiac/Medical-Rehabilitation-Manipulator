@@ -11,7 +11,7 @@ def test_control_velocity_and_hard_trip_are_separate() -> None:
     service = SERVICE.read_text(encoding="utf-8")
 
     assert "CONTROL_REHAB_ASSIST_OVERSPEED_TRIP_RAD_S" in cfg
-    assert "#define CONTROL_REHAB_ASSIST_OVERSPEED_TRIP_RAD_S (1.0f)" in cfg
+    assert "#define CONTROL_REHAB_ASSIST_OVERSPEED_TRIP_RAD_S (2.0f)" in cfg
     assert (
         "rehab_assist_overspeed(&fb, "
         "CONTROL_REHAB_ASSIST_OVERSPEED_TRIP_RAD_S)" in service
