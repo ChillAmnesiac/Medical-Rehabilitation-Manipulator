@@ -291,8 +291,7 @@ static void voice_rehab_ipc_worker(void *parameter)
 
 static rt_bool_t voice_rehab_mode_supported(rt_uint32_t mode)
 {
-    return ((mode == REHAB_MODE_REQUEST_MODE_PASSIVE) ||
-            (mode == REHAB_MODE_REQUEST_MODE_ASSIST) ||
+    return ((mode == REHAB_MODE_REQUEST_MODE_ASSIST) ||
             (mode == REHAB_MODE_REQUEST_MODE_RESIST))
                ? RT_TRUE
                : RT_FALSE;

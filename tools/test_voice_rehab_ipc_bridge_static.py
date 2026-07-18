@@ -37,7 +37,7 @@ def test_voice_rehab_ipc_worker_keeps_ownership_and_guard_gates():
     assert "REHAB_MODE_RESULT_APPLIED" in source
 
 
-def test_voice_rehab_ipc_bridge_validates_v2_request_fields():
+def test_voice_rehab_ipc_bridge_validates_v3_request_fields():
     source = SOURCE.read_text(encoding="utf-8")
 
     for token in (
@@ -50,6 +50,17 @@ def test_voice_rehab_ipc_bridge_validates_v2_request_fields():
         "REHAB_MODE_ACTION_LEVEL_DOWN",
     ):
         assert token in source
+
+
+def test_voice_rehab_ipc_bridge_rejects_user_selectable_passive_mode():
+    source = SOURCE.read_text(encoding="utf-8")
+    start = source.index("static rt_bool_t voice_rehab_mode_supported")
+    end = source.index("static rt_bool_t voice_rehab_action_supported")
+    supported_modes = source[start:end]
+
+    assert "REHAB_MODE_REQUEST_MODE_ASSIST" in supported_modes
+    assert "REHAB_MODE_REQUEST_MODE_RESIST" in supported_modes
+    assert "REHAB_MODE_REQUEST_MODE_PASSIVE" not in supported_modes
 
 
 def test_main_ipc_pump_only_submits_rehab_requests():
