@@ -1,5 +1,7 @@
 #include "rehab_assist_safety.h"
 
+#include "control_layer_cfg.h"
+
 rt_bool_t rehab_assist_overspeed(const control_motor_feedback_t *feedback,
                                   float max_velocity_rad_s)
 {
@@ -17,4 +19,23 @@ rt_bool_t rehab_assist_overspeed(const control_motor_feedback_t *feedback,
     }
 
     return (velocity_rad_s > max_velocity_rad_s) ? RT_TRUE : RT_FALSE;
+}
+
+rt_bool_t rehab_assist_position_safe(rt_uint8_t joint_id,
+                                     const control_motor_feedback_t *feedback)
+{
+    if (feedback == RT_NULL)
+    {
+        return RT_FALSE;
+    }
+
+    if (joint_id != CONTROL_REHAB_CURL_M33_JOINT)
+    {
+        return RT_TRUE;
+    }
+
+    return ((feedback->pos_rad >= CONTROL_REHAB_ASSIST_JOINT5_HARD_MIN_RAW_RAD) &&
+            (feedback->pos_rad <= CONTROL_REHAB_ASSIST_JOINT5_HARD_MAX_RAW_RAD))
+               ? RT_TRUE
+               : RT_FALSE;
 }
