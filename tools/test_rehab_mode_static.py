@@ -404,7 +404,7 @@ def main():
     require(minimal_framework, "can_driver_init()", "m33_init_framework")
     if minimal_framework.index("can_driver_init()") > minimal_framework.index("return;"):
         raise AssertionError("m33_init_framework must start CAN/control before minimal framework return")
-    require(main_c, "#define M33_XIAOZHI_MINIMAL_FRAMEWORK 1", "main.c")
+    require(main_c, "#define M33_XIAOZHI_MINIMAL_FRAMEWORK 0", "main.c")
 
 
 if __name__ == "__main__":

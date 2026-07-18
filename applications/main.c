@@ -40,7 +40,7 @@ __attribute__((weak)) struct _reent _impure_data;
 #define M33_IPC_INIT_DELAY_MS 1000U
 #define M33_IPC_INIT_RETRY_MS 2000U
 #define M33_ENABLE_LED_HEARTBEAT 1
-#define M33_XIAOZHI_MINIMAL_FRAMEWORK 1
+#define M33_XIAOZHI_MINIMAL_FRAMEWORK 0
 #define M33_AUTO_START_EMG_M55_INFERENCE 1
 #define M33_AUTO_EMG_SAMPLE_PERIOD_MS 20U
 #define M33_AUTO_EMG_MANAGE_F103 1
@@ -1045,7 +1045,7 @@ int main(void)
 #if M33_XIAOZHI_MINIMAL_FRAMEWORK
     while (1)
     {
-        control_layer_poll_once();
+        m33_minimal_poll_can_bridge();
         g_runtime.loop_count++;
 #if M33_ENABLE_LED_HEARTBEAT
         rt_pin_write(LED_PIN_B, ((g_runtime.loop_count % 10U) == 0U) ? PIN_HIGH : PIN_LOW);
