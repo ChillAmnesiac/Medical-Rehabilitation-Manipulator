@@ -4,8 +4,9 @@
 
 #include "control_layer.h"
 
-#define CONTROL_VOICE_PRECHECK_JOINT_ID 5U
-#define CONTROL_VOICE_PRECHECK_JOINT_MASK 0x10U
+#define CONTROL_VOICE_PRECHECK_FIRST_JOINT_ID 4U
+#define CONTROL_VOICE_PRECHECK_LAST_JOINT_ID 6U
+#define CONTROL_VOICE_PRECHECK_JOINT_MASK 0x38U
 #define CONTROL_VOICE_PRECHECK_MAX_AGE_MS 100U
 #define CONTROL_VOICE_PRECHECK_AGE_UNAVAILABLE 0xFFFFFFFFUL
 
@@ -63,11 +64,71 @@ static void voice_precheck_record(const control_voice_precheck_result_t *result)
     rt_hw_interrupt_enable(level);
 }
 
+static void voice_precheck_assess_joint(rt_uint8_t joint_id,
+                                        rt_tick_t assessment_tick,
+                                        control_voice_precheck_result_t *result)
+{
+    control_motor_feedback_t feedback;
+    rt_bool_t have_feedback = RT_FALSE;
+
+    *result = (control_voice_precheck_result_t){0};
+    result->joint_id = joint_id;
+    result->motor_id = joint_id;
+    result->age_ms = CONTROL_VOICE_PRECHECK_AGE_UNAVAILABLE;
+    result->assessment_tick = assessment_tick;
+
+    if ((control_get_motor_feedback(joint_id, &feedback) == RT_EOK) &&
+        (feedback.timestamp != 0U))
+    {
+        have_feedback = RT_TRUE;
+        result->motor_id = feedback.motor_id;
+        result->protocol = (rt_uint8_t)feedback.protocol;
+        result->mode_state = feedback.mode_state;
+        result->fault_summary = feedback.fault_summary;
+        result->age_ms = voice_precheck_age_ms(assessment_tick,
+                                               feedback.timestamp);
+    }
+    else
+    {
+        result->reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_NO_FEEDBACK;
+    }
+
+    if (!control_motor_is_joint_calibrated(joint_id))
+    {
+        result->reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_CALIBRATION;
+    }
+
+    if (have_feedback)
+    {
+        if (result->age_ms > CONTROL_VOICE_PRECHECK_MAX_AGE_MS)
+        {
+            result->reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_STALE;
+        }
+        if (feedback.protocol != CONTROL_MOTOR_PROTOCOL_TYPE_PRIVATE)
+        {
+            result->reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_PROTOCOL;
+        }
+        if (feedback.motor_id != joint_id)
+        {
+            result->reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_ID;
+        }
+        if (feedback.fault_summary != 0U)
+        {
+            result->reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_FAULT;
+        }
+        if (feedback.mode_state != 0U)
+        {
+            result->reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_MODE;
+        }
+    }
+
+    result->passed = (result->reason_mask == 0U) ? RT_TRUE : RT_FALSE;
+}
+
 rt_err_t control_voice_precheck_assess(control_voice_precheck_result_t *out)
 {
     control_voice_precheck_result_t result = {0};
-    control_motor_feedback_t feedback;
-    rt_bool_t have_feedback = RT_FALSE;
+    rt_uint8_t joint_id;
 
     if (out == RT_NULL)
     {
@@ -76,6 +137,8 @@ rt_err_t control_voice_precheck_assess(control_voice_precheck_result_t *out)
 
     result.age_ms = CONTROL_VOICE_PRECHECK_AGE_UNAVAILABLE;
     result.assessment_tick = rt_tick_get();
+    result.joint_id = CONTROL_VOICE_PRECHECK_FIRST_JOINT_ID;
+    result.motor_id = CONTROL_VOICE_PRECHECK_FIRST_JOINT_ID;
 
     if (!control_layer_is_initialized())
     {
@@ -83,49 +146,16 @@ rt_err_t control_voice_precheck_assess(control_voice_precheck_result_t *out)
     }
     else
     {
-        if ((control_get_motor_feedback(CONTROL_VOICE_PRECHECK_JOINT_ID,
-                                        &feedback) == RT_EOK) &&
-            (feedback.timestamp != 0U))
+        for (joint_id = CONTROL_VOICE_PRECHECK_FIRST_JOINT_ID;
+             joint_id <= CONTROL_VOICE_PRECHECK_LAST_JOINT_ID;
+             joint_id++)
         {
-            have_feedback = RT_TRUE;
-            result.motor_id = feedback.motor_id;
-            result.protocol = (rt_uint8_t)feedback.protocol;
-            result.mode_state = feedback.mode_state;
-            result.fault_summary = feedback.fault_summary;
-            result.age_ms = voice_precheck_age_ms(result.assessment_tick,
-                                                   feedback.timestamp);
-        }
-        else
-        {
-            result.reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_NO_FEEDBACK;
-        }
-
-        if (!control_motor_is_joint_calibrated(CONTROL_VOICE_PRECHECK_JOINT_ID))
-        {
-            result.reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_CALIBRATION;
-        }
-
-        if (have_feedback)
-        {
-            if (result.age_ms > CONTROL_VOICE_PRECHECK_MAX_AGE_MS)
+            voice_precheck_assess_joint(joint_id,
+                                        result.assessment_tick,
+                                        &result);
+            if (!result.passed)
             {
-                result.reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_STALE;
-            }
-            if (feedback.protocol != CONTROL_MOTOR_PROTOCOL_TYPE_PRIVATE)
-            {
-                result.reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_PROTOCOL;
-            }
-            if (feedback.motor_id != CONTROL_VOICE_PRECHECK_JOINT_ID)
-            {
-                result.reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_ID;
-            }
-            if (feedback.fault_summary != 0U)
-            {
-                result.reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_FAULT;
-            }
-            if (feedback.mode_state != 0U)
-            {
-                result.reason_mask |= CONTROL_VOICE_PRECHECK_REJECT_MODE;
+                break;
             }
         }
     }
@@ -166,7 +196,7 @@ static int cmd_voice_precheck(int argc, char **argv)
 
     rt_kprintf("VOICE_PRECHECK: result=%s joint=%u mask=0x%02X reason=0x%08lX age_ms=%lu fault=0x%02X mode=%u proto=%u id=%u tick=%lu\n",
                result.passed ? "PASS" : "REJECT",
-               (unsigned int)CONTROL_VOICE_PRECHECK_JOINT_ID,
+               (unsigned int)result.joint_id,
                (unsigned int)CONTROL_VOICE_PRECHECK_JOINT_MASK,
                (unsigned long)result.reason_mask,
                (unsigned long)result.age_ms,
@@ -188,4 +218,4 @@ static int cmd_voice_precheck(int argc, char **argv)
                (unsigned long)diag.reject_mode);
     return result.passed ? 0 : -1;
 }
-MSH_CMD_EXPORT(cmd_voice_precheck, assess joint5 voice active pre-entry without motion);
+MSH_CMD_EXPORT(cmd_voice_precheck, assess joint4-6 voice active pre-entry without motion);

@@ -24,6 +24,7 @@ typedef struct
     rt_uint8_t fault_summary;
     rt_uint8_t mode_state;
     rt_uint8_t protocol;
+    rt_uint8_t joint_id;
     rt_uint8_t motor_id;
     rt_tick_t assessment_tick;
 } control_voice_precheck_result_t;
