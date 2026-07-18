@@ -5,6 +5,7 @@
 
 typedef struct
 {
+    struct rt_mutex command_lock;
     struct rt_mutex lock;
     rehab_can_lease_t lease;
     rt_uint8_t last_sequence;
@@ -139,9 +140,23 @@ rt_err_t rehab_mode_manager_init(void)
     {
         return ret;
     }
+    ret = rt_mutex_init(&s_rehab_adapter.command_lock, "rehabcmd", RT_IPC_FLAG_PRIO);
+    if (ret != RT_EOK)
+    {
+        rt_mutex_detach(&s_rehab_adapter.lock);
+        return ret;
+    }
+
+    ret = rehab_service_init();
+    if (ret != RT_EOK)
+    {
+        rt_mutex_detach(&s_rehab_adapter.command_lock);
+        rt_mutex_detach(&s_rehab_adapter.lock);
+        return ret;
+    }
 
     s_rehab_adapter.initialized = RT_TRUE;
-    return rehab_service_init();
+    return RT_EOK;
 }
 
 rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
@@ -166,6 +181,7 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
         return ret;
     }
 
+    rt_mutex_take(&s_rehab_adapter.command_lock, RT_WAITING_FOREVER);
     now = rt_tick_get();
     rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
     if ((cmd->mode != REHAB_MODE_PASSIVE) &&
@@ -175,6 +191,7 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
         s_rehab_adapter.last_reject_sequence = cmd->sequence;
         s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_HEARTBEAT_TIMEOUT;
         rt_mutex_release(&s_rehab_adapter.lock);
+        rt_mutex_release(&s_rehab_adapter.command_lock);
         return -RT_ETIMEOUT;
     }
     rt_mutex_release(&s_rehab_adapter.lock);
@@ -186,6 +203,7 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
     if (!rehab_mode_adapter_joint_mask_supported(joint_mask))
     {
         rehab_mode_adapter_store_reject(cmd->sequence, CONTROL_STATUS_DETAIL_UNKNOWN_JOINT);
+        rt_mutex_release(&s_rehab_adapter.command_lock);
         return -RT_EINVAL;
     }
 
@@ -193,6 +211,7 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
     if ((service_mode == REHAB_DEMO_MODE_PASSIVE) && (cmd->mode != REHAB_MODE_PASSIVE))
     {
         rehab_mode_adapter_store_reject(cmd->sequence, CONTROL_STATUS_DETAIL_UNSUPPORTED_COMMAND);
+        rt_mutex_release(&s_rehab_adapter.command_lock);
         return -RT_EINVAL;
     }
 
@@ -237,6 +256,7 @@ rt_err_t rehab_mode_manager_apply_command(const rehab_mode_command_t *cmd)
         s_rehab_adapter.last_reject_detail = CONTROL_STATUS_DETAIL_MOTOR_FAULT;
     }
     rt_mutex_release(&s_rehab_adapter.lock);
+    rt_mutex_release(&s_rehab_adapter.command_lock);
 
     return ret;
 }
@@ -275,6 +295,7 @@ void rehab_mode_manager_tick(void)
         return;
     }
 
+    rt_mutex_take(&s_rehab_adapter.command_lock, RT_WAITING_FOREVER);
     rt_mutex_take(&s_rehab_adapter.lock, RT_WAITING_FOREVER);
     should_stop = rehab_can_lease_claim_stop(
         &s_rehab_adapter.lease,
@@ -287,6 +308,7 @@ void rehab_mode_manager_tick(void)
 
     if (!should_stop)
     {
+        rt_mutex_release(&s_rehab_adapter.command_lock);
         return;
     }
 
@@ -310,6 +332,7 @@ void rehab_mode_manager_tick(void)
         s_rehab_adapter.last_reject_sequence = s_rehab_adapter.last_sequence;
     }
     rt_mutex_release(&s_rehab_adapter.lock);
+    rt_mutex_release(&s_rehab_adapter.command_lock);
 }
 
 rt_bool_t rehab_mode_manager_accepts_ros_target(void)

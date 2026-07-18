@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 import unittest
 
 
@@ -48,6 +49,71 @@ class RehabCommandSourceStaticTest(unittest.TestCase):
         self.assertIn("rehab_service_record_start(0U, REHAB_JOINT_ELBOW, cmd->source)", apply_command)
         self.assertIn("rehab_service_play_start(0U, REHAB_JOINT_ELBOW, cmd->source)", apply_command)
         self.assertIn("rehab_service_set_mode_mask(service_mode, joint_mask, cmd->source)", apply_command)
+
+    def test_command_lock_serializes_apply_and_timeout_stop(self):
+        self.assertIn("struct rt_mutex command_lock;", MANAGER_C)
+        self.assertIn(
+            'rt_mutex_init(&s_rehab_adapter.command_lock, "rehabcmd", RT_IPC_FLAG_PRIO)',
+            MANAGER_C,
+        )
+        apply_command = body(
+            MANAGER_C,
+            "rt_err_t rehab_mode_manager_apply_command",
+            "void rehab_mode_manager_record_reject",
+        )
+        tick = body(
+            MANAGER_C,
+            "void rehab_mode_manager_tick",
+            "rt_bool_t rehab_mode_manager_accepts_ros_target",
+        )
+        apply_take = apply_command.index(
+            "rt_mutex_take(&s_rehab_adapter.command_lock, RT_WAITING_FOREVER)"
+        )
+        self.assertLess(apply_take, apply_command.index("rehab_service_stop(cmd->source)"))
+        self.assertLess(apply_take, apply_command.index("rehab_can_lease_note_mode"))
+        tick_take = tick.index(
+            "rt_mutex_take(&s_rehab_adapter.command_lock, RT_WAITING_FOREVER)"
+        )
+        self.assertLess(tick_take, tick.index("rehab_can_lease_claim_stop"))
+        self.assertLess(tick.index("rehab_service_stop_if_owned"), tick.index("rehab_can_lease_note_stop_result"))
+
+    def test_manager_initializes_service_before_publishing_ready(self):
+        init = body(
+            MANAGER_C,
+            "rt_err_t rehab_mode_manager_init",
+            "rt_err_t rehab_mode_manager_apply_command",
+        )
+        self.assertLess(
+            init.index("ret = rehab_service_init()"),
+            init.index("s_rehab_adapter.initialized = RT_TRUE"),
+        )
+        self.assertIn("rt_mutex_detach(&s_rehab_adapter.command_lock)", init)
+        self.assertIn("rt_mutex_detach(&s_rehab_adapter.lock)", init)
+
+    def test_service_calls_do_not_hold_adapter_lock(self):
+        for function in (
+            body(
+                MANAGER_C,
+                "rt_err_t rehab_mode_manager_apply_command",
+                "void rehab_mode_manager_record_reject",
+            ),
+            body(
+                MANAGER_C,
+                "void rehab_mode_manager_tick",
+                "rt_bool_t rehab_mode_manager_accepts_ros_target",
+            ),
+        ):
+            lock_ops = [
+                (match.start(), match.group(1))
+                for match in re.finditer(
+                    r"rt_mutex_(take|release)\(&s_rehab_adapter\.lock",
+                    function,
+                )
+            ]
+            for call in re.finditer(r"rehab_service_[a-z_]+\(", function):
+                prior_ops = [op for pos, op in lock_ops if pos < call.start()]
+                if prior_ops:
+                    self.assertEqual(prior_ops[-1], "release")
 
     def test_conditioned_stop_accepts_app_ble_and_matches_owner(self):
         stop = body(SERVICE_C, "rt_err_t rehab_service_stop_if_owned", "rt_err_t rehab_service_record_start")
