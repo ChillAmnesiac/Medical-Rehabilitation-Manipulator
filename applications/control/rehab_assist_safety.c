@@ -39,3 +39,14 @@ rt_bool_t rehab_assist_position_safe(rt_uint8_t joint_id,
                ? RT_TRUE
                : RT_FALSE;
 }
+
+rt_bool_t rehab_assist_current_direction_safe(rt_uint8_t joint_id,
+                                               float current_a)
+{
+    if (joint_id != CONTROL_REHAB_CURL_M33_JOINT)
+    {
+        return RT_TRUE;
+    }
+
+    return (current_a >= 0.0f) ? RT_TRUE : RT_FALSE;
+}

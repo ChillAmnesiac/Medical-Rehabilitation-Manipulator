@@ -1338,6 +1338,13 @@ static void rehab_service_worker(void *parameter)
                                                &fb,
                                                1.0f,
                                                &out);
+                    if (!rehab_assist_current_direction_safe(joint, out.current_a))
+                    {
+                        rehab_assist_strategy_reset(&s_rehab.assist_state[index]);
+                        out.current_a = 0.0f;
+                        out.current_saturated = RT_FALSE;
+                        out.engaged = RT_FALSE;
+                    }
                     rt_mutex_release(&s_rehab.lock);
                 }
                 else
