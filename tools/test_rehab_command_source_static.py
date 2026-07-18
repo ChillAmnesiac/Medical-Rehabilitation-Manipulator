@@ -130,6 +130,50 @@ class RehabCommandSourceStaticTest(unittest.TestCase):
         self.assertIn("s_rehab.status.mode_generation != expected_generation", stop)
         self.assertNotIn("expected_source != REHAB_CMD_SOURCE_BENCH_MSH", stop)
 
+    def test_service_exposes_generation_guarded_mode_switch(self):
+        self.assertIn("rehab_service_set_mode_mask_if_unchanged", SERVICE_H)
+        guarded = body(
+            SERVICE_C,
+            "rt_err_t rehab_service_set_mode_mask_if_unchanged",
+            "rt_err_t rehab_service_set_mode_on_m33",
+        )
+        self.assertIn("expected_source", guarded)
+        self.assertIn("expected_generation", guarded)
+        self.assertIn("rehab_service_set_mode_mask_internal", guarded)
+        internal = body(
+            SERVICE_C,
+            "static rt_err_t rehab_service_set_mode_mask_internal",
+            "rt_err_t rehab_service_set_mode_mask(",
+        )
+        self.assertGreaterEqual(
+            internal.count("s_rehab.status.source != expected_source"), 3
+        )
+        self.assertGreaterEqual(
+            internal.count("s_rehab.status.mode_generation != expected_generation"), 3
+        )
+        self.assertLess(
+            internal.index("rt_mutex_take(&s_rehab.actuation_lock"),
+            internal.index("s_rehab.status.source != expected_source"),
+        )
+        self.assertLess(
+            internal.index("rt_mutex_take(&s_rehab.lock"),
+            internal.index("s_rehab.status.source != expected_source"),
+        )
+        self.assertLess(
+            internal.index("s_rehab.status.source != expected_source"),
+            internal.index("rehab_service_prepare_feedback_mask"),
+        )
+        self.assertLess(
+            internal.rindex("s_rehab.status.mode_generation != expected_generation"),
+            internal.index("rehab_service_apply_status_locked"),
+        )
+        regular = body(
+            SERVICE_C,
+            "rt_err_t rehab_service_set_mode_mask(",
+            "rt_err_t rehab_service_set_mode_mask_if_unchanged",
+        )
+        self.assertIn("RT_FALSE", regular)
+
     def test_timeout_uses_leased_owner_source_and_shell_stays_bench(self):
         tick = body(MANAGER_C, "void rehab_mode_manager_tick", "rt_bool_t rehab_mode_manager_accepts_ros_target")
         self.assertIn("expected_source", tick)

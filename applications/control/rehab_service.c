@@ -1387,16 +1387,20 @@ rt_err_t rehab_service_set_mode(rehab_demo_mode_t mode,
     return rehab_service_enter_mode(mode, 0U, joint, source);
 }
 
-rt_err_t rehab_service_set_mode_mask(rehab_demo_mode_t mode,
-                                     rt_uint8_t active_joint_mask,
-                                     rehab_cmd_source_t source)
+static rt_err_t rehab_service_set_mode_mask_internal(
+    rehab_demo_mode_t mode,
+    rt_uint8_t active_joint_mask,
+    rehab_cmd_source_t source,
+    rt_bool_t require_unchanged,
+    rehab_cmd_source_t expected_source,
+    rt_uint32_t expected_generation)
 {
     rt_uint8_t primary_joint;
     rt_err_t ret;
 
     if (mode == REHAB_DEMO_MODE_PASSIVE)
     {
-        return rehab_service_stop(source);
+        return require_unchanged ? -RT_EINVAL : rehab_service_stop(source);
     }
     if ((mode == REHAB_DEMO_MODE_MEMORY_RECORD) ||
         (mode == REHAB_DEMO_MODE_MEMORY_PLAYBACK) ||
@@ -1417,18 +1421,52 @@ rt_err_t rehab_service_set_mode_mask(rehab_demo_mode_t mode,
         return -RT_EINVAL;
     }
 
+    if (require_unchanged)
+    {
+        rt_mutex_take(&s_rehab.actuation_lock, RT_WAITING_FOREVER);
+        rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+        if ((s_rehab.status.source != expected_source) ||
+            (s_rehab.status.mode_generation != expected_generation))
+        {
+            rt_mutex_release(&s_rehab.lock);
+            rt_mutex_release(&s_rehab.actuation_lock);
+            return -RT_EBUSY;
+        }
+        rt_mutex_release(&s_rehab.lock);
+        rt_mutex_release(&s_rehab.actuation_lock);
+    }
+
     ret = rehab_service_prepare_feedback_mask(active_joint_mask);
     if (ret != RT_EOK)
     {
+        if (require_unchanged)
+        {
+            rt_mutex_take(&s_rehab.actuation_lock, RT_WAITING_FOREVER);
+        }
         rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
+        if (require_unchanged &&
+            ((s_rehab.status.source != expected_source) ||
+             (s_rehab.status.mode_generation != expected_generation)))
+        {
+            rt_mutex_release(&s_rehab.lock);
+            rt_mutex_release(&s_rehab.actuation_lock);
+            return -RT_EBUSY;
+        }
         rehab_service_set_result_locked(CONTROL_STATUS_DETAIL_MOTOR_FAULT, ret);
         rt_mutex_release(&s_rehab.lock);
+        if (require_unchanged)
+        {
+            rt_mutex_release(&s_rehab.actuation_lock);
+        }
         return ret;
     }
 
     rt_mutex_take(&s_rehab.actuation_lock, RT_WAITING_FOREVER);
     rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
-    if (s_rehab.stop_pending)
+    if (s_rehab.stop_pending ||
+        (require_unchanged &&
+         ((s_rehab.status.source != expected_source) ||
+          (s_rehab.status.mode_generation != expected_generation))))
     {
         rt_mutex_release(&s_rehab.lock);
         rt_mutex_release(&s_rehab.actuation_lock);
@@ -1451,6 +1489,33 @@ rt_err_t rehab_service_set_mode_mask(rehab_demo_mode_t mode,
     rt_mutex_release(&s_rehab.lock);
     rt_mutex_release(&s_rehab.actuation_lock);
     return RT_EOK;
+}
+
+rt_err_t rehab_service_set_mode_mask(rehab_demo_mode_t mode,
+                                     rt_uint8_t active_joint_mask,
+                                     rehab_cmd_source_t source)
+{
+    return rehab_service_set_mode_mask_internal(mode,
+                                                active_joint_mask,
+                                                source,
+                                                RT_FALSE,
+                                                source,
+                                                0U);
+}
+
+rt_err_t rehab_service_set_mode_mask_if_unchanged(
+    rehab_demo_mode_t mode,
+    rt_uint8_t active_joint_mask,
+    rehab_cmd_source_t source,
+    rehab_cmd_source_t expected_source,
+    rt_uint32_t expected_generation)
+{
+    return rehab_service_set_mode_mask_internal(mode,
+                                                active_joint_mask,
+                                                source,
+                                                RT_TRUE,
+                                                expected_source,
+                                                expected_generation);
 }
 
 rt_err_t rehab_service_set_mode_on_m33(rehab_demo_mode_t mode,

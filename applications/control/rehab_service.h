@@ -86,6 +86,12 @@ rt_err_t rehab_service_set_mode(rehab_demo_mode_t mode,
 rt_err_t rehab_service_set_mode_mask(rehab_demo_mode_t mode,
                                      rt_uint8_t active_joint_mask,
                                      rehab_cmd_source_t source);
+rt_err_t rehab_service_set_mode_mask_if_unchanged(
+    rehab_demo_mode_t mode,
+    rt_uint8_t active_joint_mask,
+    rehab_cmd_source_t source,
+    rehab_cmd_source_t expected_source,
+    rt_uint32_t expected_generation);
 rt_err_t rehab_service_set_mode_on_m33(rehab_demo_mode_t mode,
                                        rehab_joint_id_t joint,
                                        rt_uint8_t m33_joint_id,
