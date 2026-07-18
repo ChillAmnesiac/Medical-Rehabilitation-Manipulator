@@ -281,6 +281,24 @@ typedef struct
 static rt_thread_t s_current_hold_thread = RT_NULL;
 static control_current_hold_ctx_t s_current_hold_ctx;
 
+static rt_bool_t ctrl_motor_current_hold_position_safe(rt_uint8_t joint_id)
+{
+    control_motor_feedback_t feedback;
+
+    if (joint_id != CONTROL_REHAB_CURL_M33_JOINT)
+    {
+        return RT_TRUE;
+    }
+    if (control_get_motor_feedback(joint_id, &feedback) != RT_EOK)
+    {
+        return RT_FALSE;
+    }
+    return ((feedback.pos_rad >= CONTROL_REHAB_ASSIST_JOINT5_HARD_MIN_RAW_RAD) &&
+            (feedback.pos_rad <= CONTROL_REHAB_ASSIST_JOINT5_HARD_MAX_RAW_RAD))
+               ? RT_TRUE
+               : RT_FALSE;
+}
+
 /* 关节到电机的配置表：从 control_layer_cfg.h 展开，避免运行时到处直接读宏。 */
 static const rt_uint8_t s_joint_motor_map[7] =
 {
@@ -4591,6 +4609,12 @@ static void ctrl_current_hold_entry(void *parameter)
     rt_uint32_t elapsed_ms = 0U;
     rt_err_t ret;
 
+    if (!ctrl_motor_current_hold_position_safe(ctx->joint_id))
+    {
+        rt_kprintf("[control] current_hold position guard before start\n");
+        goto done;
+    }
+
     ret = control_motor_current_control(ctx->joint_id, ctx->current_a);
     if (ret != RT_EOK)
     {
@@ -4605,6 +4629,12 @@ static void ctrl_current_hold_entry(void *parameter)
 
         if (ctx->stop_requested)
         {
+            break;
+        }
+        if (!ctrl_motor_current_hold_position_safe(ctx->joint_id))
+        {
+            rt_kprintf("[control] current_hold position guard elapsed=%u\n",
+                       (unsigned int)elapsed_ms);
             break;
         }
 
@@ -5022,6 +5052,12 @@ static int cmd_motor_current_hold(int argc, char **argv)
         rt_kprintf("motor_current_hold reject current_x1000=%d max_x1000=%d\n",
                    (int)ctrl_float_to_scaled_i32(s_current_hold_ctx.current_a, 1000.0f),
                    (int)ctrl_float_to_scaled_i32(CONTROL_MOTOR_CURRENT_CONTROL_MAX_A, 1000.0f));
+        return -1;
+    }
+    if (!ctrl_motor_current_hold_position_safe(s_current_hold_ctx.joint_id))
+    {
+        rt_kprintf("motor_current_hold reject position joint=%u\n",
+                   (unsigned int)s_current_hold_ctx.joint_id);
         return -1;
     }
 
