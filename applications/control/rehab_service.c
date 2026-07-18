@@ -272,6 +272,36 @@ static rt_err_t rehab_service_prepare_feedback_mask(rt_uint8_t joint_mask)
     return -RT_ETIMEOUT;
 }
 
+static rt_err_t rehab_service_validate_assist_position_mask(rt_uint8_t joint_mask)
+{
+    rt_uint8_t joint;
+
+    for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+    {
+        control_motor_feedback_t fb;
+        rt_err_t ret;
+
+        if (!rehab_service_joint_mask_has(joint_mask, joint))
+        {
+            continue;
+        }
+        ret = control_get_motor_feedback(joint, &fb);
+        if (ret == RT_EOK)
+        {
+            ret = rehab_feedback_active_check(&fb, rt_tick_get());
+        }
+        if (ret != RT_EOK)
+        {
+            return ret;
+        }
+        if (!rehab_assist_position_safe(joint, &fb))
+        {
+            return -RT_EINVAL;
+        }
+    }
+    return RT_EOK;
+}
+
 static void rehab_service_reset_all_strategy_states_locked(void)
 {
     rt_uint8_t index;
@@ -1586,12 +1616,23 @@ static rt_err_t rehab_service_enter_mode_on_m33(rehab_demo_mode_t mode,
         (mode == REHAB_DEMO_MODE_RESIST))
     {
         rt_mutex_release(&s_rehab.lock);
-        ret = rehab_service_prepare_current_mask(
-            rehab_service_m33_joint_to_mask(m33_joint_id));
+        if (mode == REHAB_DEMO_MODE_ASSIST)
+        {
+            ret = rehab_service_validate_assist_position_mask(
+                rehab_service_m33_joint_to_mask(m33_joint_id));
+        }
+        if (ret == RT_EOK)
+        {
+            ret = rehab_service_prepare_current_mask(
+                rehab_service_m33_joint_to_mask(m33_joint_id));
+        }
         rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
         if (ret != RT_EOK)
         {
-            rehab_service_set_result_locked(CONTROL_STATUS_DETAIL_MOTOR_FAULT, ret);
+            rehab_service_set_result_locked(
+                (ret == -RT_EINVAL) ? CONTROL_STATUS_DETAIL_TARGET_OUT_OF_LIMIT
+                                    : CONTROL_STATUS_DETAIL_MOTOR_FAULT,
+                ret);
             rt_mutex_release(&s_rehab.lock);
             rt_mutex_release(&s_rehab.actuation_lock);
             return ret;
@@ -1730,11 +1771,21 @@ static rt_err_t rehab_service_set_mode_mask_internal(
         return -RT_EBUSY;
     }
     rt_mutex_release(&s_rehab.lock);
-    ret = rehab_service_prepare_current_mask(active_joint_mask);
+    if (mode == REHAB_DEMO_MODE_ASSIST)
+    {
+        ret = rehab_service_validate_assist_position_mask(active_joint_mask);
+    }
+    if (ret == RT_EOK)
+    {
+        ret = rehab_service_prepare_current_mask(active_joint_mask);
+    }
     rt_mutex_take(&s_rehab.lock, RT_WAITING_FOREVER);
     if (ret != RT_EOK)
     {
-        rehab_service_set_result_locked(CONTROL_STATUS_DETAIL_MOTOR_FAULT, ret);
+        rehab_service_set_result_locked(
+            (ret == -RT_EINVAL) ? CONTROL_STATUS_DETAIL_TARGET_OUT_OF_LIMIT
+                                : CONTROL_STATUS_DETAIL_MOTOR_FAULT,
+            ret);
         rt_mutex_release(&s_rehab.lock);
         rt_mutex_release(&s_rehab.actuation_lock);
         return ret;
