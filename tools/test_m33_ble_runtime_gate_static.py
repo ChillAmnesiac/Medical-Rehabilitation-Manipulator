@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 APPLICATIONS = ROOT / "applications"
 GATE_PATH = APPLICATIONS / "m33" / "bt_runtime_gate.c"
 GATE_C = GATE_PATH.read_text(encoding="utf-8")
+M33_SCONSCRIPT = (APPLICATIONS / "m33" / "SConscript").read_text(encoding="utf-8")
 CALL_RE = re.compile(r"\bm33_ble_gate_start\s*\(\s*\)")
 DEFINITION_RE = re.compile(
     r"\bstatic\s+rt_err_t\s+m33_ble_gate_start\s*\(\s*void\s*\)\s*\{"
@@ -129,6 +130,18 @@ if (m33_ble_gate_start()) {}
         self.assertIn("#define M33_ENABLE_APP_BLE_RUNTIME 0", GATE_C)
         self.assertNotIn("INIT_APP_EXPORT", GATE_C)
         self.assertNotIn("INIT_ENV_EXPORT", GATE_C)
+
+    def test_validation_build_requires_explicit_ble_runtime_opt_in(self):
+        self.assertIn("M33_APP_BLE_RUNTIME", M33_SCONSCRIPT)
+        self.assertRegex(
+            M33_SCONSCRIPT,
+            r"os\.environ\.get\(\s*['\"]M33_APP_BLE_RUNTIME['\"]\s*,\s*['\"]0['\"]\s*\)\s*==\s*['\"]1['\"]",
+        )
+        self.assertIn("M33_ENABLE_APP_BLE_RUNTIME=1", M33_SCONSCRIPT)
+        self.assertRegex(
+            M33_SCONSCRIPT,
+            r"DefineGroup\([^\n]+CPPDEFINES\s*=\s*cppdefines",
+        )
 
     def test_shell_command_is_the_only_runtime_start_caller(self):
         calls = []
