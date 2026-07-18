@@ -44,11 +44,33 @@ class RehabServiceActuationStaticTest(unittest.TestCase):
         lock = body.index("rt_mutex_take(&s_rehab.actuation_lock")
         read = body.index("control_get_motor_feedback(m33_joint, &latest_fb)")
         guard = body.index("rehab_feedback_active_check(&latest_fb, rt_tick_get())")
-        current = body.index("control_motor_current_control(m33_joint, out->current_a)")
+        current = body.index("control_motor_current_setpoint(m33_joint, out->current_a)")
         self.assertLess(lock, read)
         self.assertLess(read, guard)
         self.assertLess(guard, current)
         self.assertIn("control_motor_stop(m33_joint, RT_FALSE)", body[guard:current])
+
+    def test_periodic_path_never_rearms_current_mode(self):
+        self.assertNotIn("control_motor_current_control(", SERVICE_C)
+        start = SERVICE_C.index("static rt_err_t rehab_service_apply_strategy_output")
+        end = SERVICE_C.index("static void rehab_service_worker", start)
+        body = SERVICE_C[start:end]
+        self.assertIn("control_motor_current_setpoint(m33_joint, 0.0f)", body)
+        self.assertNotIn("control_motor_current_prepare", body)
+
+    def test_current_mode_is_prepared_once_before_status_transition(self):
+        start = SERVICE_C.index("static rt_err_t rehab_service_set_mode_mask_internal")
+        end = SERVICE_C.index("rt_err_t rehab_service_set_mode_mask(", start)
+        body = SERVICE_C[start:end]
+        prepare = body.index("rehab_service_prepare_current_mask(active_joint_mask)")
+        transition = body.index("rehab_service_apply_status_locked(")
+        self.assertLess(prepare, transition)
+
+        helper_start = SERVICE_C.index("static rt_err_t rehab_service_prepare_current_mask")
+        helper_end = SERVICE_C.index("static void rehab_service_default_params", helper_start)
+        helper = SERVICE_C[helper_start:helper_end]
+        self.assertIn("control_motor_current_prepare(joint)", helper)
+        self.assertIn("rehab_service_stop_joint_mask(active_joint_mask, RT_FALSE)", helper)
 
     def test_fault_stop_is_generation_guarded_and_serialized(self):
         start = SERVICE_C.index("static void rehab_service_note_fault_mask")
@@ -59,7 +81,7 @@ class RehabServiceActuationStaticTest(unittest.TestCase):
         self.assertIn("rt_mutex_take(&s_rehab.actuation_lock", body)
 
     def test_failed_stop_latch_blocks_normal_mode_entry(self):
-        self.assertGreaterEqual(SERVICE_C.count("if (s_rehab.stop_pending)"), 2)
+        self.assertGreaterEqual(SERVICE_C.count("s_rehab.stop_pending"), 4)
         self.assertGreaterEqual(SERVICE_C.count("return -RT_EBUSY;"), 4)
 
     def test_active_mode_prepares_fresh_feedback_before_state_transition(self):
