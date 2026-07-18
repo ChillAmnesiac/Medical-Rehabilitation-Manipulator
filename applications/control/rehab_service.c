@@ -1174,7 +1174,7 @@ static void rehab_service_worker(void *parameter)
                 }
                 if ((feedback_ret == RT_EOK) &&
                     (mode == REHAB_DEMO_MODE_ASSIST) &&
-                    rehab_assist_overspeed(&fb, CONTROL_REHAB_ASSIST_MAX_VEL_RAD_S))
+                    rehab_assist_overspeed(&fb, CONTROL_REHAB_ASSIST_OVERSPEED_TRIP_RAD_S))
                 {
                     fault_joint = joint;
                     rehab_service_note_fault_mask(active_joint_mask,
