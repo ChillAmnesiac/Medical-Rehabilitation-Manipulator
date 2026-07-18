@@ -126,12 +126,14 @@ static void rehab_shell_print_params(void)
         return;
     }
 
-    rt_kprintf("rehab cfg direction_x1000=%d resist_dir_x1000=%d active_min_x1000=%d active_max_x1000=%d active_gain_x1000=%d assist_max_x1000=%d assist_gain_x1000=%d adaptive=%u adaptive_base_x1000=%d adaptive_load_x1000=%d adaptive_max_x1000=%d adaptive_step_x1000=%d resist_max_x1000=%d resist_gain_x1000=%d\n",
+    rt_kprintf("rehab cfg direction_x1000=%d assist_dir_x1000=%d resist_dir_x1000=%d active_min_x1000=%d active_max_x1000=%d active_gain_x1000=%d assist_min_x1000=%d assist_max_x1000=%d assist_gain_x1000=%d adaptive=%u adaptive_base_x1000=%d adaptive_load_x1000=%d adaptive_max_x1000=%d adaptive_step_x1000=%d resist_max_x1000=%d resist_gain_x1000=%d\n",
                rehab_shell_scaled(params.follow_direction),
+               rehab_shell_scaled(params.assist_direction),
                rehab_shell_scaled(params.resist_direction),
                rehab_shell_scaled(params.active_min_current_a),
                rehab_shell_scaled(params.active_max_current_a),
                rehab_shell_scaled(params.active_current_gain_a_per_nm),
+               rehab_shell_scaled(params.assist_min_current_a),
                rehab_shell_scaled(params.assist_max_current_a),
                rehab_shell_scaled(params.assist_current_gain_a_per_nm),
                params.adaptive_assist_enabled ? 1U : 0U,
