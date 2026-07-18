@@ -19,6 +19,9 @@ typedef struct
     rt_bool_t has_stop_attempt;
 } rehab_app_lease_t;
 
+rt_bool_t rehab_app_lease_can_begin(const rehab_app_lease_t *lease,
+                                    rt_uint8_t owner_source,
+                                    rt_uint32_t session_generation);
 rt_bool_t rehab_app_lease_begin(rehab_app_lease_t *lease,
                                 rt_uint8_t owner_source,
                                 rt_uint32_t mode_generation,

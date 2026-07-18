@@ -144,10 +144,18 @@ static void test_active_begin_only_allows_same_owner_and_session(void)
     rt_uint32_t session_generation = 0U;
     rt_uint8_t owner_source = 0U;
 
+    assert(rehab_app_lease_can_begin(&lease, 3U, 21U) == RT_TRUE);
     assert(rehab_app_lease_begin(&lease, 3U, 5U, 21U, 100U, 500U) == RT_TRUE);
+    assert(rehab_app_lease_can_begin(&lease, 3U, 21U) == RT_TRUE);
+    assert(rehab_app_lease_can_begin(&lease, 2U, 21U) == RT_FALSE);
+    assert(rehab_app_lease_can_begin(&lease, 3U, 22U) == RT_FALSE);
     assert(rehab_app_lease_begin(&lease, 3U, 6U, 21U, 110U, 500U) == RT_TRUE);
     assert(lease.mode_generation == 6U);
     assert(lease.last_heartbeat_tick == 110U);
+
+    lease.stop_latched = RT_TRUE;
+    assert(rehab_app_lease_can_begin(&lease, 3U, 21U) == RT_FALSE);
+    lease.stop_latched = RT_FALSE;
 
     assert(rehab_app_lease_begin(&lease, 2U, 7U, 21U, 120U, 500U) == RT_FALSE);
     assert(rehab_app_lease_begin(&lease, 3U, 7U, 22U, 120U, 500U) == RT_FALSE);
@@ -163,6 +171,9 @@ static void test_active_begin_only_allows_same_owner_and_session(void)
                                                  &mode_generation,
                                                  &session_generation) == RT_FALSE);
     assert(lease.stop_latched == RT_FALSE);
+    assert(rehab_app_lease_can_begin(RT_NULL, 3U, 22U) == RT_FALSE);
+    assert(rehab_app_lease_can_begin(&lease, 0U, 22U) == RT_FALSE);
+    assert(rehab_app_lease_can_begin(&lease, 3U, 0U) == RT_FALSE);
 }
 
 static void test_unclaimed_stop_failure_does_not_increment_retry_count(void)

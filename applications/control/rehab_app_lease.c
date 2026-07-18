@@ -27,6 +27,25 @@ static rt_bool_t rehab_app_lease_claim_latched_stop(
     return RT_TRUE;
 }
 
+rt_bool_t rehab_app_lease_can_begin(const rehab_app_lease_t *lease,
+                                    rt_uint8_t owner_source,
+                                    rt_uint32_t session_generation)
+{
+    if ((lease == RT_NULL) || (owner_source == 0U) ||
+        (session_generation == 0U))
+    {
+        return RT_FALSE;
+    }
+    if (!lease->active)
+    {
+        return RT_TRUE;
+    }
+    return (!lease->stop_latched && (lease->owner_source == owner_source) &&
+            (lease->session_generation == session_generation))
+               ? RT_TRUE
+               : RT_FALSE;
+}
+
 rt_bool_t rehab_app_lease_begin(rehab_app_lease_t *lease,
                                 rt_uint8_t owner_source,
                                 rt_uint32_t mode_generation,
@@ -34,12 +53,8 @@ rt_bool_t rehab_app_lease_begin(rehab_app_lease_t *lease,
                                 rt_tick_t now,
                                 rt_tick_t timeout_ticks)
 {
-    if ((lease == RT_NULL) || (owner_source == 0U) ||
-        (mode_generation == 0U) || (session_generation == 0U) ||
-        (timeout_ticks == 0U) ||
-        (lease->active &&
-         (lease->stop_latched || (lease->owner_source != owner_source) ||
-          (lease->session_generation != session_generation))))
+    if ((mode_generation == 0U) || (timeout_ticks == 0U) ||
+        !rehab_app_lease_can_begin(lease, owner_source, session_generation))
     {
         return RT_FALSE;
     }
