@@ -122,6 +122,14 @@ def select_endpoint_position(
     return positions[end - 1]
 
 
+def validate_stage_sample_count(*, stage: str, count: int) -> None:
+    if count < 1:
+        raise RuntimeError(
+            f"no new feedback event for {stage}; move the joint during this stage "
+            "before pressing Enter"
+        )
+
+
 class SerialFeedbackCollector:
     def __init__(
         self,
@@ -196,15 +204,14 @@ class SerialFeedbackCollector:
             self._rearm_report()
         return accepted
 
-    def capture_stable(self, *, stage: str, duration_sec: float) -> tuple[int, int]:
-        start = len(self.rows)
-        deadline = time.monotonic() + duration_sec
-        while time.monotonic() < deadline:
-            self.poll(stage=stage)
-        end = len(self.rows)
-        if (end - start) < 5:
-            raise RuntimeError(f"not enough fresh feedback samples for {stage}")
-        return start, end
+    def prime(self) -> None:
+        deadline = time.monotonic() + self.stale_timeout_sec
+        while self.last_tick is None and time.monotonic() < deadline:
+            self.poll(stage="priming")
+        if self.last_tick is None:
+            raise RuntimeError(
+                f"joint {self.joint} has no cached feedback to establish a tick baseline"
+            )
 
     def capture_until_enter(
         self, *, stage: str, prompt: str, timeout_sec: float
@@ -225,11 +232,7 @@ class SerialFeedbackCollector:
         for _ in range(3):
             self.poll(stage=stage)
         end = len(self.rows)
-        if (end - start) < 3:
-            raise RuntimeError(
-                f"not enough fresh feedback samples for {stage}; "
-                "move the joint during this stage before pressing Enter"
-            )
+        validate_stage_sample_count(stage=stage, count=end - start)
         stale_age = time.monotonic() - self.last_fresh_monotonic
         if stale_age > self.stale_timeout_sec:
             raise RuntimeError(
@@ -289,6 +292,7 @@ def main(argv: list[str] | None = None) -> int:
         stale_timeout_sec=args.stale_timeout_sec,
     )
     try:
+        collector.prime()
         lower_start_bounds = collector.capture_until_enter(
             stage="lower_start",
             prompt=(

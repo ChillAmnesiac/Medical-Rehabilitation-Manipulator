@@ -97,6 +97,13 @@ class JointLimitCalibrationTest(unittest.TestCase):
                 max_abs_velocity_rad_s=0.20,
             )
 
+    def test_stage_accepts_one_new_feedback_event(self):
+        self.module.validate_stage_sample_count(stage="lower_start", count=1)
+
+    def test_stage_rejects_no_new_feedback_event(self):
+        with self.assertRaisesRegex(RuntimeError, "no new feedback"):
+            self.module.validate_stage_sample_count(stage="lower_start", count=0)
+
 
 if __name__ == "__main__":
     unittest.main()
