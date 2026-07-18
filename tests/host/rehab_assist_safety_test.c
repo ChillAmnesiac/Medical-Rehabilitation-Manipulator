@@ -59,10 +59,23 @@ static void test_joint5_position_must_stay_inside_calibrated_range(void)
                  "joint 5 above the hard maximum must be rejected");
 }
 
+static void test_joint5_assist_must_not_drive_negative_current(void)
+{
+    require_true(rehab_assist_current_direction_safe(5U, 0.5f),
+                 "joint 5 positive assist current must be allowed");
+    require_true(rehab_assist_current_direction_safe(5U, 0.0f),
+                 "joint 5 zero assist current must be allowed");
+    require_true(!rehab_assist_current_direction_safe(5U, -0.03f),
+                 "joint 5 negative assist current must be rejected");
+    require_true(rehab_assist_current_direction_safe(4U, -0.03f),
+                 "uncalibrated joint directions must remain unchanged");
+}
+
 int main(void)
 {
     test_assist_overspeed_checks_both_directions();
     test_joint5_position_must_stay_inside_calibrated_range();
+    test_joint5_assist_must_not_drive_negative_current();
     printf("rehab_assist_safety_test PASS\n");
     return 0;
 }
