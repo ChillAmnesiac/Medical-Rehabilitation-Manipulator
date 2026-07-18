@@ -5,7 +5,6 @@ import csv
 import json
 import math
 import re
-import statistics
 import threading
 import time
 from pathlib import Path
@@ -104,6 +103,25 @@ def build_limit_summary(
     }
 
 
+def select_endpoint_position(
+    positions: list[float],
+    velocities: list[float],
+    *,
+    bounds: tuple[int, int],
+    max_abs_velocity_rad_s: float,
+) -> float:
+    start, end = bounds
+    if start < 0 or end > len(positions) or end > len(velocities) or start >= end:
+        raise ValueError("endpoint sample bounds are invalid")
+    endpoint_velocity = velocities[end - 1]
+    if abs(endpoint_velocity) > max_abs_velocity_rad_s:
+        raise ValueError(
+            "endpoint velocity "
+            f"{endpoint_velocity:.6f} rad/s exceeds {max_abs_velocity_rad_s:.6f} rad/s"
+        )
+    return positions[end - 1]
+
+
 class SerialFeedbackCollector:
     def __init__(
         self,
@@ -176,11 +194,6 @@ class SerialFeedbackCollector:
         stale_age = now - self.last_fresh_monotonic
         if stale_age > 0.5 and (now - self.last_rearm_monotonic) > 0.5:
             self._rearm_report()
-        if stale_age > self.stale_timeout_sec:
-            raise RuntimeError(
-                f"joint {self.joint} feedback stale for {stale_age:.2f}s; "
-                "calibration aborted"
-            )
         return accepted
 
     def capture_stable(self, *, stage: str, duration_sec: float) -> tuple[int, int]:
@@ -193,7 +206,10 @@ class SerialFeedbackCollector:
             raise RuntimeError(f"not enough fresh feedback samples for {stage}")
         return start, end
 
-    def capture_until_enter(self, *, stage: str, prompt: str, timeout_sec: float) -> None:
+    def capture_until_enter(
+        self, *, stage: str, prompt: str, timeout_sec: float
+    ) -> tuple[int, int]:
+        start = len(self.rows)
         done = threading.Event()
 
         def wait_for_enter() -> None:
@@ -206,14 +222,21 @@ class SerialFeedbackCollector:
             if time.monotonic() >= deadline:
                 raise RuntimeError(f"{stage} timed out after {timeout_sec:.1f}s")
             self.poll(stage=stage)
-
-
-def _stage_median(
-    unwrapped: list[float],
-    bounds: tuple[int, int],
-) -> float:
-    start, end = bounds
-    return float(statistics.median(unwrapped[start:end]))
+        for _ in range(3):
+            self.poll(stage=stage)
+        end = len(self.rows)
+        if (end - start) < 3:
+            raise RuntimeError(
+                f"not enough fresh feedback samples for {stage}; "
+                "move the joint during this stage before pressing Enter"
+            )
+        stale_age = time.monotonic() - self.last_fresh_monotonic
+        if stale_age > self.stale_timeout_sec:
+            raise RuntimeError(
+                f"joint {self.joint} feedback was already stale for {stale_age:.2f}s "
+                f"when {stage} was marked"
+            )
+        return start, end
 
 
 def _write_outputs(
@@ -251,10 +274,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--gear-ratio", type=float, default=JOINT4_GEAR_RATIO)
     parser.add_argument("--period-rad", type=float, default=PRIVATE_POSITION_PERIOD_RAD)
     parser.add_argument("--poll-ms", type=float, default=80.0)
-    parser.add_argument("--stable-sec", type=float, default=2.0)
     parser.add_argument("--motion-timeout-sec", type=float, default=120.0)
     parser.add_argument("--stale-timeout-sec", type=float, default=2.0)
     parser.add_argument("--repeat-tolerance-rad", type=float, default=0.20)
+    parser.add_argument("--endpoint-max-velocity-rad-s", type=float, default=0.20)
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
     args = parser.parse_args(argv)
 
@@ -266,23 +289,23 @@ def main(argv: list[str] | None = None) -> int:
         stale_timeout_sec=args.stale_timeout_sec,
     )
     try:
-        input("Place the joint at the lower limit, hold it still, then press Enter: ")
-        lower_start_bounds = collector.capture_stable(
-            stage="lower_start", duration_sec=args.stable_sec
+        lower_start_bounds = collector.capture_until_enter(
+            stage="lower_start",
+            prompt=(
+                "At the lower limit, move a few degrees away and back, hold it, "
+                "then press Enter: "
+            ),
+            timeout_sec=args.motion_timeout_sec,
         )
-        collector.capture_until_enter(
+        upper_bounds = collector.capture_until_enter(
             stage="moving_to_upper",
             prompt="Move slowly to the upper limit, hold it, then press Enter: ",
             timeout_sec=args.motion_timeout_sec,
         )
-        upper_bounds = collector.capture_stable(stage="upper", duration_sec=args.stable_sec)
-        collector.capture_until_enter(
+        lower_return_bounds = collector.capture_until_enter(
             stage="returning_to_lower",
             prompt="Move slowly back to the lower limit, hold it, then press Enter: ",
             timeout_sec=args.motion_timeout_sec,
-        )
-        lower_return_bounds = collector.capture_stable(
-            stage="lower_return", duration_sec=args.stable_sec
         )
     finally:
         collector.close()
@@ -292,9 +315,25 @@ def main(argv: list[str] | None = None) -> int:
     for row, unwrapped_rad in zip(collector.rows, unwrapped):
         row["unwrapped_rad"] = round(unwrapped_rad, 6)
 
-    lower_start = _stage_median(unwrapped, lower_start_bounds)
-    upper = _stage_median(unwrapped, upper_bounds)
-    lower_return = _stage_median(unwrapped, lower_return_bounds)
+    velocities = [float(row["velocity_rad_s"]) for row in collector.rows]
+    lower_start = select_endpoint_position(
+        unwrapped,
+        velocities,
+        bounds=lower_start_bounds,
+        max_abs_velocity_rad_s=args.endpoint_max_velocity_rad_s,
+    )
+    upper = select_endpoint_position(
+        unwrapped,
+        velocities,
+        bounds=upper_bounds,
+        max_abs_velocity_rad_s=args.endpoint_max_velocity_rad_s,
+    )
+    lower_return = select_endpoint_position(
+        unwrapped,
+        velocities,
+        bounds=lower_return_bounds,
+        max_abs_velocity_rad_s=args.endpoint_max_velocity_rad_s,
+    )
     summary: dict[str, object] = {
         "schema_version": "m33_joint_limit_calibration_v1",
         "joint": args.joint,

@@ -75,6 +75,28 @@ class JointLimitCalibrationTest(unittest.TestCase):
         self.assertAlmostEqual(summary["lower_repeat_error_motor_rad"], 0.50)
         self.assertIn("lower-limit repeat error", summary["validation_error"])
 
+    def test_endpoint_uses_last_low_velocity_fresh_sample(self):
+        positions = [-2.50, -2.20, -2.02]
+        velocities = [1.20, 0.45, 0.05]
+
+        endpoint = self.module.select_endpoint_position(
+            positions,
+            velocities,
+            bounds=(0, 3),
+            max_abs_velocity_rad_s=0.20,
+        )
+
+        self.assertAlmostEqual(endpoint, -2.02)
+
+    def test_endpoint_rejects_marker_while_joint_is_moving(self):
+        with self.assertRaisesRegex(ValueError, "endpoint velocity"):
+            self.module.select_endpoint_position(
+                [-2.50, -2.20],
+                [1.20, 0.45],
+                bounds=(0, 2),
+                max_abs_velocity_rad_s=0.20,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
