@@ -254,7 +254,11 @@ rt_err_t control_motor_write_parameter(rt_uint8_t joint_id, rt_uint16_t index, f
 /* 读取最近一次电机参数回复缓存。 */
 rt_err_t control_get_last_motor_param(control_motor_param_report_t *out);
 /* 私有协议速度模式控制：设置速度和电流限制。 */
-/* Private protocol current-mode command, writes iq_ref after enabling the joint. */
+/* Prepare private-protocol current mode once with a zero-current reference. */
+rt_err_t control_motor_current_prepare(rt_uint8_t joint_id);
+/* Update iq_ref without changing run mode or enable state. */
+rt_err_t control_motor_current_setpoint(rt_uint8_t joint_id, float current_a);
+/* Compatibility helper: prepare then write one current setpoint. */
 rt_err_t control_motor_current_control(rt_uint8_t joint_id, float current_a);
 rt_err_t control_motor_speed_control(rt_uint8_t joint_id, float speed_rad_s, float limit_cur);
 /* 私有协议位置控制：csp_mode 为真时使用 CSP 参数流，否则走普通位置参数流。 */

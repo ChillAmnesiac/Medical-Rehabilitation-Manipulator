@@ -4144,20 +4144,13 @@ rt_err_t control_get_last_motor_param(control_motor_param_report_t *out)
 /* CANSimple 位置目标接口。
  * joint_id 会映射到 CANSimple node_id；pos_rad 从关节侧转换到电机侧后再转成 rev。
  */
-/* Private-protocol current command: set current mode, enable, then write iq_ref(0x7006). */
-rt_err_t control_motor_current_control(rt_uint8_t joint_id, float current_a)
+rt_err_t control_motor_current_prepare(rt_uint8_t joint_id)
 {
     rt_err_t ret;
 
     if (!s_is_inited)
     {
         return -RT_ERROR;
-    }
-
-    if ((current_a > CONTROL_MOTOR_CURRENT_CONTROL_MAX_A) ||
-        (current_a < -CONTROL_MOTOR_CURRENT_CONTROL_MAX_A))
-    {
-        return -RT_EINVAL;
     }
 
     if (ctrl_motor_protocol_by_joint(joint_id) == CONTROL_MOTOR_PROTOCOL_CANSIMPLE)
@@ -4172,14 +4165,62 @@ rt_err_t control_motor_current_control(rt_uint8_t joint_id, float current_a)
     }
 
     rt_thread_mdelay(2);
-    ret = control_motor_enable(joint_id);
+    ret = control_motor_write_parameter(joint_id, MOTOR_PARAM_INDEX_IQ_REF, 0.0f, RT_FALSE);
     if (ret != RT_EOK)
     {
         return ret;
     }
 
     rt_thread_mdelay(2);
+    ret = control_motor_enable(joint_id);
+    if (ret != RT_EOK)
+    {
+        (void)control_motor_stop(joint_id, RT_FALSE);
+        return ret;
+    }
+
+    rt_thread_mdelay(2);
+    ret = control_motor_set_active_report(joint_id, RT_TRUE);
+    if (ret != RT_EOK)
+    {
+        (void)control_motor_stop(joint_id, RT_FALSE);
+    }
+    return ret;
+}
+
+rt_err_t control_motor_current_setpoint(rt_uint8_t joint_id, float current_a)
+{
+    if (!s_is_inited)
+    {
+        return -RT_ERROR;
+    }
+
+    if ((current_a != current_a) ||
+        (current_a > CONTROL_MOTOR_CURRENT_CONTROL_MAX_A) ||
+        (current_a < -CONTROL_MOTOR_CURRENT_CONTROL_MAX_A))
+    {
+        return -RT_EINVAL;
+    }
+
+    if (ctrl_motor_protocol_by_joint(joint_id) == CONTROL_MOTOR_PROTOCOL_CANSIMPLE)
+    {
+        return -RT_ENOSYS;
+    }
+
     return control_motor_write_parameter(joint_id, MOTOR_PARAM_INDEX_IQ_REF, current_a, RT_FALSE);
+}
+
+/* Compatibility helper for bounded Shell smoke tests. */
+rt_err_t control_motor_current_control(rt_uint8_t joint_id, float current_a)
+{
+    rt_err_t ret;
+
+    ret = control_motor_current_prepare(joint_id);
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+    return control_motor_current_setpoint(joint_id, current_a);
 }
 
 rt_err_t control_motor_cansimple_set_input_pos(rt_uint8_t joint_id,
