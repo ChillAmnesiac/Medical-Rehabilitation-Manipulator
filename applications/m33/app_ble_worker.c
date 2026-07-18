@@ -418,6 +418,7 @@ uint32_t app_ble_worker_drop_count(void)
 #include "app_ble_diag.h"
 #include "app_ble_protocol.h"
 #include "bt_app_gatt_handler.h"
+#include "rehab_mode_manager.h"
 
 typedef struct
 {
@@ -644,7 +645,12 @@ static void app_ble_worker_handle_frame(const uint8_t *frame,
                                         void *context)
 {
     app_ble_frame_context_t *frame_context = (app_ble_frame_context_t *)context;
+    app_ble_session_token_t token;
     app_ble_request_t request;
+    rehab_app_mode_command_t command;
+    rt_uint8_t ack[160];
+    rt_err_t ret;
+    int ack_length;
 
     if ((frame_context == RT_NULL) ||
         !app_ble_worker_session_is_current(frame_context->generation,
@@ -662,8 +668,64 @@ static void app_ble_worker_handle_frame(const uint8_t *frame,
     {
         return;
     }
-    /* Control dispatch is added only after APP_BLE ownership is source-bound. */
-    RT_UNUSED(request);
+    if (request.type == APP_BLE_REQUEST_HEARTBEAT)
+    {
+        ret = rehab_mode_manager_note_app_heartbeat(frame_context->generation);
+    }
+    else if (request.type == APP_BLE_REQUEST_STOP)
+    {
+        ret = rehab_mode_manager_stop_app(frame_context->generation);
+    }
+    else if ((request.type == APP_BLE_REQUEST_MODE) ||
+             (request.type == APP_BLE_REQUEST_TRAINING))
+    {
+        rt_memset(&command, 0, sizeof(command));
+        if (request.type == APP_BLE_REQUEST_TRAINING)
+        {
+            command.mode = REHAB_MODE_CURL;
+        }
+        else if (request.mode == APP_BLE_MODE_ACTIVE)
+        {
+            command.mode = REHAB_MODE_ACTIVE;
+        }
+        else if (request.mode == APP_BLE_MODE_ASSIST)
+        {
+            command.mode = REHAB_MODE_ASSIST;
+        }
+        else
+        {
+            command.mode = REHAB_MODE_RESIST;
+        }
+        command.joint_mask = request.joint_mask;
+        command.request_id = request.request_id;
+        command.session_generation = frame_context->generation;
+        command.ttl_ms = request.ttl_ms;
+        ret = rehab_mode_manager_apply_app_command(&command);
+    }
+    else
+    {
+        ret = -RT_EINVAL;
+    }
+
+    if (!app_ble_worker_session_is_current(frame_context->generation,
+                                           frame_context->conn_id))
+    {
+        return;
+    }
+    ack_length = rt_snprintf((char *)ack,
+                             sizeof(ack),
+                             "{\"schema\":\"rehab_ble_v1\",\"type\":\"command_result\","
+                             "\"request_id\":%lu,\"result\":\"%s\",\"code\":%d}\n",
+                             (unsigned long)request.request_id,
+                             (ret == RT_EOK) ? "applied" : "rejected",
+                             (int)ret);
+    if ((ack_length <= 0) || ((rt_size_t)ack_length >= sizeof(ack)))
+    {
+        return;
+    }
+    token.generation = frame_context->generation;
+    token.conn_id = frame_context->conn_id;
+    (void)app_ble_worker_enqueue_ack(&token, ack, (rt_uint16_t)ack_length);
 }
 
 static void app_ble_worker_entry(void *parameter)
@@ -672,15 +734,22 @@ static void app_ble_worker_entry(void *parameter)
     app_ble_rx_message_t message;
     app_ble_frame_context_t frame_context;
     rt_ssize_t recv_len;
+    rt_uint32_t observed_generation;
 
     RT_UNUSED(parameter);
     app_ble_reassembly_init(&reassembly);
+    app_ble_worker_snapshot_session(&observed_generation, RT_NULL);
     while (1)
     {
         rt_uint32_t current_generation;
 
         app_ble_worker_drain_tx();
         app_ble_worker_snapshot_session(&current_generation, RT_NULL);
+        if (current_generation != observed_generation)
+        {
+            (void)rehab_mode_manager_note_app_disconnect(observed_generation);
+            observed_generation = current_generation;
+        }
         app_ble_reassembly_sync_generation(&reassembly, current_generation);
 
         recv_len = rt_mq_recv(&g_app_ble_rx_mq,
