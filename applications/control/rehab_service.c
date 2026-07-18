@@ -3,6 +3,7 @@
 #include "control_layer.h"
 #include "control_layer_cfg.h"
 #include "rehab_active_follow.h"
+#include "rehab_assist_safety.h"
 #include "rehab_assist_strategy.h"
 #include "rehab_curl_planner.h"
 #include "rehab_intensity_level.h"
@@ -1167,6 +1168,22 @@ static void rehab_service_worker(void *parameter)
                 {
                     feedback_check_tick = rt_tick_get();
                     feedback_ret = rehab_feedback_active_check(&fb, feedback_check_tick);
+                }
+                if ((feedback_ret == RT_EOK) &&
+                    (mode == REHAB_DEMO_MODE_ASSIST) &&
+                    rehab_assist_overspeed(&fb, CONTROL_REHAB_ASSIST_MAX_VEL_RAD_S))
+                {
+                    fault_joint = joint;
+                    rehab_service_note_fault_mask(active_joint_mask,
+                                                  fault_joint,
+                                                  mode,
+                                                  mode_generation,
+                                                  CONTROL_STATUS_DETAIL_VELOCITY_OUT_OF_LIMIT,
+                                                  -RT_EINVAL,
+                                                  4U,
+                                                  0U);
+                    output_ret = -RT_EINVAL;
+                    break;
                 }
                 if (feedback_ret != RT_EOK)
                 {
