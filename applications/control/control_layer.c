@@ -4408,6 +4408,128 @@ rt_err_t control_motor_speed_control(rt_uint8_t joint_id, float speed_rad_s, flo
  * csp_mode=true 时按 RobStride CSP 流程写 run_mode=CSP、limit_spd、loc_ref。
  * CANSimple 电机则使用 position/passthrough。
  */
+rt_err_t control_motor_csp_prepare(rt_uint8_t joint_id, float limit_spd, float limit_cur_a)
+{
+    rt_err_t ret;
+    float motor_limit_spd;
+
+    if (!ctrl_motor_joint_is_calibrated(joint_id))
+    {
+        rt_kprintf("[control] reject csp prepare: joint=%u uncalibrated\n",
+                   (unsigned int)joint_id);
+        return -RT_EINVAL;
+    }
+
+    motor_limit_spd = ctrl_joint_to_motor_velocity(joint_id, limit_spd);
+    if (motor_limit_spd < 0.0f)
+    {
+        motor_limit_spd = -motor_limit_spd;
+    }
+
+    if (ctrl_motor_protocol_by_joint(joint_id) == CONTROL_MOTOR_PROTOCOL_CANSIMPLE)
+    {
+        rt_uint8_t motor_id = ctrl_motor_id_by_joint(joint_id);
+        rt_uint8_t payload[8] = {0};
+        float position_limit_current = (limit_cur_a > 0.0f)
+            ? limit_cur_a
+            : CONTROL_CANSIMPLE_POSITION_LIMIT_CURRENT;
+
+        if (ctrl_motor_id_invalid_for_joint(joint_id, motor_id))
+        {
+            return -RT_EINVAL;
+        }
+
+        ret = ctrl_cansimple_set_controller_mode(motor_id,
+                                                 CANSIMPLE_CONTROL_MODE_POSITION,
+                                                 CANSIMPLE_INPUT_MODE_PASSTHROUGH);
+        if (ret != RT_EOK)
+        {
+            return ret;
+        }
+
+        rt_thread_mdelay(1);
+        ctrl_float_to_le(motor_limit_spd * CONTROL_CANSIMPLE_VEL_REV_PER_RAD_S,
+                         &payload[0]);
+        ctrl_float_to_le(position_limit_current, &payload[4]);
+        ret = ctrl_cansimple_send(motor_id, CANSIMPLE_CMD_SET_LIMITS, payload, sizeof(payload));
+        if (ret != RT_EOK)
+        {
+            return ret;
+        }
+
+        rt_thread_mdelay(1);
+        return control_motor_enable(joint_id);
+    }
+
+    ret = control_motor_set_run_mode(joint_id, CONTROL_MOTOR_RUN_MODE_CSP);
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    rt_thread_mdelay(2);
+    ret = control_motor_enable(joint_id);
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+
+    if (limit_cur_a > 0.0f)
+    {
+        rt_thread_mdelay(2);
+        ret = control_motor_write_parameter(joint_id, MOTOR_PARAM_INDEX_LIMIT_CUR, limit_cur_a, RT_FALSE);
+        if (ret != RT_EOK)
+        {
+            return ret;
+        }
+    }
+
+    rt_thread_mdelay(1);
+    return control_motor_write_parameter(joint_id, MOTOR_PARAM_INDEX_LIMIT_SPD, motor_limit_spd, RT_FALSE);
+}
+
+rt_err_t control_motor_csp_setpoint(rt_uint8_t joint_id, float pos_rad)
+{
+    float motor_pos_rad;
+
+    if (!ctrl_motor_joint_is_calibrated(joint_id))
+    {
+        rt_kprintf("[control] reject csp setpoint: joint=%u uncalibrated\n",
+                   (unsigned int)joint_id);
+        return -RT_EINVAL;
+    }
+
+    if (ctrl_motor_protocol_by_joint(joint_id) == CONTROL_MOTOR_PROTOCOL_CANSIMPLE)
+    {
+        return control_motor_cansimple_set_input_pos(joint_id, pos_rad, 0.0f, 0.0f);
+    }
+
+    motor_pos_rad = ctrl_joint_to_motor_position(joint_id, pos_rad);
+    return control_motor_write_parameter(joint_id, MOTOR_PARAM_INDEX_LOC_REF, motor_pos_rad, RT_FALSE);
+}
+
+rt_err_t control_motor_csp_group_stop(rt_uint8_t joint_mask)
+{
+    rt_err_t first_error = RT_EOK;
+    rt_uint8_t joint;
+
+    for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
+    {
+        rt_err_t ret;
+
+        if ((joint_mask & (rt_uint8_t)(1U << (joint - 1U))) == 0U)
+        {
+            continue;
+        }
+        ret = control_motor_stop(joint, RT_FALSE);
+        if ((ret != RT_EOK) && (first_error == RT_EOK))
+        {
+            first_error = ret;
+        }
+    }
+    return first_error;
+}
+
 rt_err_t control_motor_position_control_with_current_limit(rt_uint8_t joint_id,
                                                            float pos_rad,
                                                            float limit_spd,
@@ -4425,6 +4547,16 @@ rt_err_t control_motor_position_control_with_current_limit(rt_uint8_t joint_id,
         rt_kprintf("[control] reject position control: joint=%u uncalibrated\n",
                    (unsigned int)joint_id);
         return -RT_EINVAL;
+    }
+
+    if (csp_mode)
+    {
+        ret = control_motor_csp_prepare(joint_id, limit_spd, limit_cur_a);
+        if (ret != RT_EOK)
+        {
+            return ret;
+        }
+        return control_motor_csp_setpoint(joint_id, pos_rad);
     }
 
     motor_pos_rad = ctrl_joint_to_motor_position(joint_id, pos_rad);

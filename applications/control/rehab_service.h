@@ -3,6 +3,7 @@
 
 #include <rtthread.h>
 
+#include "rehab_fixed_action.h"
 #include "rehab_joint_map.h"
 #include "rehab_strategy.h"
 
@@ -19,6 +20,7 @@ typedef enum
     REHAB_DEMO_MODE_MEMORY_RECORD,
     REHAB_DEMO_MODE_MEMORY_PLAYBACK,
     REHAB_DEMO_MODE_CURL,
+    REHAB_DEMO_MODE_FIXED_ACTION,
 } rehab_demo_mode_t;
 
 typedef enum
@@ -84,6 +86,10 @@ typedef struct
     rt_uint32_t mode_generation;
     rt_uint8_t curl_phase;
     rt_uint32_t curl_repetitions;
+    rt_uint8_t fixed_action_id;
+    rt_uint8_t fixed_action_state;
+    rt_uint32_t fixed_action_repetitions;
+    rt_err_t fixed_action_fault;
 } rehab_service_status_t;
 
 rt_err_t rehab_service_init(void);
@@ -100,6 +106,11 @@ rt_err_t rehab_service_set_mode_mask_if_unchanged(
     rehab_cmd_source_t expected_source,
     rt_uint32_t expected_generation);
 rt_err_t rehab_service_curl_start_if_unchanged(
+    rehab_cmd_source_t source,
+    rehab_cmd_source_t expected_source,
+    rt_uint32_t expected_generation);
+rt_err_t rehab_service_fixed_action_start_if_unchanged(
+    rehab_fixed_action_id_t action,
     rehab_cmd_source_t source,
     rehab_cmd_source_t expected_source,
     rt_uint32_t expected_generation);

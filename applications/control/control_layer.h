@@ -268,6 +268,12 @@ rt_err_t control_motor_position_control_with_current_limit(rt_uint8_t joint_id,
                                                            float limit_spd,
                                                            float limit_cur_a,
                                                            rt_bool_t csp_mode);
+/* Prepare CSP/position mode once for high-rate smooth setpoints. */
+rt_err_t control_motor_csp_prepare(rt_uint8_t joint_id, float limit_spd, float limit_cur_a);
+/* Update only the position target after control_motor_csp_prepare(). */
+rt_err_t control_motor_csp_setpoint(rt_uint8_t joint_id, float pos_rad);
+/* Stop all joints selected by a one-based joint mask. */
+rt_err_t control_motor_csp_group_stop(rt_uint8_t joint_mask);
 /* CANSimple 位置控制：用于 CANSimple/ODrive-like 电机。 */
 rt_err_t control_motor_cansimple_set_input_pos(rt_uint8_t joint_id, float pos_rad, float vel_ff_rad_s, float torque_ff_nm);
 /* CANSimple 速度控制：用于 CANSimple/ODrive-like 电机。 */
