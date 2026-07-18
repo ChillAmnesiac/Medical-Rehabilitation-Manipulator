@@ -49,6 +49,7 @@ typedef struct
     rt_uint8_t last_fault_joint;
     rt_uint8_t last_fault_stage;
     rt_uint16_t last_fault_feedback_age_ms;
+    float last_fault_velocity_rad_s;
     rt_uint8_t flags;
     rt_uint8_t assist_engaged_mask;
     rt_bool_t feedback_fresh;

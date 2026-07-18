@@ -791,6 +791,7 @@ static void rehab_service_apply_status_locked(rehab_demo_mode_t mode,
     s_rehab.status.last_fault_joint = 0U;
     s_rehab.status.last_fault_stage = 0U;
     s_rehab.status.last_fault_feedback_age_ms = 0U;
+    s_rehab.status.last_fault_velocity_rad_s = 0.0f;
     s_rehab.status.last_result = result;
     s_rehab.stop_pending = RT_FALSE;
     s_rehab.status.feedback_fresh = RT_FALSE;
@@ -810,7 +811,8 @@ static void rehab_service_note_fault_mask(rt_uint8_t joint_mask,
                                           rt_uint8_t detail,
                                           rt_err_t result,
                                           rt_uint8_t fault_stage,
-                                          rt_uint16_t fault_age_ms)
+                                          rt_uint16_t fault_age_ms,
+                                          float fault_velocity_rad_s)
 {
     rt_bool_t should_stop;
 
@@ -836,6 +838,7 @@ static void rehab_service_note_fault_mask(rt_uint8_t joint_mask,
     s_rehab.status.last_fault_joint = m33_joint;
     s_rehab.status.last_fault_stage = fault_stage;
     s_rehab.status.last_fault_feedback_age_ms = fault_age_ms;
+    s_rehab.status.last_fault_velocity_rad_s = fault_velocity_rad_s;
     rehab_service_clear_observation_locked();
     s_rehab.stopped_for_fault = RT_TRUE;
     rehab_service_set_result_locked(detail, result);
@@ -861,7 +864,8 @@ static void rehab_service_note_fault(rt_uint8_t m33_joint,
                                   detail,
                                   result,
                                   3U,
-                                  0xFFFFU);
+                                  0xFFFFU,
+                                  0.0f);
 }
 
 static void rehab_service_complete_to_passive(rt_uint8_t m33_joint, rt_err_t result)
@@ -1184,7 +1188,8 @@ static void rehab_service_worker(void *parameter)
                                                   CONTROL_STATUS_DETAIL_VELOCITY_OUT_OF_LIMIT,
                                                   -RT_EINVAL,
                                                   4U,
-                                                  0U);
+                                                  0U,
+                                                  fb.vel_rad_s);
                     output_ret = -RT_EINVAL;
                     break;
                 }
@@ -1202,7 +1207,8 @@ static void rehab_service_worker(void *parameter)
                                                   CONTROL_STATUS_DETAIL_MOTOR_FAULT,
                                                   feedback_ret,
                                                   1U,
-                                                  fault_age_ms);
+                                                  fault_age_ms,
+                                                  0.0f);
                     output_ret = feedback_ret;
                     break;
                 }
@@ -1330,7 +1336,8 @@ static void rehab_service_worker(void *parameter)
                                               CONTROL_STATUS_DETAIL_MOTOR_FAULT,
                                               output_ret,
                                               2U,
-                                              0xFFFFU);
+                                              0xFFFFU,
+                                              0.0f);
                 rt_thread_mdelay(CONTROL_REHAB_SERVICE_PERIOD_MS);
                 continue;
             }

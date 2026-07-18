@@ -56,7 +56,7 @@ static void rehab_shell_print_status(void)
     rehab_service_status_t status;
 
     rehab_service_get_status(&status);
-    rt_kprintf("rehab status mode=%s source=%u joint=%s m33_joint=%u mask=0x%02X fresh=%u detail=%u fault_joint=%u fault_stage=%u fault_age_ms=%u assist=%u torque_x1000=%d vel_x1000=%d current_x1000=%d limit_x1000=%d gain_x1000=%d pid_kp_x1000=%d pid_ki_x1000=%d pid_kd_x1000=%d pid_load_x1000=%d pid_speed_x1000=%d pid_err_x1000=%d pid_trim_x1000=%d adrc_err_x1000=%d adrc_z1_x1000=%d adrc_z2_x1000=%d adrc_z3_x1000=%d adrc_trim_x1000=%d sat=%u record_count=%u playback_index=%u curl_phase=%u curl_reps=%lu last=%d cycles=%lu last_tick=%lu max_jitter_ms=%lu\n",
+    rt_kprintf("rehab status mode=%s source=%u joint=%s m33_joint=%u mask=0x%02X fresh=%u detail=%u fault_joint=%u fault_stage=%u fault_age_ms=%u fault_vel_x1000=%d assist=%u torque_x1000=%d vel_x1000=%d current_x1000=%d limit_x1000=%d gain_x1000=%d pid_kp_x1000=%d pid_ki_x1000=%d pid_kd_x1000=%d pid_load_x1000=%d pid_speed_x1000=%d pid_err_x1000=%d pid_trim_x1000=%d adrc_err_x1000=%d adrc_z1_x1000=%d adrc_z2_x1000=%d adrc_z3_x1000=%d adrc_trim_x1000=%d sat=%u record_count=%u playback_index=%u curl_phase=%u curl_reps=%lu last=%d cycles=%lu last_tick=%lu max_jitter_ms=%lu\n",
                rehab_shell_mode_name(status.mode),
                (unsigned int)status.source,
                rehab_joint_map_name(status.joint),
@@ -67,6 +67,7 @@ static void rehab_shell_print_status(void)
                (unsigned int)status.last_fault_joint,
                (unsigned int)status.last_fault_stage,
                (unsigned int)status.last_fault_feedback_age_ms,
+               rehab_shell_scaled(status.last_fault_velocity_rad_s),
                status.assist_engaged ? 1U : 0U,
                rehab_shell_scaled(status.feedback_torque_nm),
                rehab_shell_scaled(status.feedback_vel_rad_s),
