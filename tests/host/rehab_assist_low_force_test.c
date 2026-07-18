@@ -34,6 +34,7 @@ static rehab_strategy_params_t assist_params(void)
 
     memset(&params, 0, sizeof(params));
     params.follow_direction = -1.0f;
+    params.assist_direction = 1.0f;
     params.assist_max_current_a = 1.0f;
     params.assist_current_gain_a_per_nm = 2.0f;
     params.assist_velocity_fallback_enabled = RT_TRUE;
@@ -73,11 +74,11 @@ static void test_low_force_velocity_fallback_is_bounded_and_resets(void)
     require_true(out.engaged == RT_TRUE, "velocity fallback should engage without torque");
     require_true(out.type == REHAB_STRATEGY_OUTPUT_CURRENT,
                  "velocity fallback should request current control");
-    require_close(out.current_a, -0.03f, 0.0001f,
-                  "first assist current must be slew limited");
+    require_close(out.current_a, 0.03f, 0.0001f,
+                  "first assist current must add power in the motion direction");
 
     rehab_assist_strategy_step(&state, &params, &fb, 1.0f, &out);
-    require_close(out.current_a, -0.06f, 0.0001f,
+    require_close(out.current_a, 0.06f, 0.0001f,
                   "assist current must continue with bounded steps");
 
     fb.vel_rad_s = 0.005f;
@@ -87,7 +88,7 @@ static void test_low_force_velocity_fallback_is_bounded_and_resets(void)
 
     fb.vel_rad_s = 0.02f;
     rehab_assist_strategy_step(&state, &params, &fb, 1.0f, &out);
-    require_close(out.current_a, -0.03f, 0.0001f,
+    require_close(out.current_a, 0.03f, 0.0001f,
                   "a new engagement must restart the slew from zero");
 }
 
