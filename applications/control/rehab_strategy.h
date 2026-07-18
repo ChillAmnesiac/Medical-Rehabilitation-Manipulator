@@ -47,6 +47,7 @@ typedef struct
 typedef struct
 {
     float follow_direction;
+    float assist_direction;
     float resist_direction;
     float active_min_current_a;
     float active_max_current_a;

@@ -378,6 +378,7 @@ static void rehab_service_default_params(rehab_strategy_params_t *out)
     }
 
     out->follow_direction = CONTROL_REHAB_FOLLOW_DIRECTION;
+    out->assist_direction = CONTROL_REHAB_ASSIST_DIRECTION;
     out->resist_direction = CONTROL_REHAB_RESIST_DIRECTION;
     out->active_min_current_a = CONTROL_REHAB_ACTIVE_MIN_CUR_A;
     out->active_max_current_a = CONTROL_REHAB_ACTIVE_LIMIT_CUR_A;
@@ -532,6 +533,8 @@ static void rehab_service_sanitize_params(rehab_strategy_params_t *params)
     rehab_service_default_params(&defaults);
     params->follow_direction = rehab_service_direction_or_default(params->follow_direction,
                                                                   defaults.follow_direction);
+    params->assist_direction = rehab_service_direction_or_default(params->assist_direction,
+                                                                  defaults.assist_direction);
     params->resist_direction = rehab_service_direction_or_default(params->resist_direction,
                                                                   defaults.resist_direction);
     params->active_max_current_a = rehab_service_clamp_current_limit(params->active_max_current_a,

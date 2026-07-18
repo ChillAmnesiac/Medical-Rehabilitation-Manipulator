@@ -91,6 +91,7 @@ void rehab_assist_strategy_step(rehab_assist_strategy_state_t *state,
     float abs_vel;
     float current_mag;
     float effective_gain;
+    float assist_direction;
     float trigger_sign;
     float pid_error;
     float pid_trim;
@@ -109,6 +110,11 @@ void rehab_assist_strategy_step(rehab_assist_strategy_state_t *state,
     if (torque_sign == 0.0f)
     {
         torque_sign = 1.0f;
+    }
+    assist_direction = params->assist_direction;
+    if (assist_direction == 0.0f)
+    {
+        assist_direction = params->follow_direction;
     }
 
     out->type = REHAB_STRATEGY_OUTPUT_STOP;
@@ -248,7 +254,7 @@ void rehab_assist_strategy_step(rehab_assist_strategy_state_t *state,
     out->effective_gain = effective_gain;
     out->current_saturated = (current_mag >= rehab_strategy_absf(params->assist_max_current_a)) ?
                              RT_TRUE : RT_FALSE;
-    out->current_a = params->follow_direction *
+    out->current_a = assist_direction *
                      trigger_sign *
                      rehab_strategy_clampf(current_mag, params->assist_max_current_a);
     out->current_a = rehab_assist_strategy_slew(out->current_a,
