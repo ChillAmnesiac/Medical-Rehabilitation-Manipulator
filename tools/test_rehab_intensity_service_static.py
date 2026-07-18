@@ -27,8 +27,14 @@ class RehabIntensityServiceStaticTest(unittest.TestCase):
         self.assertIn("rehab_service_intensity_owner_check_locked", set_body)
         self.assertIn("rehab_intensity_current_for_level", set_body)
         self.assertIn("s_rehab.params.assist_max_current_a", set_body)
+        self.assertIn("s_rehab.params.assist_min_current_a = selected_current", set_body)
         self.assertIn("s_rehab.params.resist_max_current_a", set_body)
         self.assertNotIn("rehab_service_reset_all_strategy_states_locked", set_body)
+
+        adjust_start = SERVICE_C.index("rt_err_t rehab_service_adjust_intensity_level")
+        adjust_end = SERVICE_C.index("rt_err_t rehab_service_get_params", adjust_start)
+        adjust_body = SERVICE_C[adjust_start:adjust_end]
+        self.assertIn("s_rehab.params.assist_min_current_a = selected_current", adjust_body)
 
         owner_start = SERVICE_C.index(
             "static rt_err_t rehab_service_intensity_owner_check_locked"

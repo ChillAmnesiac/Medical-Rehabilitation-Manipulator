@@ -1887,6 +1887,7 @@ rt_err_t rehab_service_set_intensity_level(rehab_demo_mode_t mode,
         if (mode == REHAB_DEMO_MODE_ASSIST)
         {
             s_rehab.params.assist_max_current_a = selected_current;
+            s_rehab.params.assist_min_current_a = selected_current;
         }
         else
         {
@@ -1935,6 +1936,7 @@ rt_err_t rehab_service_adjust_intensity_level(rehab_demo_mode_t mode,
         if (mode == REHAB_DEMO_MODE_ASSIST)
         {
             s_rehab.params.assist_max_current_a = selected_current;
+            s_rehab.params.assist_min_current_a = selected_current;
         }
         else
         {
