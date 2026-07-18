@@ -300,7 +300,7 @@ typedef struct
     rt_uint32_t link_seq;
 } app_ble_status_msg_t;
 
-#define REHAB_MODE_PROTOCOL_VERSION       (2UL)
+#define REHAB_MODE_PROTOCOL_VERSION       (3UL)
 #define REHAB_MODE_SOURCE_VOICE           (1UL)
 #define REHAB_MODE_ACTION_SET_MODE        (0UL)
 #define REHAB_MODE_ACTION_LEVEL_UP        (1UL)
@@ -308,7 +308,7 @@ typedef struct
 #define REHAB_MODE_REQUEST_MODE_PASSIVE   (0UL)
 #define REHAB_MODE_REQUEST_MODE_ASSIST    (3UL)
 #define REHAB_MODE_REQUEST_MODE_RESIST    (4UL)
-#define REHAB_MODE_JOINT_MASK             (0x10UL)
+#define REHAB_MODE_JOINT_MASK             (0x38UL)
 #define REHAB_MODE_MAX_TTL_MS             (500UL)
 
 #define REHAB_MODE_RESULT_NONE            (0UL)
