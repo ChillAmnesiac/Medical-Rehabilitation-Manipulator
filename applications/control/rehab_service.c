@@ -714,6 +714,8 @@ static void rehab_service_apply_status_locked(rehab_demo_mode_t mode,
     s_rehab.status.m33_joint_id = m33_joint;
     s_rehab.status.active_joint_mask = active_joint_mask;
     s_rehab.status.detail = detail;
+    s_rehab.status.last_fault_joint = 0U;
+    s_rehab.status.last_fault_feedback_age_ms = 0U;
     s_rehab.status.last_result = result;
     s_rehab.stop_pending = RT_FALSE;
     s_rehab.status.feedback_fresh = RT_FALSE;
@@ -731,7 +733,15 @@ static void rehab_service_note_fault_mask(rt_uint8_t joint_mask,
                                           rt_uint8_t detail,
                                           rt_err_t result)
 {
+    control_motor_feedback_t fault_fb;
+    rt_uint16_t fault_age_ms = 0xFFFFU;
     rt_bool_t should_stop;
+
+    if ((control_get_motor_feedback(m33_joint, &fault_fb) == RT_EOK) &&
+        (fault_fb.timestamp != 0U))
+    {
+        fault_age_ms = rehab_ticks_to_ms_u16(rt_tick_get() - fault_fb.timestamp);
+    }
 
     if (!rehab_service_joint_mask_valid(joint_mask))
     {
@@ -752,6 +762,8 @@ static void rehab_service_note_fault_mask(rt_uint8_t joint_mask,
     s_rehab.status.feedback_fresh = RT_FALSE;
     s_rehab.status.assist_engaged = RT_FALSE;
     s_rehab.status.assist_engaged_mask = 0U;
+    s_rehab.status.last_fault_joint = m33_joint;
+    s_rehab.status.last_fault_feedback_age_ms = fault_age_ms;
     rehab_service_clear_observation_locked();
     s_rehab.stopped_for_fault = RT_TRUE;
     rehab_service_set_result_locked(detail, result);

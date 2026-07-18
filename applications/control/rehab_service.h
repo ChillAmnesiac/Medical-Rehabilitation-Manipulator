@@ -45,6 +45,8 @@ typedef struct
     rt_uint8_t m33_joint_id;
     rt_uint8_t active_joint_mask;
     rt_uint8_t detail;
+    rt_uint8_t last_fault_joint;
+    rt_uint16_t last_fault_feedback_age_ms;
     rt_uint8_t flags;
     rt_uint8_t assist_engaged_mask;
     rt_bool_t feedback_fresh;

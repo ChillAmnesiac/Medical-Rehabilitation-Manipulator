@@ -4,6 +4,8 @@ import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
 SERVICE_C = (ROOT / "applications" / "control" / "rehab_service.c").read_text(encoding="utf-8")
+SERVICE_H = (ROOT / "applications" / "control" / "rehab_service.h").read_text(encoding="utf-8")
+SHELL_C = (ROOT / "applications" / "control" / "rehab_shell.c").read_text(encoding="utf-8")
 
 
 class RehabServiceActuationStaticTest(unittest.TestCase):
@@ -79,6 +81,17 @@ class RehabServiceActuationStaticTest(unittest.TestCase):
         self.assertIn("expected_generation", body)
         self.assertIn("s_rehab.status.mode_generation != expected_generation", body)
         self.assertIn("rt_mutex_take(&s_rehab.actuation_lock", body)
+
+    def test_fault_status_preserves_joint_and_feedback_age(self):
+        self.assertIn("last_fault_joint", SERVICE_H)
+        self.assertIn("last_fault_feedback_age_ms", SERVICE_H)
+        start = SERVICE_C.index("static void rehab_service_note_fault_mask")
+        end = SERVICE_C.index("static void rehab_service_note_fault(", start)
+        body = SERVICE_C[start:end]
+        self.assertIn("s_rehab.status.last_fault_joint = m33_joint", body)
+        self.assertIn("s_rehab.status.last_fault_feedback_age_ms", body)
+        self.assertIn("fault_joint=%u", SHELL_C)
+        self.assertIn("fault_age_ms=%u", SHELL_C)
 
     def test_failed_stop_latch_blocks_normal_mode_entry(self):
         self.assertGreaterEqual(SERVICE_C.count("s_rehab.stop_pending"), 4)
