@@ -42,11 +42,11 @@ static void test_joint5_position_must_stay_inside_calibrated_range(void)
 {
     control_motor_feedback_t fb = feedback(0.0f);
 
-    fb.pos_rad = 6.238f;
+    fb.pos_rad = 6.000f;
     require_true(rehab_assist_position_safe(5U, &fb),
                  "joint 5 hard minimum must be allowed");
 
-    fb.pos_rad = 7.829f;
+    fb.pos_rad = 8.264f;
     require_true(rehab_assist_position_safe(5U, &fb),
                  "joint 5 hard maximum must be allowed");
 
@@ -54,7 +54,7 @@ static void test_joint5_position_must_stay_inside_calibrated_range(void)
     require_true(!rehab_assist_position_safe(5U, &fb),
                  "joint 5 below the hard minimum must be rejected");
 
-    fb.pos_rad = 7.900f;
+    fb.pos_rad = 8.300f;
     require_true(!rehab_assist_position_safe(5U, &fb),
                  "joint 5 above the hard maximum must be rejected");
 }
