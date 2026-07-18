@@ -22,22 +22,36 @@ class RehabServiceActuationStaticTest(unittest.TestCase):
         start = SERVICE_C.index("static rt_err_t rehab_service_prepare_feedback(")
         end = SERVICE_C.index("static float rehab_service_positive_or_default", start)
         body = SERVICE_C[start:end]
-        self.assertIn("rehab_feedback_active_check(&fb, now)", body)
+        snapshot = body.index("control_get_motor_feedback(m33_joint_id, &fb)")
+        guard = body.index("rehab_feedback_active_check(&fb, rt_tick_get())", snapshot)
+        self.assertLess(snapshot, guard)
 
     def test_mask_feedback_prepare_rejects_fault_before_mode_transition(self):
         start = SERVICE_C.index("static rt_err_t rehab_service_prepare_feedback_mask")
         end = SERVICE_C.index("static void rehab_service_reset_all_strategy_states_locked", start)
         body = SERVICE_C[start:end]
-        self.assertIn("rehab_feedback_active_check(&fb, now)", body)
+        self.assertNotIn("rehab_feedback_active_check(&fb, now)", body)
+        self.assertIn("rehab_feedback_active_check(&fb, rt_tick_get())", body)
         self.assertIn("if (feedback_ret == -RT_ERROR)", body)
 
     def test_worker_checks_fault_before_running_strategy(self):
         start = SERVICE_C.index("static void rehab_service_worker")
         end = SERVICE_C.index("rt_err_t rehab_service_init", start)
         body = SERVICE_C[start:end]
-        guard = body.index("rehab_feedback_active_check(&fb, now)")
+        guard = body.index("rehab_feedback_active_check(&fb, feedback_check_tick)")
         strategy = body.index("rehab_assist_strategy_step")
         self.assertLess(guard, strategy)
+
+    def test_worker_reads_feedback_tick_after_snapshot(self):
+        start = SERVICE_C.index("static void rehab_service_worker")
+        end = SERVICE_C.index("rt_err_t rehab_service_init", start)
+        body = SERVICE_C[start:end]
+        snapshot = body.index("control_get_motor_feedback(joint, &fb)")
+        tick = body.index("feedback_check_tick = rt_tick_get();", snapshot)
+        guard = body.index("rehab_feedback_active_check(&fb, feedback_check_tick)", tick)
+        self.assertLess(snapshot, tick)
+        self.assertLess(tick, guard)
+        self.assertNotIn("rehab_feedback_active_check(&fb, now)", body)
 
     def test_current_write_rechecks_feedback_under_actuation_lock(self):
         start = SERVICE_C.index("static rt_err_t rehab_service_apply_strategy_output")

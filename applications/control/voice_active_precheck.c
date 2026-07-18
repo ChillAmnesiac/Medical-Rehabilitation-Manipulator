@@ -65,7 +65,6 @@ static void voice_precheck_record(const control_voice_precheck_result_t *result)
 }
 
 static void voice_precheck_assess_joint(rt_uint8_t joint_id,
-                                        rt_tick_t assessment_tick,
                                         control_voice_precheck_result_t *result)
 {
     control_motor_feedback_t feedback;
@@ -75,7 +74,7 @@ static void voice_precheck_assess_joint(rt_uint8_t joint_id,
     result->joint_id = joint_id;
     result->motor_id = joint_id;
     result->age_ms = CONTROL_VOICE_PRECHECK_AGE_UNAVAILABLE;
-    result->assessment_tick = assessment_tick;
+    result->assessment_tick = rt_tick_get();
 
     if ((control_get_motor_feedback(joint_id, &feedback) == RT_EOK) &&
         (feedback.timestamp != 0U))
@@ -85,7 +84,8 @@ static void voice_precheck_assess_joint(rt_uint8_t joint_id,
         result->protocol = (rt_uint8_t)feedback.protocol;
         result->mode_state = feedback.mode_state;
         result->fault_summary = feedback.fault_summary;
-        result->age_ms = voice_precheck_age_ms(assessment_tick,
+        result->assessment_tick = rt_tick_get();
+        result->age_ms = voice_precheck_age_ms(result->assessment_tick,
                                                feedback.timestamp);
     }
     else
@@ -150,9 +150,7 @@ rt_err_t control_voice_precheck_assess(control_voice_precheck_result_t *out)
              joint_id <= CONTROL_VOICE_PRECHECK_LAST_JOINT_ID;
              joint_id++)
         {
-            voice_precheck_assess_joint(joint_id,
-                                        result.assessment_tick,
-                                        &result);
+            voice_precheck_assess_joint(joint_id, &result);
             if (!result.passed)
             {
                 break;

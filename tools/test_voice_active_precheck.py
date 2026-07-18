@@ -206,3 +206,7 @@ def test_voice_precheck_has_no_motion_side_effects():
     assert "CONTROL_VOICE_PRECHECK_FIRST_JOINT_ID 4U" in source
     assert "CONTROL_VOICE_PRECHECK_LAST_JOINT_ID 6U" in source
     assert "CONTROL_VOICE_PRECHECK_JOINT_MASK 0x38U" in source
+    snapshot = source.index("control_get_motor_feedback(joint_id, &feedback)")
+    tick = source.index("result->assessment_tick = rt_tick_get();", snapshot)
+    age = source.index("voice_precheck_age_ms(result->assessment_tick", tick)
+    assert snapshot < tick < age

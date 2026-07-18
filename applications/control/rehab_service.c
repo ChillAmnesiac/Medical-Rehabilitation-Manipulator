@@ -81,11 +81,9 @@ static rt_err_t rehab_service_prepare_feedback(rt_uint8_t m33_joint_id)
     timeout = rt_tick_from_millisecond(CONTROL_REHAB_FEEDBACK_PREPARE_TIMEOUT_MS);
     do
     {
-        rt_tick_t now = rt_tick_get();
-
         if (control_get_motor_feedback(m33_joint_id, &fb) == RT_EOK)
         {
-            ret = rehab_feedback_active_check(&fb, now);
+            ret = rehab_feedback_active_check(&fb, rt_tick_get());
             if (ret == RT_EOK)
             {
                 return RT_EOK;
@@ -207,7 +205,6 @@ static rt_err_t rehab_service_prepare_feedback_mask(rt_uint8_t joint_mask)
     do
     {
         rt_bool_t all_fresh = RT_TRUE;
-        rt_tick_t now = rt_tick_get();
 
         for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
         {
@@ -221,7 +218,7 @@ static rt_err_t rehab_service_prepare_feedback_mask(rt_uint8_t joint_mask)
             feedback_ret = control_get_motor_feedback(joint, &fb);
             if (feedback_ret == RT_EOK)
             {
-                feedback_ret = rehab_feedback_active_check(&fb, now);
+                feedback_ret = rehab_feedback_active_check(&fb, rt_tick_get());
             }
             if (feedback_ret == -RT_ERROR)
             {
@@ -304,7 +301,6 @@ static rt_err_t rehab_service_prepare_current_mask(rt_uint8_t active_joint_mask)
     do
     {
         rt_bool_t all_ready = RT_TRUE;
-        rt_tick_t now = rt_tick_get();
 
         for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
         {
@@ -318,7 +314,7 @@ static rt_err_t rehab_service_prepare_current_mask(rt_uint8_t active_joint_mask)
             ret = control_get_motor_feedback(joint, &fb);
             if (ret == RT_EOK)
             {
-                ret = rehab_feedback_active_check(&fb, now);
+                ret = rehab_feedback_active_check(&fb, rt_tick_get());
             }
             if (ret == -RT_ERROR)
             {
@@ -1054,6 +1050,7 @@ static void rehab_service_worker(void *parameter)
             for (joint = 1U; joint <= CONTROL_MOTOR_JOINT_COUNT; joint++)
             {
                 control_motor_feedback_t fb;
+                rt_tick_t feedback_check_tick = 0U;
                 rt_err_t feedback_ret;
 
                 if (!rehab_service_joint_mask_has(active_joint_mask, joint))
@@ -1064,14 +1061,15 @@ static void rehab_service_worker(void *parameter)
                 feedback_ret = control_get_motor_feedback(joint, &fb);
                 if (feedback_ret == RT_EOK)
                 {
-                    feedback_ret = rehab_feedback_active_check(&fb, now);
+                    feedback_check_tick = rt_tick_get();
+                    feedback_ret = rehab_feedback_active_check(&fb, feedback_check_tick);
                 }
                 if (feedback_ret != RT_EOK)
                 {
                     fault_joint = joint;
                     if (fb.timestamp != 0U)
                     {
-                        fault_age_ms = rehab_ticks_to_ms_u16(now - fb.timestamp);
+                        fault_age_ms = rehab_ticks_to_ms_u16(feedback_check_tick - fb.timestamp);
                     }
                     rehab_service_note_fault_mask(active_joint_mask,
                                                   fault_joint,
@@ -1139,7 +1137,7 @@ static void rehab_service_worker(void *parameter)
                 output_ret = control_get_motor_feedback(joint, &fb);
                 if (output_ret == RT_EOK)
                 {
-                    output_ret = rehab_feedback_active_check(&fb, now);
+                    output_ret = rehab_feedback_active_check(&fb, rt_tick_get());
                 }
                 if (output_ret != RT_EOK)
                 {
@@ -1236,7 +1234,7 @@ static void rehab_service_worker(void *parameter)
             rt_bool_t fresh;
 
             fresh = (control_get_motor_feedback(m33_joint, &fb) == RT_EOK) &&
-                    rehab_feedback_is_fresh(&fb, now);
+                    rehab_feedback_is_fresh(&fb, rt_tick_get());
             if (!fresh)
             {
                 rehab_service_note_fault(m33_joint,
