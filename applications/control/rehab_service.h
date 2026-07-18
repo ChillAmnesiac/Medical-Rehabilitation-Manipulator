@@ -18,6 +18,7 @@ typedef enum
     REHAB_DEMO_MODE_RESIST,
     REHAB_DEMO_MODE_MEMORY_RECORD,
     REHAB_DEMO_MODE_MEMORY_PLAYBACK,
+    REHAB_DEMO_MODE_CURL,
 } rehab_demo_mode_t;
 
 typedef enum
@@ -80,6 +81,8 @@ typedef struct
     rt_tick_t worker_last_tick;
     rt_uint32_t worker_max_jitter_ms;
     rt_uint32_t mode_generation;
+    rt_uint8_t curl_phase;
+    rt_uint32_t curl_repetitions;
 } rehab_service_status_t;
 
 rt_err_t rehab_service_init(void);
@@ -92,6 +95,10 @@ rt_err_t rehab_service_set_mode_mask(rehab_demo_mode_t mode,
 rt_err_t rehab_service_set_mode_mask_if_unchanged(
     rehab_demo_mode_t mode,
     rt_uint8_t active_joint_mask,
+    rehab_cmd_source_t source,
+    rehab_cmd_source_t expected_source,
+    rt_uint32_t expected_generation);
+rt_err_t rehab_service_curl_start_if_unchanged(
     rehab_cmd_source_t source,
     rehab_cmd_source_t expected_source,
     rt_uint32_t expected_generation);
