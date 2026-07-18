@@ -7,7 +7,7 @@
 extern "C" {
 #endif
 
-#define VOICE_MODE_JOINT_MASK UINT32_C(0x10)
+#define VOICE_MODE_JOINT_MASK UINT32_C(0x38)
 #define VOICE_MODE_MAX_TTL_MS UINT32_C(500)
 
 typedef uint32_t voice_mode_source_t;

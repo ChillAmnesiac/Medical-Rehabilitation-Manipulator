@@ -13,6 +13,8 @@ HARNESS = r'''
 
 #include "voice_mode_request_guard.h"
 
+_Static_assert(VOICE_MODE_JOINT_MASK == 0x38U, "voice group mask");
+
 static voice_mode_request_t request(uint32_t epoch,
                                     uint32_t id,
                                     uint32_t mode,
