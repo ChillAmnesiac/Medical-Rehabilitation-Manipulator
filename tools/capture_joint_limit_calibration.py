@@ -79,12 +79,14 @@ def build_limit_summary(
     lower_return_rad: float,
     gear_ratio: float,
     repeat_tolerance_motor_rad: float,
-) -> dict[str, float | bool]:
+) -> dict[str, float | bool | str]:
     if gear_ratio <= 0.0:
         raise ValueError("gear_ratio must be positive")
     repeat_error = abs(lower_return_rad - lower_start_rad)
-    if repeat_error > repeat_tolerance_motor_rad:
-        raise ValueError(
+    repeatable = repeat_error <= repeat_tolerance_motor_rad
+    validation_error = ""
+    if not repeatable:
+        validation_error = (
             "lower-limit repeat error "
             f"{repeat_error:.6f} rad exceeds {repeat_tolerance_motor_rad:.6f} rad"
         )
@@ -97,7 +99,8 @@ def build_limit_summary(
         "motor_travel_rad": motor_travel,
         "joint_travel_rad": motor_travel / gear_ratio,
         "joint_travel_deg": math.degrees(motor_travel / gear_ratio),
-        "repeatable": True,
+        "repeatable": repeatable,
+        "validation_error": validation_error,
     }
 
 
@@ -318,6 +321,9 @@ def main(argv: list[str] | None = None) -> int:
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"csv={csv_path}")
     print(f"json={json_path}")
+    if not bool(summary["repeatable"]):
+        print(f"INVALID: {summary['validation_error']}")
+        return 2
     return 0
 
 

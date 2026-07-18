@@ -62,15 +62,18 @@ class JointLimitCalibrationTest(unittest.TestCase):
         )
         self.assertTrue(summary["repeatable"])
 
-    def test_summary_rejects_nonrepeatable_lower_limit(self):
-        with self.assertRaisesRegex(ValueError, "lower-limit repeat error"):
-            self.module.build_limit_summary(
-                lower_start_rad=-2.000,
-                upper_rad=-12.500,
-                lower_return_rad=-1.500,
-                gear_ratio=7.1844,
-                repeat_tolerance_motor_rad=0.10,
-            )
+    def test_summary_marks_nonrepeatable_lower_limit_invalid(self):
+        summary = self.module.build_limit_summary(
+            lower_start_rad=-2.000,
+            upper_rad=-12.500,
+            lower_return_rad=-1.500,
+            gear_ratio=7.1844,
+            repeat_tolerance_motor_rad=0.10,
+        )
+
+        self.assertFalse(summary["repeatable"])
+        self.assertAlmostEqual(summary["lower_repeat_error_motor_rad"], 0.50)
+        self.assertIn("lower-limit repeat error", summary["validation_error"])
 
 
 if __name__ == "__main__":
