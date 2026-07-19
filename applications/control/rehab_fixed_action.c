@@ -11,7 +11,7 @@ static const rehab_fixed_action_profile_t s_profiles[] = {
                 .hard_min_rad = 6.000f,
                 .hard_max_rad = 8.264f,
                 .safe_min_rad = 6.226f,
-                .safe_max_rad = 8.038f,
+                .safe_max_rad = 6.650f,
             },
         },
         .max_velocity_rad_s = 0.12f,
@@ -19,7 +19,7 @@ static const rehab_fixed_action_profile_t s_profiles[] = {
         .max_jerk_rad_s3 = 0.50f,
         .max_feedback_velocity_rad_s = 0.35f,
         .dwell_ms = 500U,
-        .repetitions = 3U,
+        .repetitions = 1U,
     },
     {
         .id = REHAB_FIXED_ACTION_SHOULDER_PLANAR,
@@ -130,9 +130,16 @@ static rt_err_t fixed_feedback_valid(const rehab_fixed_action_profile_t *profile
     return RT_EOK;
 }
 
+typedef enum
+{
+    FIXED_TARGET_SAFE_MIN = 0,
+    FIXED_TARGET_SAFE_MAX,
+    FIXED_TARGET_START,
+} fixed_target_t;
+
 static rt_err_t fixed_plan_segment(rehab_fixed_action_runner_t *runner,
                                    const rehab_fixed_action_feedback_t *feedback,
-                                   rt_bool_t to_safe_max,
+                                   fixed_target_t target,
                                    rt_uint32_t now_ms)
 {
     rt_uint32_t max_duration_ms = 1U;
@@ -150,7 +157,16 @@ static rt_err_t fixed_plan_segment(rehab_fixed_action_runner_t *runner,
         }
 
         joint_profile = &runner->profile->joint[joint];
-        target_rad = to_safe_max ? joint_profile->safe_max_rad : joint_profile->safe_min_rad;
+        if (target == FIXED_TARGET_START)
+        {
+            target_rad = runner->start_position_rad[joint];
+        }
+        else
+        {
+            target_rad = (target == FIXED_TARGET_SAFE_MAX)
+                             ? joint_profile->safe_max_rad
+                             : joint_profile->safe_min_rad;
+        }
         ret = rehab_scurve_plan(&runner->segment[joint],
                                 feedback->position_rad[joint],
                                 target_rad,
@@ -220,6 +236,13 @@ rt_err_t rehab_fixed_action_start(rehab_fixed_action_runner_t *runner,
 
     rt_memset(runner, 0, sizeof(*runner));
     runner->profile = profile;
+    for (rt_uint8_t joint = 1U; joint < REHAB_FIXED_ACTION_JOINT_SLOTS; joint++)
+    {
+        if (fixed_mask_has(profile->joint_mask, joint))
+        {
+            runner->start_position_rad[joint] = feedback->position_rad[joint];
+        }
+    }
     runner->state = REHAB_FIXED_ACTION_STATE_CSP_PREPARE;
     runner->segment_started_ms = now_ms;
     return RT_EOK;
@@ -274,7 +297,7 @@ void rehab_fixed_action_step(rehab_fixed_action_runner_t *runner,
     {
         rt_err_t ret;
 
-        ret = fixed_plan_segment(runner, feedback, RT_FALSE, now_ms);
+        ret = fixed_plan_segment(runner, feedback, FIXED_TARGET_SAFE_MIN, now_ms);
         if (ret != RT_EOK)
         {
             fixed_latch_fault(runner, ret);
@@ -291,7 +314,8 @@ void rehab_fixed_action_step(rehab_fixed_action_runner_t *runner,
     }
 
     if ((runner->state == REHAB_FIXED_ACTION_STATE_MOVE_A) ||
-        (runner->state == REHAB_FIXED_ACTION_STATE_MOVE_B))
+        (runner->state == REHAB_FIXED_ACTION_STATE_MOVE_B) ||
+        (runner->state == REHAB_FIXED_ACTION_STATE_RETURN_HOME))
     {
         rt_uint32_t elapsed_ms = now_ms - runner->segment_started_ms;
 
@@ -310,10 +334,17 @@ void rehab_fixed_action_step(rehab_fixed_action_runner_t *runner,
         out->result = RT_EOK;
         if (elapsed_ms >= runner->segment_duration_ms)
         {
-            runner->state = (runner->state == REHAB_FIXED_ACTION_STATE_MOVE_A)
-                                ? REHAB_FIXED_ACTION_STATE_DWELL_A
-                                : REHAB_FIXED_ACTION_STATE_DWELL_B;
-            runner->dwell_started_ms = now_ms;
+            if (runner->state == REHAB_FIXED_ACTION_STATE_RETURN_HOME)
+            {
+                runner->state = REHAB_FIXED_ACTION_STATE_COMPLETE;
+            }
+            else
+            {
+                runner->state = (runner->state == REHAB_FIXED_ACTION_STATE_MOVE_A)
+                                    ? REHAB_FIXED_ACTION_STATE_DWELL_A
+                                    : REHAB_FIXED_ACTION_STATE_DWELL_B;
+                runner->dwell_started_ms = now_ms;
+            }
             out->state = runner->state;
         }
         else
@@ -326,7 +357,7 @@ void rehab_fixed_action_step(rehab_fixed_action_runner_t *runner,
     if ((runner->state == REHAB_FIXED_ACTION_STATE_DWELL_A) &&
         ((rt_uint32_t)(now_ms - runner->dwell_started_ms) >= runner->profile->dwell_ms))
     {
-        rt_err_t ret = fixed_plan_segment(runner, feedback, RT_TRUE, now_ms);
+        rt_err_t ret = fixed_plan_segment(runner, feedback, FIXED_TARGET_SAFE_MAX, now_ms);
 
         if (ret != RT_EOK)
         {
@@ -344,11 +375,27 @@ void rehab_fixed_action_step(rehab_fixed_action_runner_t *runner,
         runner->completed_repetitions++;
         if (runner->completed_repetitions >= runner->profile->repetitions)
         {
-            runner->state = REHAB_FIXED_ACTION_STATE_COMPLETE;
+            rt_err_t ret = fixed_plan_segment(runner,
+                                              feedback,
+                                              FIXED_TARGET_START,
+                                              now_ms);
+
+            if (ret != RT_EOK)
+            {
+                fixed_latch_fault(runner, ret);
+                out->action = REHAB_FIXED_ACTION_OUTPUT_STOP;
+                out->result = ret;
+                out->state = runner->state;
+                return;
+            }
+            runner->state = REHAB_FIXED_ACTION_STATE_RETURN_HOME;
         }
         else
         {
-            rt_err_t ret = fixed_plan_segment(runner, feedback, RT_FALSE, now_ms);
+            rt_err_t ret = fixed_plan_segment(runner,
+                                              feedback,
+                                              FIXED_TARGET_SAFE_MIN,
+                                              now_ms);
 
             if (ret != RT_EOK)
             {

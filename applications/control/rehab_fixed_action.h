@@ -39,6 +39,7 @@ typedef enum
     REHAB_FIXED_ACTION_STATE_DWELL_A,
     REHAB_FIXED_ACTION_STATE_MOVE_B,
     REHAB_FIXED_ACTION_STATE_DWELL_B,
+    REHAB_FIXED_ACTION_STATE_RETURN_HOME,
     REHAB_FIXED_ACTION_STATE_DECEL_STOP,
     REHAB_FIXED_ACTION_STATE_COMPLETE,
     REHAB_FIXED_ACTION_STATE_PAUSED,
@@ -99,6 +100,7 @@ typedef struct
     const rehab_fixed_action_profile_t *profile;
     rehab_fixed_action_state_t state;
     rehab_scurve_profile_t segment[REHAB_FIXED_ACTION_JOINT_SLOTS];
+    float start_position_rad[REHAB_FIXED_ACTION_JOINT_SLOTS];
     rt_uint32_t segment_started_ms;
     rt_uint32_t dwell_started_ms;
     rt_uint32_t segment_duration_ms;

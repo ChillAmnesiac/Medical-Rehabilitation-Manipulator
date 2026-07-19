@@ -30,13 +30,54 @@ static void test_profiles_expose_safe_internal_masks(void)
     assert(elbow != RT_NULL);
     assert(elbow->joint_mask == 0x10U);
     assert(fabsf(elbow->joint[5].safe_min_rad - 6.226f) < 0.0001f);
-    assert(fabsf(elbow->joint[5].safe_max_rad - 8.038f) < 0.0001f);
+    assert(fabsf(elbow->joint[5].safe_max_rad - 6.650f) < 0.0001f);
+    assert((elbow->joint[5].safe_max_rad - 6.140f) < 0.5236f);
+    assert(elbow->repetitions == 1U);
     assert(shoulder != RT_NULL);
     assert(shoulder->joint_mask == 0x20U);
     assert(coordinated != RT_NULL);
     assert(coordinated->joint_mask == 0x30U);
     assert(placeholder != RT_NULL);
     assert(placeholder->enabled == RT_FALSE);
+}
+
+static void test_elbow_validation_returns_to_start_within_thirty_degrees(void)
+{
+    rehab_fixed_action_runner_t runner;
+    rehab_fixed_action_feedback_t feedback = zero_feedback();
+    rehab_fixed_action_output_t output;
+    rt_uint32_t t;
+    float maximum_displacement = 0.0f;
+    float last_setpoint = 0.0f;
+
+    feedback.position_rad[5] = 6.140f;
+    assert(rehab_fixed_action_start(&runner,
+                                    REHAB_FIXED_ACTION_ELBOW_FLEX_EXTEND,
+                                    &feedback,
+                                    0U) == RT_EOK);
+    for (t = 0U; t < 60000U; t += 20U)
+    {
+        rehab_fixed_action_step(&runner, &feedback, t, &output);
+        if (output.action == REHAB_FIXED_ACTION_OUTPUT_SETPOINT)
+        {
+            float displacement = fabsf(output.target_rad[5] - 6.140f);
+
+            if (displacement > maximum_displacement)
+            {
+                maximum_displacement = displacement;
+            }
+            last_setpoint = output.target_rad[5];
+            feedback.position_rad[5] = output.target_rad[5];
+        }
+        if (output.state == REHAB_FIXED_ACTION_STATE_COMPLETE)
+        {
+            assert(output.completed_repetitions == 1U);
+            assert(maximum_displacement < 0.5236f);
+            assert(fabsf(last_setpoint - 6.140f) < 0.002f);
+            return;
+        }
+    }
+    assert(0 && "elbow validation did not return to its start position");
 }
 
 static void test_disabled_or_unsafe_start_rejects_without_motion(void)
@@ -147,6 +188,7 @@ int main(void)
     test_single_joint_outputs_prepare_then_smooth_setpoints();
     test_coordinated_action_outputs_both_joint_setpoints();
     test_runner_completes_three_round_trips();
+    test_elbow_validation_returns_to_start_within_thirty_degrees();
     puts("rehab_fixed_action_test: PASS");
     return 0;
 }
