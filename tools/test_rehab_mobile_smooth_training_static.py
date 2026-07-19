@@ -87,6 +87,13 @@ class RehabMobileSmoothTrainingStaticTest(unittest.TestCase):
         self.assertIn("smooth-training.html", text)
         self.assertIn("平稳动作训练", text)
 
+    def test_mobile_app_defaults_to_smooth_training(self):
+        text = (WEB / "index.html").read_text(encoding="utf-8")
+
+        self.assertIn("url=smooth-training.html", text)
+        self.assertIn('href="smooth-training.html"', text)
+        self.assertNotIn("url=home.html", text)
+
     def test_webview_mirror_matches_web_page(self):
         self.assertEqual(
             (WEB / "smooth-training.html").read_text(encoding="utf-8"),
