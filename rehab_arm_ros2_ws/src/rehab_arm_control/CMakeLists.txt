@@ -11,6 +11,10 @@ ament_python_install_package(${PROJECT_NAME})
 
 install(PROGRAMS
   rehab_arm_control/demo_trajectory_node.py
+  rehab_arm_control/medical_arm_ik_tool
+  rehab_arm_control/medical_arm_ik_tool.py
+  rehab_arm_control/mujoco_plan_node
+  rehab_arm_control/mujoco_plan_node.py
   rehab_arm_control/vla_task_planner_node.py
   DESTINATION lib/${PROJECT_NAME}
 )

@@ -15,6 +15,8 @@ setup(
     entry_points={
         'console_scripts': [
             'demo_trajectory_node = rehab_arm_control.demo_trajectory_node:main',
+            'medical_arm_ik_tool = rehab_arm_control.medical_arm_ik_tool:main',
+            'mujoco_plan_node = rehab_arm_control.mujoco_plan_node:main',
             'vla_task_planner_node = rehab_arm_control.vla_task_planner_node:main',
         ],
     },
