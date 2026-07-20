@@ -46,7 +46,7 @@ __attribute__((weak)) struct _reent _impure_data;
 #define M33_AUTO_START_EMG_M55_INFERENCE 1
 #define M33_AUTO_EMG_SAMPLE_PERIOD_MS 20U
 #define M33_AUTO_EMG_MANAGE_F103 1
-#define M33_ENABLE_M55_IPC_AUTO_INIT 0
+#define M33_ENABLE_M55_IPC_AUTO_INIT 1
 #define M33_ENABLE_NANOPI_HEARTBEAT_BRIDGE 0
 
 typedef enum

@@ -3416,7 +3416,7 @@ int control_layer_init(const char *can_name)
 
     if (s_is_inited)
     {
-        return RT_EOK;
+        return control_sensor_module_init(ctrl_can_send, ctrl_next_tx_seq);
     }
 
     if ((dev_name == RT_NULL) || (dev_name[0] == '\0'))
