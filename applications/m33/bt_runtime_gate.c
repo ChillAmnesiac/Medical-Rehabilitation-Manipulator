@@ -6,8 +6,12 @@
 #include "bt_hci_transport.h"
 
 #ifndef M33_ENABLE_APP_BLE_RUNTIME
-#define M33_ENABLE_APP_BLE_RUNTIME 0
+#define M33_ENABLE_APP_BLE_RUNTIME 1
 #endif
+
+#define M33_BLE_AUTO_START_DELAY_MS 3000U
+#define M33_BLE_AUTO_START_STACK_SIZE 2048U
+#define M33_BLE_AUTO_START_PRIORITY 20U
 
 typedef enum
 {
@@ -20,6 +24,9 @@ typedef enum
 
 static struct rt_mutex g_m33_ble_gate_lock;
 static rt_bool_t g_m33_ble_gate_lock_ready;
+static struct rt_thread g_m33_ble_auto_start_thread;
+static rt_uint8_t g_m33_ble_auto_start_stack[M33_BLE_AUTO_START_STACK_SIZE];
+static rt_bool_t g_m33_ble_auto_start_started;
 #if M33_ENABLE_APP_BLE_RUNTIME
 static m33_ble_gate_state_t g_m33_ble_gate_state = M33_BLE_GATE_OFF;
 static rt_err_t g_m33_ble_gate_last_error = RT_EOK;
@@ -153,6 +160,52 @@ static rt_err_t m33_ble_gate_start(void)
 #else
     return -RT_ENOSYS;
 #endif
+}
+
+static void m33_ble_auto_start_entry(void *parameter)
+{
+    rt_err_t ret;
+
+    RT_UNUSED(parameter);
+    rt_thread_mdelay(M33_BLE_AUTO_START_DELAY_MS);
+    ret = m33_ble_gate_start();
+    rt_kprintf("[ble] auto start ret=%d\n", ret);
+}
+
+rt_err_t m33_ble_runtime_auto_start(void)
+{
+    rt_err_t ret;
+
+#if !M33_ENABLE_APP_BLE_RUNTIME
+    return -RT_ENOSYS;
+#endif
+    if (!g_m33_ble_gate_lock_ready)
+    {
+        return -RT_EBUSY;
+    }
+    if (g_m33_ble_auto_start_started)
+    {
+        return RT_EOK;
+    }
+
+    ret = rt_thread_init(&g_m33_ble_auto_start_thread,
+                         "ble_boot",
+                         m33_ble_auto_start_entry,
+                         RT_NULL,
+                         g_m33_ble_auto_start_stack,
+                         sizeof(g_m33_ble_auto_start_stack),
+                         M33_BLE_AUTO_START_PRIORITY,
+                         10);
+    if (ret != RT_EOK)
+    {
+        return ret;
+    }
+    ret = rt_thread_startup(&g_m33_ble_auto_start_thread);
+    if (ret == RT_EOK)
+    {
+        g_m33_ble_auto_start_started = RT_TRUE;
+    }
+    return ret;
 }
 
 static int cmd_m33_ble_start(int argc, char **argv)

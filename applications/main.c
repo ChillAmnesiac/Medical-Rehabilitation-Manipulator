@@ -9,6 +9,7 @@
 #include "m33/audio_capture.h"
 #include "m33/audio_playback.h"
 #include "m33/app_ble_service.h"
+#include "m33/bt_runtime_gate.h"
 #include "m33/can_driver.h"
 #include "drv_can.h"
 #include "m33/control_manager.h"
@@ -1094,6 +1095,7 @@ int main(void)
     rt_pin_write(LED_PIN_B, PIN_HIGH);
 #endif
     m33_init_framework();
+    (void)m33_ble_runtime_auto_start();
 #if M33_XIAOZHI_MINIMAL_FRAMEWORK
     while (1)
     {
