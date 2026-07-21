@@ -1,0 +1,378 @@
+{
+  "model_dir": "artifacts\\intent_model\\run-20260701-210956",
+  "model_path": "artifacts\\intent_model\\run-20260701-210956\\intent_model_int8.tflite",
+  "input_csv": "data\\sensor_capture\\S01_day2_windows.csv",
+  "class_names": [
+    "elbow_extend",
+    "elbow_flex",
+    "rest",
+    "shoulder_flex"
+  ],
+  "feature_columns": [
+    "sample_count",
+    "emg_biceps_mean",
+    "emg_biceps_std",
+    "emg_biceps_min",
+    "emg_biceps_max",
+    "emg_biceps_mav",
+    "emg_biceps_rms",
+    "emg_triceps_mean",
+    "emg_triceps_std",
+    "emg_triceps_min",
+    "emg_triceps_max",
+    "emg_triceps_mav",
+    "emg_triceps_rms",
+    "emg_ant_deltoid_mean",
+    "emg_ant_deltoid_std",
+    "emg_ant_deltoid_min",
+    "emg_ant_deltoid_max",
+    "emg_ant_deltoid_mav",
+    "emg_ant_deltoid_rms",
+    "stale_count"
+  ],
+  "sample_count": 8,
+  "feature_count": 20,
+  "class_count": 4,
+  "runtime": {
+    "input_dtype": "<class 'numpy.int8'>",
+    "input_quantization": [
+      0.013371267355978489,
+      86
+    ],
+    "output_dtype": "<class 'numpy.int8'>",
+    "output_quantization": [
+      0.00390625,
+      -128
+    ]
+  },
+  "samples": [
+    {
+      "source_row": 675,
+      "trial_id": "103_elbow_extend_01",
+      "true_label": "elbow_extend",
+      "expected_index": 0,
+      "expected_label": "elbow_extend",
+      "expected_output_int8": [
+        66,
+        -103,
+        -128,
+        -91
+      ],
+      "expected_output_float": [
+        0.7578125,
+        0.09765625,
+        0.0,
+        0.14453125
+      ],
+      "input_int8": [
+        127,
+        86,
+        111,
+        84,
+        94,
+        86,
+        86,
+        47,
+        39,
+        63,
+        41,
+        47,
+        44,
+        100,
+        127,
+        78,
+        127,
+        100,
+        125,
+        127
+      ]
+    },
+    {
+      "source_row": 644,
+      "trial_id": "102_elbow_flex_01",
+      "true_label": "elbow_flex",
+      "expected_index": 1,
+      "expected_label": "elbow_flex",
+      "expected_output_int8": [
+        -125,
+        125,
+        -128,
+        -128
+      ],
+      "expected_output_float": [
+        0.01171875,
+        0.98828125,
+        0.0,
+        0.0
+      ],
+      "input_int8": [
+        127,
+        46,
+        97,
+        38,
+        54,
+        46,
+        48,
+        69,
+        114,
+        63,
+        93,
+        69,
+        82,
+        73,
+        71,
+        78,
+        71,
+        73,
+        71,
+        127
+      ]
+    },
+    {
+      "source_row": 9,
+      "trial_id": "003_rest_03",
+      "true_label": "rest",
+      "expected_index": 2,
+      "expected_label": "rest",
+      "expected_output_int8": [
+        -70,
+        -113,
+        43,
+        -116
+      ],
+      "expected_output_float": [
+        0.2265625,
+        0.05859375,
+        0.66796875,
+        0.046875
+      ],
+      "input_int8": [
+        -37,
+        55,
+        33,
+        62,
+        47,
+        55,
+        54,
+        47,
+        39,
+        63,
+        41,
+        47,
+        44,
+        73,
+        71,
+        78,
+        71,
+        73,
+        71,
+        -37
+      ]
+    },
+    {
+      "source_row": 5401,
+      "trial_id": "311_shoulder_flex_01",
+      "true_label": "shoulder_flex",
+      "expected_index": 3,
+      "expected_label": "shoulder_flex",
+      "expected_output_int8": [
+        -81,
+        -88,
+        -128,
+        42
+      ],
+      "expected_output_float": [
+        0.18359375,
+        0.15625,
+        0.0,
+        0.6640625
+      ],
+      "input_int8": [
+        127,
+        109,
+        127,
+        76,
+        127,
+        109,
+        116,
+        48,
+        49,
+        63,
+        52,
+        48,
+        48,
+        73,
+        71,
+        78,
+        71,
+        73,
+        71,
+        127
+      ]
+    },
+    {
+      "source_row": 0,
+      "trial_id": "001_rest_01",
+      "true_label": "rest",
+      "expected_index": 0,
+      "expected_label": "elbow_extend",
+      "expected_output_int8": [
+        90,
+        -98,
+        -128,
+        -119
+      ],
+      "expected_output_float": [
+        0.8515625,
+        0.1171875,
+        0.0,
+        0.03515625
+      ],
+      "input_int8": [
+        91,
+        56,
+        79,
+        39,
+        58,
+        56,
+        57,
+        47,
+        39,
+        63,
+        41,
+        47,
+        44,
+        73,
+        71,
+        78,
+        71,
+        73,
+        71,
+        91
+      ]
+    },
+    {
+      "source_row": 1,
+      "trial_id": "001_rest_01",
+      "true_label": "rest",
+      "expected_index": 0,
+      "expected_label": "elbow_extend",
+      "expected_output_int8": [
+        18,
+        -63,
+        -99,
+        -112
+      ],
+      "expected_output_float": [
+        0.5703125,
+        0.25390625,
+        0.11328125,
+        0.0625
+      ],
+      "input_int8": [
+        0,
+        62,
+        40,
+        70,
+        58,
+        62,
+        61,
+        47,
+        39,
+        63,
+        41,
+        47,
+        44,
+        73,
+        71,
+        78,
+        71,
+        73,
+        71,
+        0
+      ]
+    },
+    {
+      "source_row": 2,
+      "trial_id": "001_rest_01",
+      "true_label": "rest",
+      "expected_index": 0,
+      "expected_label": "elbow_extend",
+      "expected_output_int8": [
+        -25,
+        -74,
+        -35,
+        -122
+      ],
+      "expected_output_float": [
+        0.40234375,
+        0.2109375,
+        0.36328125,
+        0.0234375
+      ],
+      "input_int8": [
+        -91,
+        61,
+        34,
+        70,
+        51,
+        61,
+        60,
+        47,
+        39,
+        63,
+        41,
+        47,
+        44,
+        73,
+        71,
+        78,
+        71,
+        73,
+        71,
+        -91
+      ]
+    },
+    {
+      "source_row": 3,
+      "trial_id": "002_rest_02",
+      "true_label": "rest",
+      "expected_index": 0,
+      "expected_label": "elbow_extend",
+      "expected_output_int8": [
+        -20,
+        -61,
+        -54,
+        -121
+      ],
+      "expected_output_float": [
+        0.421875,
+        0.26171875,
+        0.2890625,
+        0.02734375
+      ],
+      "input_int8": [
+        -128,
+        58,
+        13,
+        74,
+        47,
+        58,
+        57,
+        47,
+        39,
+        63,
+        41,
+        47,
+        44,
+        73,
+        71,
+        78,
+        71,
+        73,
+        71,
+        -128
+      ]
+    }
+  ]
+}

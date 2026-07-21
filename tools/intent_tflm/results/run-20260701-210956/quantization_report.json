@@ -1,0 +1,9 @@
+{
+  "model_dir": "artifacts\\intent_model\\run-20260701-210956",
+  "input_csv": "data\\sensor_capture\\S01_day2_windows.csv",
+  "representative_limit": 512,
+  "float32_path": "artifacts\\intent_model\\run-20260701-210956\\intent_model_float32.tflite",
+  "float32_size_bytes": 55116,
+  "int8_path": "artifacts\\intent_model\\run-20260701-210956\\intent_model_int8.tflite",
+  "int8_size_bytes": 22232
+}

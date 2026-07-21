@@ -1,0 +1,17 @@
+{
+  "class_names": [
+    "elbow_curl",
+    "rest",
+    "shoulder_flex"
+  ],
+  "label_to_index": {
+    "elbow_curl": 0,
+    "rest": 1,
+    "shoulder_flex": 2
+  },
+  "index_to_label": {
+    "0": "elbow_curl",
+    "1": "rest",
+    "2": "shoulder_flex"
+  }
+}

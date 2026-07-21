@@ -1,0 +1,123 @@
+{
+  "input_file": "data\\sensor_capture\\S01_day4_20260714_20260718_windows_cleaned.csv",
+  "output_dir": "artifacts\\intent_model\\S01_day4_20260714_20260718_cleaned",
+  "model_path": "artifacts\\intent_model\\S01_day4_20260714_20260718_cleaned\\intent_model.keras",
+  "tflite_path": "artifacts\\intent_model\\S01_day4_20260714_20260718_cleaned\\intent_model.tflite",
+  "rows": 13421,
+  "train_rows": 9430,
+  "val_rows": 1976,
+  "test_rows": 2015,
+  "feature_count": 21,
+  "features": [
+    "sample_count",
+    "emg_biceps_mean",
+    "emg_biceps_std",
+    "emg_biceps_min",
+    "emg_biceps_max",
+    "emg_biceps_mav",
+    "emg_biceps_rms",
+    "emg_triceps_mean",
+    "emg_triceps_std",
+    "emg_triceps_min",
+    "emg_triceps_max",
+    "emg_triceps_mav",
+    "emg_triceps_rms",
+    "emg_ant_deltoid_mean",
+    "emg_ant_deltoid_std",
+    "emg_ant_deltoid_min",
+    "emg_ant_deltoid_max",
+    "emg_ant_deltoid_mav",
+    "emg_ant_deltoid_rms",
+    "stale_count",
+    "trial_index_from_id"
+  ],
+  "class_names": [
+    "elbow_extend",
+    "elbow_flex",
+    "rest",
+    "shoulder_flex"
+  ],
+  "class_counts": {
+    "elbow_extend": 4018,
+    "elbow_flex": 4035,
+    "rest": 2954,
+    "shoulder_flex": 2414
+  },
+  "epochs_ran": 410,
+  "max_train_seconds": 1800.0,
+  "elapsed_seconds": 201.792,
+  "test_loss": 0.41879212856292725,
+  "test_accuracy": 0.7955334782600403,
+  "classification_report": {
+    "elbow_extend": {
+      "precision": 0.6349206349206349,
+      "recall": 0.6956521739130435,
+      "f1-score": 0.6639004149377593,
+      "support": 575.0
+    },
+    "elbow_flex": {
+      "precision": 0.6685606060606061,
+      "recall": 0.5983050847457627,
+      "f1-score": 0.631484794275492,
+      "support": 590.0
+    },
+    "rest": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 513.0
+    },
+    "shoulder_flex": {
+      "precision": 0.9796511627906976,
+      "recall": 1.0,
+      "f1-score": 0.9897209985315712,
+      "support": 337.0
+    },
+    "accuracy": 0.7955334987593052,
+    "macro avg": {
+      "precision": 0.8207831009429847,
+      "recall": 0.8234893146647015,
+      "f1-score": 0.8212765519362056,
+      "support": 2015.0
+    },
+    "weighted avg": {
+      "precision": 0.7953709997595969,
+      "recall": 0.7955334987593052,
+      "f1-score": 0.794468855442626,
+      "support": 2015.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      400,
+      175,
+      0,
+      0
+    ],
+    [
+      230,
+      353,
+      0,
+      7
+    ],
+    [
+      0,
+      0,
+      513,
+      0
+    ],
+    [
+      0,
+      0,
+      0,
+      337
+    ]
+  ],
+  "class_weight": {
+    "0": 0.820570831883049,
+    "1": 0.8292296869504046,
+    "2": 1.1647727272727273,
+    "3": 1.3949704142011834
+  },
+  "seed": 42
+}
