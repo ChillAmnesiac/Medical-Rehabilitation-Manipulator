@@ -25,7 +25,7 @@ data/sensor_capture/S01_day4_clean4_20260714_windows.csv
 data/sensor_capture/S01_day4_20260714_20260718_windows_elbow_curl_cleaned.csv
 ```
 
-训练用清洗后 CSV、量化模型与指标结果已打包到 `tools/intent_tflm/`（datasets / results）。原始 raw 采集 CSV 仍保留在本地 `data/sensor_capture/` 且默认 gitignore。
+训练用清洗后 CSV、raw/trials、量化模型与指标结果已打包到 `tools/intent_tflm/`（datasets / results）。本地 `data/sensor_capture/` 仍保留同套数据但默认 gitignore。
 
 ## 数据清洗规则
 

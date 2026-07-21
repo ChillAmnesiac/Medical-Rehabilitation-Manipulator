@@ -4,7 +4,7 @@ This directory packages the EMG intent model training datasets, scripts-related 
 
 ## Layout
 
-- `datasets/`: cleaned window CSVs used for training (not raw capture streams)
+- `datasets/`: full sensor capture set — raw / trials / windows / cleaned training CSVs
 - `results/`: trained model artifacts, metrics, TFLite float/int8 models, quantization reports
 - `docs/`: training result notes
 
@@ -41,4 +41,4 @@ python tools/quantize_intent_tflite_int8.py \
   --input tools/intent_tflm/datasets/S01_day4_20260714_20260718_windows_elbow_curl_cleaned.csv
 ```
 
-Note: large raw capture CSVs remain under local `data/sensor_capture/` and are gitignored.
+Also mirrored locally under `data/sensor_capture/` (that path is gitignored; the GitHub copy lives here).
