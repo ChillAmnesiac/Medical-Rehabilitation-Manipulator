@@ -1,0 +1,20 @@
+{
+  "class_names": [
+    "elbow_extend",
+    "elbow_flex",
+    "rest",
+    "shoulder_flex"
+  ],
+  "label_to_index": {
+    "elbow_extend": 0,
+    "elbow_flex": 1,
+    "rest": 2,
+    "shoulder_flex": 3
+  },
+  "index_to_label": {
+    "0": "elbow_extend",
+    "1": "elbow_flex",
+    "2": "rest",
+    "3": "shoulder_flex"
+  }
+}

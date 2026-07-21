@@ -1,0 +1,97 @@
+{
+  "name": "float32",
+  "model_path": "artifacts\\intent_model\\run-20260701-210956\\intent_model_float32.tflite",
+  "model_size_bytes": 55116,
+  "input_file": "data\\sensor_capture\\S01_day2_windows.csv",
+  "rows": 1174,
+  "accuracy": 0.7597955706984668,
+  "classification_report": {
+    "elbow_extend": {
+      "precision": 0.72264631043257,
+      "recall": 0.7171717171717171,
+      "f1-score": 0.7198986058301647,
+      "support": 396.0
+    },
+    "elbow_flex": {
+      "precision": 0.9040590405904059,
+      "recall": 0.651595744680851,
+      "f1-score": 0.7573415765069552,
+      "support": 376.0
+    },
+    "rest": {
+      "precision": 0.48484848484848486,
+      "recall": 0.7441860465116279,
+      "f1-score": 0.5871559633027523,
+      "support": 86.0
+    },
+    "shoulder_flex": {
+      "precision": 0.791005291005291,
+      "recall": 0.9462025316455697,
+      "f1-score": 0.861671469740634,
+      "support": 316.0
+    },
+    "accuracy": 0.7597955706984668,
+    "macro avg": {
+      "precision": 0.725639781719188,
+      "recall": 0.7647890100024415,
+      "f1-score": 0.7315169038451266,
+      "support": 1174.0
+    },
+    "weighted avg": {
+      "precision": 0.7817280918636559,
+      "recall": 0.7597955706984668,
+      "f1-score": 0.7603269829279705,
+      "support": 1174.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      284,
+      24,
+      26,
+      62
+    ],
+    [
+      72,
+      245,
+      42,
+      17
+    ],
+    [
+      21,
+      1,
+      64,
+      0
+    ],
+    [
+      16,
+      1,
+      0,
+      299
+    ]
+  ],
+  "runtime": {
+    "input_dtype": "<class 'numpy.float32'>",
+    "input_quantization": [
+      0.0,
+      0
+    ],
+    "output_dtype": "<class 'numpy.float32'>",
+    "output_quantization": [
+      0.0,
+      0
+    ],
+    "elapsed_seconds": 0.009339,
+    "rows_per_second": 125708.123,
+    "ops": [
+      "FULLY_CONNECTED",
+      "FULLY_CONNECTED",
+      "FULLY_CONNECTED",
+      "FULLY_CONNECTED",
+      "SOFTMAX",
+      "DELEGATE"
+    ]
+  },
+  "predictions_path": "artifacts\\intent_model\\run-20260701-210956\\tflite_eval\\float32_predictions.csv",
+  "confusion_matrix_path": "artifacts\\intent_model\\run-20260701-210956\\tflite_eval\\float32_confusion_matrix.csv"
+}

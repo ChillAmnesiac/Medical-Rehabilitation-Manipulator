@@ -1,0 +1,5 @@
+,elbow_extend,elbow_flex,rest,shoulder_flex
+elbow_extend,400,175,0,0
+elbow_flex,230,353,0,7
+rest,0,0,513,0
+shoulder_flex,0,0,0,337

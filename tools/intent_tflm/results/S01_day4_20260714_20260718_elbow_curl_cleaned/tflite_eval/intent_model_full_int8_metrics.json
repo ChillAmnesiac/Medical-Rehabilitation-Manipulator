@@ -1,0 +1,82 @@
+{
+  "name": "intent_model_full_int8",
+  "model_path": "artifacts\\intent_model\\S01_day4_20260714_20260718_elbow_curl_cleaned\\intent_model_full_int8.tflite",
+  "model_size_bytes": 22296,
+  "input_file": "data\\sensor_capture\\S01_day4_20260714_20260718_windows_elbow_curl_cleaned.csv",
+  "rows": 2018,
+  "accuracy": 0.985629335976214,
+  "classification_report": {
+    "elbow_curl": {
+      "precision": 1.0,
+      "recall": 0.97581317764804,
+      "f1-score": 0.9877585479105108,
+      "support": 1199.0
+    },
+    "rest": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 485.0
+    },
+    "shoulder_flex": {
+      "precision": 0.9201101928374655,
+      "recall": 1.0,
+      "f1-score": 0.9583931133428981,
+      "support": 334.0
+    },
+    "accuracy": 0.985629335976214,
+    "macro avg": {
+      "precision": 0.9733700642791551,
+      "recall": 0.9919377258826799,
+      "f1-score": 0.9820505537511363,
+      "support": 2018.0
+    },
+    "weighted avg": {
+      "precision": 0.986777405553872,
+      "recall": 0.985629335976214,
+      "f1-score": 0.985840336373256,
+      "support": 2018.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      1170,
+      0,
+      29
+    ],
+    [
+      0,
+      485,
+      0
+    ],
+    [
+      0,
+      0,
+      334
+    ]
+  ],
+  "runtime": {
+    "input_dtype": "<class 'numpy.int8'>",
+    "input_quantization": [
+      0.05868540704250336,
+      -47
+    ],
+    "output_dtype": "<class 'numpy.int8'>",
+    "output_quantization": [
+      0.00390625,
+      -128
+    ],
+    "elapsed_seconds": 0.006575,
+    "rows_per_second": 306904.002,
+    "ops": [
+      "FULLY_CONNECTED",
+      "FULLY_CONNECTED",
+      "FULLY_CONNECTED",
+      "FULLY_CONNECTED",
+      "SOFTMAX",
+      "DELEGATE"
+    ]
+  },
+  "predictions_path": "artifacts\\intent_model\\S01_day4_20260714_20260718_elbow_curl_cleaned\\tflite_eval\\intent_model_full_int8_predictions.csv",
+  "confusion_matrix_path": "artifacts\\intent_model\\S01_day4_20260714_20260718_elbow_curl_cleaned\\tflite_eval\\intent_model_full_int8_confusion_matrix.csv"
+}

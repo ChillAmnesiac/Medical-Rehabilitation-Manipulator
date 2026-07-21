@@ -1,0 +1,105 @@
+{
+  "input_file": "data\\sensor_capture\\S01_day4_20260714_20260718_windows_elbow_curl_cleaned.csv",
+  "output_dir": "artifacts\\intent_model\\S01_day4_20260714_20260718_elbow_curl_cleaned",
+  "model_path": "artifacts\\intent_model\\S01_day4_20260714_20260718_elbow_curl_cleaned\\intent_model.keras",
+  "tflite_path": "artifacts\\intent_model\\S01_day4_20260714_20260718_elbow_curl_cleaned\\intent_model.tflite",
+  "rows": 13421,
+  "train_rows": 9347,
+  "val_rows": 2056,
+  "test_rows": 2018,
+  "feature_count": 21,
+  "features": [
+    "sample_count",
+    "emg_biceps_mean",
+    "emg_biceps_std",
+    "emg_biceps_min",
+    "emg_biceps_max",
+    "emg_biceps_mav",
+    "emg_biceps_rms",
+    "emg_triceps_mean",
+    "emg_triceps_std",
+    "emg_triceps_min",
+    "emg_triceps_max",
+    "emg_triceps_mav",
+    "emg_triceps_rms",
+    "emg_ant_deltoid_mean",
+    "emg_ant_deltoid_std",
+    "emg_ant_deltoid_min",
+    "emg_ant_deltoid_max",
+    "emg_ant_deltoid_mav",
+    "emg_ant_deltoid_rms",
+    "stale_count",
+    "trial_index_from_id"
+  ],
+  "class_names": [
+    "elbow_curl",
+    "rest",
+    "shoulder_flex"
+  ],
+  "class_counts": {
+    "elbow_curl": 8053,
+    "rest": 2954,
+    "shoulder_flex": 2414
+  },
+  "epochs_ran": 423,
+  "max_train_seconds": 1800.0,
+  "elapsed_seconds": 228.577,
+  "test_loss": 0.14947845041751862,
+  "test_accuracy": 0.9881070256233215,
+  "classification_report": {
+    "elbow_curl": {
+      "precision": 1.0,
+      "recall": 0.9799833194328608,
+      "f1-score": 0.9898904802021904,
+      "support": 1199.0
+    },
+    "rest": {
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1-score": 1.0,
+      "support": 485.0
+    },
+    "shoulder_flex": {
+      "precision": 0.9329608938547486,
+      "recall": 1.0,
+      "f1-score": 0.9653179190751445,
+      "support": 334.0
+    },
+    "accuracy": 0.9881070366699702,
+    "macro avg": {
+      "precision": 0.9776536312849161,
+      "recall": 0.993327773144287,
+      "f1-score": 0.9850694664257783,
+      "support": 2018.0
+    },
+    "weighted avg": {
+      "precision": 0.9889043303010338,
+      "recall": 0.9881070366699702,
+      "f1-score": 0.9882531569541748,
+      "support": 2018.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      1175,
+      0,
+      24
+    ],
+    [
+      0,
+      485,
+      0
+    ],
+    [
+      0,
+      0,
+      334
+    ]
+  ],
+  "class_weight": {
+    "0": 0.5517383861637447,
+    "1": 1.5578333333333334,
+    "2": 1.8327450980392157
+  },
+  "seed": 42
+}

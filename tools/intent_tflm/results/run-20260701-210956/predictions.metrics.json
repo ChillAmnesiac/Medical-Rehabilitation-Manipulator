@@ -1,0 +1,77 @@
+{
+  "input_file": "data\\sensor_capture\\S01_day2_windows.csv",
+  "model_dir": "artifacts\\intent_model\\run-20260701-210956",
+  "output_file": "artifacts\\intent_model\\run-20260701-210956\\predictions.csv",
+  "rows": 7559,
+  "class_names": [
+    "elbow_extend",
+    "elbow_flex",
+    "rest",
+    "shoulder_flex"
+  ],
+  "classification_report": {
+    "elbow_extend": {
+      "precision": 0.7114490916772286,
+      "recall": 0.7551569506726458,
+      "f1-score": 0.7326517293887318,
+      "support": 2230.0
+    },
+    "elbow_flex": {
+      "precision": 0.9294052251250695,
+      "recall": 0.6627031311930242,
+      "f1-score": 0.7737158722813512,
+      "support": 2523.0
+    },
+    "rest": {
+      "precision": 0.540796963946869,
+      "recall": 0.892018779342723,
+      "f1-score": 0.6733608978145305,
+      "support": 639.0
+    },
+    "shoulder_flex": {
+      "precision": 0.877297990594271,
+      "recall": 0.946931241347485,
+      "f1-score": 0.9107856191744341,
+      "support": 2167.0
+    },
+    "accuracy": 0.7908453499140098,
+    "macro avg": {
+      "precision": 0.7647373178358596,
+      "recall": 0.8142025256389694,
+      "f1-score": 0.7726285296647619,
+      "support": 7559.0
+    },
+    "weighted avg": {
+      "precision": 0.8173164258513831,
+      "recall": 0.7908453499140098,
+      "f1-score": 0.7924128261353625,
+      "support": 7559.0
+    }
+  },
+  "confusion_matrix": [
+    [
+      1684,
+      109,
+      247,
+      190
+    ],
+    [
+      528,
+      1672,
+      227,
+      96
+    ],
+    [
+      62,
+      6,
+      570,
+      1
+    ],
+    [
+      93,
+      12,
+      10,
+      2052
+    ]
+  ]
+}
